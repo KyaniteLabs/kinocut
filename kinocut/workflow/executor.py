@@ -50,7 +50,7 @@ from .receipt import (
     _wrap_engine_exception,
     _write_receipt,
 )
-from .spec import WorkflowSpec, WorkflowStep, load_spec, parse_spec, validate_spec_path
+from .spec import WorkflowSpec, WorkflowStep, load_spec_bytes, parse_spec, validate_spec_path
 from .status import RunStatus, StepStatus
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
@@ -174,17 +174,48 @@ def _render_one(
 
 
 def _load_render_spec(spec_path: str, variant: str | None) -> tuple[dict[str, Any], WorkflowSpec, Path, str]:
-    """Validate + parse the spec; return (verdict, spec, workspace_root, spec_hash)."""
-    verdict = validate_workflow_spec(spec_path, variant=variant)
+    """Read once, hash, validate and parse the spec (eliminating read-between-validate TOCTOU)."""
     resolved = validate_spec_path(spec_path)
-    data = load_spec(resolved)
-    if variant is not None:
-        data = apply_variant_overrides(data, variant)
-    spec = parse_spec(data)  # real param/input VALUES (verdict carries only names)
+    raw, data = load_spec_bytes(resolved)
+    spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
+    verdict = validate_workflow_spec(spec_path, variant=variant, _preloaded=(resolved, data))
+    effective = apply_variant_overrides(data, variant) if variant is not None else data
+    spec = parse_spec(effective)  # real param/input VALUES (verdict carries only names)
     workspace_root = Path(os.path.realpath(resolved.parent))
-    # spec_hash is the base spec-FILE hash (variant selection is not part of it — §5a).
-    spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
     return verdict, spec, workspace_root, spec_hash
+
+
+def _snapshot_output(output_abs: Path | None) -> tuple[int, int, int] | None:
+    if output_abs is None:
+        return None
+    try:
+        st = output_abs.stat()
+    except OSError:
+        return None
+    return (st.st_ino, st.st_mtime_ns, st.st_size)
+
+
+def _verify_step_output(
+    step: WorkflowStep, adapter: OpAdapter, output_abs: Path | None, before: tuple[int, int, int] | None
+) -> None:
+    if not adapter.has_output or output_abs is None:
+        return
+    if not output_abs.is_file():
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} completed without creating its declared output",
+            "missing_step_output",
+        )
+    st = output_abs.stat()
+    if st.st_size == 0:
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} wrote an empty output file",
+            "missing_step_output",
+        )
+    if before is not None and (st.st_ino, st.st_mtime_ns, st.st_size) == before:
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} left a pre-existing output untouched instead of producing a fresh artifact",
+            "stale_step_output",
+        )
 
 
 def _resolve_run_dir(
@@ -198,6 +229,20 @@ def _resolve_run_dir(
         prior_by_id = {}
         run_dir_rel, run_dir_abs = make_run_dir(workspace_root, spec_hash)
     return resuming, prior_by_id, run_dir_rel, run_dir_abs
+
+
+def _run_and_verify_step(
+    adapter: OpAdapter,
+    step: WorkflowStep,
+    workspace_root: Path,
+    source_paths: dict[str, str],
+    work_paths: dict[str, Path],
+    output_abs: Path | None,
+    run_dir_abs: Path,
+) -> None:
+    before_stat = _snapshot_output(output_abs) if adapter.has_output else None
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+    _verify_step_output(step, adapter, output_abs, before_stat)
 
 
 def _execute_steps(
@@ -264,7 +309,7 @@ def _execute_steps(
             resumed_from = step.id
         started_at = _utcnow()
         try:
-            _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+            _run_and_verify_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
         except Exception as exc:  # fail closed on ANY engine fault, not only MCPVideoError
             failure = _record_failed_step(
                 steps_receipt, step, exc, input_hashes, output_rel, started_at, workspace_root
@@ -455,11 +500,11 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
     error propagates.
     """
     resolved = validate_spec_path(spec_path)
-    data = load_spec(resolved)
+    raw, data = load_spec_bytes(resolved)
     ids = variant_ids(data)
     if not ids:
         raise workflow_error("all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC)
-    spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
     workspace_root = Path(os.path.realpath(resolved.parent))
     _reject_variant_output_collisions(spec_path, ids)
     if save_receipt_dir is not None:

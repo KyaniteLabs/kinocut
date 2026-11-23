@@ -88,8 +88,8 @@ def validate_spec_path(spec_path: str) -> Path:
     return resolved
 
 
-def load_spec(resolved: Path) -> dict[str, Any]:
-    """Read and JSON-decode a validated spec path into a dict."""
+def load_spec_bytes(resolved: Path) -> tuple[bytes, dict[str, Any]]:
+    """Read a validated spec once and return ``(raw_bytes, parsed_dict)``."""
     raw = resolved.read_bytes()
     try:
         data = json.loads(raw.decode("utf-8"))
@@ -97,6 +97,12 @@ def load_spec(resolved: Path) -> dict[str, Any]:
         raise workflow_error(f"invalid workflow JSON: {exception_kind(exc)}", INVALID_WORKFLOW_SPEC) from None
     if not isinstance(data, dict):
         raise workflow_error("workflow spec must be a JSON object", INVALID_WORKFLOW_SPEC)
+    return raw, data
+
+
+def load_spec(resolved: Path) -> dict[str, Any]:
+    """Read and JSON-decode a validated spec path into a dict."""
+    _, data = load_spec_bytes(resolved)
     return data
 
 
