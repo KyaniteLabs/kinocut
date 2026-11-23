@@ -19,9 +19,9 @@ import json
 import logging
 import os
 import tempfile
-from contextlib import ExitStack, contextmanager, suppress
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 from .audio_bed_validation import (
@@ -107,6 +107,18 @@ def _has_video_stream(path: str, *, pass_fds: tuple[int, ...] = ()) -> bool:
 def _has_audio_stream(path: str, *, pass_fds: tuple[int, ...] = ()) -> bool:
     data = _run_ffprobe_json(path, pass_fds=pass_fds)
     return any(s.get("codec_type") == "audio" for s in data.get("streams", []))
+
+
+def _audio_sample_rate(path: str, *, pass_fds: tuple[int, ...] = ()) -> int | None:
+    """First audio stream's sample rate, or None when there is no readable one."""
+    data = _run_ffprobe_json(path, pass_fds=pass_fds)
+    for stream in data.get("streams", []):
+        if stream.get("codec_type") == "audio" and stream.get("sample_rate"):
+            try:
+                return int(stream["sample_rate"])
+            except (TypeError, ValueError):
+                return None
+    return None
 
 
 def _probe_duration(path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
@@ -224,6 +236,7 @@ def _select_filtergraph(
     target_lufs: float,
     loop: bool,
     loop_crossfade: float,
+    output_sample_rate: int,
 ) -> str:
     """Choose and build the duck or no-duck filtergraph for the render pass."""
     if voice_has_audio:
@@ -237,6 +250,7 @@ def _select_filtergraph(
             fade_out=fade_out,
             target_duration=target_duration,
             target_lufs=target_lufs,
+            output_sample_rate=output_sample_rate,
         )
     needs_pad = bed_duration < target_duration and not (loop and loop_crossfade > 0)
     return _build_no_duck_filtergraph(
@@ -246,6 +260,7 @@ def _select_filtergraph(
         target_duration=target_duration,
         target_lufs=target_lufs,
         needs_pad=needs_pad,
+        output_sample_rate=output_sample_rate,
     )
 
 
@@ -268,13 +283,19 @@ def _guarded_render(
     loop: bool,
     loop_crossfade: float,
     bed_duration: float,
+    output_sample_rate: int,
     pass_fds: tuple[int, ...] = (),
-) -> str:
-    """Render to a staging file in the output dir, then atomically publish.
+    verify: Callable[[str], Any] | None = None,
+) -> Any:
+    """Render to a staging file in the output dir, verify it, then atomically publish.
 
     Writes the final output into a private staging path in the same directory
-    as ``output_path``, then ``os.replace`` moves it into place. On any error
-    the staging file and workspace are cleaned up so no partial output remains.
+    as ``output_path``, then ``os.replace`` moves it into place. ``verify`` runs
+    against the staged file inside the transaction, so a failed check aborts
+    with nothing at ``output_path`` instead of deleting an already-published
+    file (and whatever consented overwrite it replaced) afterwards. On any
+    error the staging file and workspace are cleaned up so no partial output
+    remains. Returns whatever ``verify`` returned.
     """
     parent = Path(output_path).parent
     with (
@@ -305,6 +326,7 @@ def _guarded_render(
             target_lufs=target_lufs,
             loop=loop,
             loop_crossfade=loop_crossfade,
+            output_sample_rate=output_sample_rate,
         )
         args = _render_args(
             voice_source,
@@ -317,7 +339,7 @@ def _guarded_render(
             map_video=True,
         )
         _run_ffmpeg(args, pass_fds=pass_fds)
-    return output_path
+        return verify(str(staging)) if verify is not None else None
 
 
 def _resolve_bed_input(
@@ -358,7 +380,8 @@ def _verify_output_duration(
         raise ProcessingError(
             "audio_bed duration verification",
             0,
-            "", reason=f"output duration {actual:.3f}s deviates from keep_video policy "
+            "",
+            reason=f"output duration {actual:.3f}s deviates from keep_video policy "
             f"target {target_duration:.3f}s beyond tolerance {tolerance:.3f}s",
         )
     return actual
@@ -476,6 +499,7 @@ class _BedProbe:
     __slots__ = (
         "bed_duration",
         "music_has_audio",
+        "output_sample_rate",
         "voice_duration",
         "voice_has_audio",
         "voice_has_video",
@@ -488,22 +512,29 @@ class _BedProbe:
         voice_has_audio: bool,
         voice_has_video: bool,
         music_has_audio: bool,
+        output_sample_rate: int,
     ):
         self.voice_duration = voice_duration
         self.bed_duration = bed_duration
         self.voice_has_audio = voice_has_audio
         self.voice_has_video = voice_has_video
         self.music_has_audio = music_has_audio
+        self.output_sample_rate = output_sample_rate
 
 
 def _probe_sources(voice_source: str, music_path: str, *, pass_fds: tuple[int, ...] = ()) -> _BedProbe:
-    """Probe durations and stream topology for both audio-bed sources."""
+    """Probe durations, stream topology and the output rate (the voice's, so loudnorm's 192 kHz never reaches the encoder)."""
     return _BedProbe(
         voice_duration=_probe_duration(voice_source, pass_fds=pass_fds),
         bed_duration=_probe_duration(music_path, pass_fds=pass_fds),
         voice_has_audio=_has_audio_stream(voice_source, pass_fds=pass_fds),
         voice_has_video=_has_video_stream(voice_source, pass_fds=pass_fds),
         music_has_audio=_has_audio_stream(music_path, pass_fds=pass_fds),
+        output_sample_rate=(
+            _audio_sample_rate(voice_source, pass_fds=pass_fds)
+            or _audio_sample_rate(music_path, pass_fds=pass_fds)
+            or 48000
+        ),
     )
 
 
@@ -529,14 +560,19 @@ def _compute_warnings(
     bed_duration: float,
     target_duration: float,
     loop: bool,
+    loop_crossfade: float,
 ) -> list[str]:
     """Collect non-fatal warning codes for the receipt."""
     warnings: list[str] = []
     if not voice_has_audio:
         warnings.append("voice_source_has_no_audio")
         warnings.append("ducking_skipped")
-    if bed_duration < target_duration and not loop:
-        warnings.append("bed_shorter_than_voice_loop_disabled")
+    if bed_duration < target_duration:
+        if not loop:
+            warnings.append("bed_shorter_than_voice_loop_disabled")
+        elif loop_crossfade <= 0:
+            # loop=True promises a bed under the whole voice; a zero crossfade disables it silently.
+            warnings.append("bed_shorter_than_voice_crossfade_zero")
     return warnings
 
 
@@ -590,18 +626,23 @@ def _prepare_audio_bed(probe, loop, loop_crossfade):
         bed_duration=probe.bed_duration,
         target_duration=target_duration,
         loop=loop,
+        loop_crossfade=loop_crossfade,
     )
     return target_duration, needs_loop, warnings
 
 
-def _verify_bed_output(output_path, target_duration, duration_tolerance):
-    """Remove a failed stage before its enclosing transaction can publish it."""
-    try:
-        return _verify_output_duration(output_path, target_duration, duration_tolerance)
-    except ProcessingError:
-        with suppress(OSError):
-            Path(output_path).unlink(missing_ok=True)
-        raise
+def _verify_bed_output(staged_path, target_duration, duration_tolerance, expected_sample_rate):
+    """Verify the staged render inside the publish transaction: a failure leaves nothing at the output path."""
+    output_duration = _verify_output_duration(staged_path, target_duration, duration_tolerance)
+    actual_rate = _audio_sample_rate(staged_path)
+    if actual_rate != expected_sample_rate:
+        raise ProcessingError(
+            "audio_bed sample-rate verification",
+            0,
+            "",
+            reason=f"output audio sample rate {actual_rate} does not match the expected {expected_sample_rate} Hz",
+        )
+    return output_duration
 
 
 def _finalize_audio_bed(
@@ -633,7 +674,7 @@ def _finalize_audio_bed(
 ) -> dict[str, Any]:
     """Render, verify, build receipt, and return the structured result."""
     with _timed_operation() as timing:
-        _guarded_render(
+        output_duration = _guarded_render(
             voice_source,
             music_path,
             output_path,
@@ -651,9 +692,12 @@ def _finalize_audio_bed(
             loop=loop,
             loop_crossfade=loop_crossfade,
             bed_duration=probe.bed_duration,
+            output_sample_rate=probe.output_sample_rate,
             pass_fds=pass_fds,
+            verify=lambda staged: _verify_bed_output(
+                staged, target_duration, duration_tolerance, probe.output_sample_rate
+            ),
         )
-    output_duration = _verify_bed_output(output_path, target_duration, duration_tolerance)
     receipt = _build_receipt(
         voice_source=voice_display_path,
         music_path=music_display_path,
