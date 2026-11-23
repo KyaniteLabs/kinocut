@@ -146,12 +146,15 @@ def refuse_scratch(width: int, height: int, frames: int, hole: bool, work_dir: P
 
 def decode_video_argv(input_path: str, width: int, height: int) -> list[str]:
     del width, height
+    # Frames are reshaped with the probed coded dimensions, so FFmpeg must not
+    # autorotate display-rotated phone footage underneath them.
     return [
         "ffmpeg",
         "-y",
         "-hide_banner",
         "-loglevel",
         "error",
+        "-noautorotate",
         "-i",
         input_path,
         "-frames:v",

@@ -123,7 +123,7 @@ def _download_fsrcnn_model(scale: int) -> Path:
 
     if not model_path.exists():
         url = model_urls[scale]
-        print(f"Downloading FSRCNN x{scale} model...")
+        logger.info("Downloading FSRCNN x%s model...", scale)
         max_model_bytes = 500 * (1 << 20)  # 500 MiB limit
         req = urllib.request.Request(url)  # noqa: S310
         ssl_context = ssl.create_default_context()
@@ -148,7 +148,7 @@ def _download_fsrcnn_model(scale: int) -> Path:
                         )
                     fh.write(chunk)
             _verify_model_hash(tmp_model, expected_hash, delete_invalid=False)
-        print(f"Model saved to {model_path}")
+        logger.info("Model saved to %s", model_path)
 
     _verify_model_hash(model_path, expected_hash)
     return model_path

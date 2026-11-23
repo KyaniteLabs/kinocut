@@ -73,13 +73,12 @@ def _csv(values: list[float] | list[str] | None) -> str | None:
 
 
 def _snapshot_pngs(project: Path, before: set[Path]) -> list[str]:
+    """Only frames Hyperframes wrote during this call; stale frames are never passed off as new."""
     snapshot_dir = project / "snapshots"
     if not snapshot_dir.is_dir():
         return []
-    after = set(snapshot_dir.glob("*.png"))
-    created = after - before
-    paths = sorted(created or after)
-    return [str(path) for path in paths]
+    created = set(snapshot_dir.glob("*.png")) - before
+    return [str(path) for path in sorted(created)]
 
 
 def _json_result(command: str, result: subprocess.CompletedProcess[str]) -> HyperframesJsonResult:
@@ -286,16 +285,25 @@ def _canonical_resolution(value: str | None) -> str | None:
 
 
 def _default_render_output(project_path: str, output_format: str | None) -> str:
-    """Return a format-appropriate default render artifact path."""
-    os.makedirs("out", exist_ok=True)
-    name = Path(project_path).name
+    """Return a format-appropriate default render artifact path inside the project.
+
+    The default used to be ``./out`` relative to the server's working directory,
+    keyed by project basename: two projects with the same name overwrote each
+    other's renders and a read-only working directory broke the render before it
+    started. Keeping the artifact next to the composition (where Hyperframes
+    already writes ``snapshots/``) namespaces it by project and stays writable.
+    """
+    project = Path(project_path)
+    out_dir = project / "renders"
+    os.makedirs(out_dir, exist_ok=True)
+    name = project.name
     match output_format:
         case "png-sequence":
-            return os.path.join("out", f"{name}_frames")
+            return os.path.join(str(out_dir), f"{name}_frames")
         case "webm" | "mov" | "mp4":
-            return os.path.join("out", f"{name}.{output_format}")
+            return os.path.join(str(out_dir), f"{name}.{output_format}")
         case _:
-            return os.path.join("out", f"{name}.mp4")
+            return os.path.join(str(out_dir), f"{name}.mp4")
 
 
 def _render_output_exists(output_path: str, output_format: str | None) -> bool:

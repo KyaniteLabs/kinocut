@@ -99,6 +99,15 @@ def _run_demucs_separation(
         stem_file = model_output_dir / f"{stem}.wav"
         if stem_file.exists():
             result_paths[stem] = str(stem_file)
+    missing = [stem for stem in stems if stem not in result_paths]
+    if missing:
+        # A partial dict read as success left downstream mixes pointing at files that do not exist.
+        raise ProcessingError(
+            " ".join(demucs_cmd),
+            result.returncode,
+            result.stderr,
+            reason=f"Demucs finished but produced no file for requested stem(s): {', '.join(missing)}",
+        )
 
     return result_paths
 
