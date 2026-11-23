@@ -39,7 +39,7 @@ def _plan(tmp_path: Path, source: Path) -> str:
                 "output_dir": str(plan_dir),
                 "intake": {
                     "source_path": str(source),
-                    "source_sha256": "a" * 64,
+                    "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
                     "duration": 60.0,
                     "width": 1920,
                     "height": 1080,
@@ -147,3 +147,16 @@ def test_render_v6_rejects_valid_v5_cache_record(tmp_path, monkeypatch):
     assert result["renders"][0]["cache_hit"] is False
     assert normalized == [{"target_lufs": -14.0, "true_peak_dbtp": -1.5}]
     assert load_shorts_plan(plan_path).renders[0].render_digest != record.render_digest
+
+
+def test_render_refuses_a_source_that_changed_after_review(tmp_path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"reviewed-bytes")
+    plan = _plan(tmp_path, source)
+    review_shorts_plan(plan, candidate_id="candidate_01", decision="approve")
+    _stub(monkeypatch, source)
+    # Re-exported or replaced in place: same path, different footage.
+    source.write_bytes(b"different-footage-same-path")
+    with pytest.raises(MCPVideoError) as exc:
+        render_approved_candidate(plan, candidate_id="candidate_01")
+    assert exc.value.code == "shorts_source_changed"

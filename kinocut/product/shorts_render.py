@@ -27,7 +27,7 @@ from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts
 from .shorts_review import resolve_approved_candidate
 from ..validation_errors import rejected_value
 
-__all__ = ["render_approved_candidate"]
+__all__ = ["expected_render_digests", "render_approved_candidate"]
 
 
 def _file_sha256(path: str) -> str:
@@ -58,6 +58,30 @@ def _render_digest(
         f"{true_peak_dbtp}:{json.dumps(config, sort_keys=True, separators=(',', ':'), default=str)}"
     )
     return hashlib.sha256(material.encode()).hexdigest()[:16]
+
+
+def expected_render_digests(plan: ShortsPlan, candidate: CandidateMoment) -> dict[str, str]:
+    """The render digest every platform draft must carry for this exact approved cut.
+
+    Packaging compares stored renders against this, so a render of an earlier
+    revision (before a re-approved trim or title edit) is never shipped under
+    the new approval.
+    """
+    cand_digest = _candidate_digest(candidate)
+    config = plan.config if isinstance(plan.config, dict) else {}
+    expected: dict[str, str] = {}
+    for platform in plan.platforms:
+        clipped, _rendered, _warning = _clip_bounds(candidate, platform)
+        expected[platform] = _render_digest(
+            source_sha256=plan.intake.source_sha256,
+            candidate_digest=cand_digest,
+            platform=platform,
+            start=clipped.start_seconds,
+            end=clipped.end_seconds,
+            config=config,
+            true_peak_dbtp=DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP,
+        )
+    return expected
 
 
 def _words_for(plan: ShortsPlan, candidate: CandidateMoment) -> list[WordTiming]:
@@ -273,6 +297,20 @@ def render_approved_candidate(
     plan = load_shorts_plan(plan_path_or_dir)
     candidate = resolve_approved_candidate(plan, candidate_id)
     source_path = _validate_input_path(plan.intake.source_path)
+    # The review approved specific source bytes. Rendering whatever now sits at
+    # that path would label different footage with the reviewed identity.
+    if _file_sha256(source_path) != plan.intake.source_sha256:
+        raise MCPVideoError(
+            "Problem: The source no longer matches the reviewed intake. "
+            "Likely cause: the file was replaced or re-exported in place after the plan was proposed. "
+            "Recovery: Re-run the proposal stage from the current source and review the new candidates.",
+            error_type="validation_error",
+            code="shorts_source_changed",
+            suggested_action={
+                "auto_fix": False,
+                "description": "Re-propose the plan; the reviewed source bytes changed.",
+            },
+        )
     base_dir = _safe_render_base(plan, candidate.candidate_id, output_path)
     os.makedirs(base_dir, exist_ok=True)
 

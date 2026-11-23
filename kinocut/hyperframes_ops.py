@@ -705,8 +705,10 @@ def render_and_post(
     output_path: str | None = None,
 ) -> HyperframesPipelineResult:
     """Render a Hyperframes composition, then apply Kinocut post-processing."""
-    # Step 1: Render with Hyperframes
-    render_result = render(project_path, output_path=output_path)
+    # Step 1: Render with Hyperframes. ``output_path`` names the *final* artifact:
+    # when there are post-processing steps the last one writes it, so the
+    # intermediate render goes to its default location instead of colliding with it.
+    render_result = render(project_path, output_path=output_path if not post_process else None)
     hyperframes_output = render_result.output_path
     if not render_result.success:
         raise HyperframesRenderError(

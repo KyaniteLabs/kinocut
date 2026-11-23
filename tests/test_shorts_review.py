@@ -144,3 +144,24 @@ def test_resolve_blocks_unsuitable_even_if_approved(tmp_path):
     with pytest.raises(MCPVideoError) as exc:
         resolve_approved_candidate(plan, "candidate_01")
     assert exc.value.code == "shorts_candidate_unsuitable"
+
+
+def test_material_edit_after_approve_needs_a_new_approval(tmp_path):
+    save_shorts_plan(_plan(tmp_path / "plans"))
+    review_shorts_plan(str(tmp_path / "plans"), candidate_id="candidate_01", decision="approve")
+    trimmed = review_shorts_plan(
+        str(tmp_path / "plans"), candidate_id="candidate_01", decision={"action": "trim", "start": 12.0, "end": 20.0}
+    )
+    # Approval covered the original bounds; the trimmed cut is different content.
+    with pytest.raises(MCPVideoError) as exc:
+        resolve_approved_candidate(trimmed, "candidate_01")
+    assert exc.value.code == "shorts_review_required"
+
+    reapproved = review_shorts_plan(str(tmp_path / "plans"), candidate_id="candidate_01", decision="approve")
+    assert resolve_approved_candidate(reapproved, "candidate_01").start == 12.0
+
+    retitled = review_shorts_plan(
+        str(tmp_path / "plans"), candidate_id="candidate_01", decision={"action": "title_hook_edit", "title": "New"}
+    )
+    with pytest.raises(MCPVideoError):
+        resolve_approved_candidate(retitled, "candidate_01")

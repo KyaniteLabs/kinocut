@@ -12,9 +12,10 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from .captions import CaptionArtifact
-from .package import package_approved_clip
+from .package import _verify_video_checksum, package_approved_clip
 from .package_models import PackageConfig, PackageLineage, ThumbnailSpec
 from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
+from .shorts_render import _file_sha256, expected_render_digests
 from .shorts_review import resolve_approved_candidate
 from ..validation_errors import exception_kind, likely_cause, own_reason
 
@@ -100,6 +101,27 @@ def package_approved_candidate(
         )
 
     requested = package_root or os.path.join(plan.output_dir, candidate.candidate_id, "packages")
+
+    # A render made for an earlier revision must never ship under the current
+    # approval: compare each stored digest with the one this exact cut produces.
+    expected = expected_render_digests(plan, candidate)
+    stale = tuple(record.platform for record in records if record.render_digest != expected.get(record.platform))
+    if stale:
+        raise _package_error(
+            "Platform renders do not match the approved cut.",
+            code="shorts_package_render_stale",
+            cause=f"render digests for {', '.join(stale)} predate the current approved revision.",
+            recovery="Re-run render_approved_candidate(...) for the approved cut, then package again.",
+        )
+
+    # Verify and gate every render before publishing anything: a failed check
+    # must not leave a visible package (or replace an earlier one) behind.
+    gates: dict[str, dict[str, Any] | None] = {}
+    for record in records:
+        if record.output_sha256 is not None:
+            _verify_video_checksum(record.output_sha256, _file_sha256(record.output_path))
+        gates[record.platform] = _gate_package_media(record.output_path, allow_fail=allow_fail)
+
     base = os.path.realpath(os.path.expanduser(requested))
     # Fail closed outside plan.output_dir; package_approved_clip re-validates write paths.
     output_root = os.path.realpath(os.path.expanduser(plan.output_dir))
@@ -133,7 +155,6 @@ def package_approved_candidate(
         )
         if result.manifest_path not in manifests:
             manifests.append(result.manifest_path)
-        gate = _gate_package_media(record.output_path, allow_fail=allow_fail)
         emitted.append(
             {
                 "platform": record.platform,
@@ -141,7 +162,7 @@ def package_approved_candidate(
                 "manifest_path": result.manifest_path,
                 "asset_paths": list(result.asset_paths),
                 "external_posting": False,
-                "quality": gate,
+                "quality": gates[record.platform],
             }
         )
 

@@ -142,6 +142,30 @@ def test_render_and_post_passes_output_path_to_render(tmp_path, monkeypatch):
     assert result.final_output == target
 
 
+def test_render_and_post_keeps_the_intermediate_off_the_final_path(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_render(project_path, output_path=None, **kwargs):
+        calls.append(("render", output_path))
+        return SimpleNamespace(success=True, output_path=str(tmp_path / "default.mp4"))
+
+    def fake_op(current_input, output_path=None, **params):
+        calls.append(("post", current_input, output_path))
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(ops, "render", fake_render)
+    monkeypatch.setattr(ops, "_post_process_ops", lambda: {"resize": fake_op})
+    target = str(tmp_path / "requested.mp4")
+
+    result = ops.render_and_post(
+        str(tmp_path / "proj"), [{"op": "resize", "params": {"width": 100}}], output_path=target
+    )
+
+    # output_path is the final artifact: the render must not write to the same name the post step then overwrites.
+    assert calls == [("render", None), ("post", str(tmp_path / "default.mp4"), target)]
+    assert result.final_output == target
+
+
 # --- D-05: nothing on an MCP path writes to stdout --------------------------------
 
 
