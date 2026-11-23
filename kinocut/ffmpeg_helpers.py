@@ -788,6 +788,7 @@ def _run_ffprobe_json(
 
 def _seconds_to_srt_time(seconds: float) -> str:
     """Convert seconds to SRT time format HH:MM:SS,mmm."""
+    seconds = max(0.0, float(seconds))
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)

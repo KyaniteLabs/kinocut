@@ -32,6 +32,13 @@ _EN_ES: Mapping[str, str] = {
 
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9'-]*")
 
+# Longest keys first so phrases win over their component words.
+# Lookaround instead of \b: \b would also match inside "don't" style tokens.
+_EN_ES_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(r"(?<!\w)" + re.escape(en) + r"(?!\w)", re.IGNORECASE), es)
+    for en, es in sorted(_EN_ES.items(), key=lambda kv: -len(kv[0]))
+)
+
 
 @dataclass(frozen=True)
 class TranslateResult:
@@ -144,10 +151,7 @@ def _offline_map_translate(text: str, source_lang: str, target_lang: str) -> tup
             code="offline_map_pair",
         )
     replaced_words = 0
-    # Longest keys first so phrases win over their component words.
-    for en, es in sorted(_EN_ES.items(), key=lambda kv: -len(kv[0])):
-        # Lookaround instead of \b: \b would also match inside "don't" style tokens.
-        pattern = re.compile(r"(?<!\w)" + re.escape(en) + r"(?!\w)", re.IGNORECASE)
+    for pattern, es in _EN_ES_PATTERNS:
 
         def _swap(match: re.Match[str], replacement: str = es) -> str:
             nonlocal replaced_words

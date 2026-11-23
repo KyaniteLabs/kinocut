@@ -390,3 +390,56 @@ def test_probe_cache_reuses_inode_entry_across_rename(tmp_path):
     hit = _cached_info(str(final), _cache_key(str(final)), require_video=True)
     assert hit is not None
     assert hit.path == str(final)
+
+
+def test_seconds_to_srt_time_clamps_negative_values():
+    """B-DR11: negative Whisper timestamps must clamp to 00:00:00,000."""
+    from kinocut.ffmpeg_helpers import _seconds_to_srt_time
+
+    assert _seconds_to_srt_time(-1.5) == "00:00:00,000"
+    assert _seconds_to_srt_time(3661.25) == "01:01:01,250"
+
+
+def test_aesthetic_is_available_checks_weights_before_importing_torch(monkeypatch):
+    """V-04: aesthetic.is_available() must return False without importing torch when weights are absent."""
+    import builtins
+    from kinocut import aesthetic
+
+    monkeypatch.setattr(aesthetic, "WEIGHTS_SEARCH", ["/nonexistent/nima_weights.pth"])
+    real_import = builtins.__import__
+
+    def fail_torch(name, *args, **kwargs):
+        if name == "torch":
+            raise AssertionError("torch should not be imported before checking weights")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fail_torch)
+    assert aesthetic.is_available() is False
+
+
+def test_shader_effect_prechecks_frame_budget_before_extraction(monkeypatch, tmp_path):
+    """V-15: oversized shader inputs must fail before extracting thousands of PNGs."""
+    from types import SimpleNamespace
+    from kinocut import engine_glitch_shader
+    from kinocut.errors import MCPVideoError
+
+    src = tmp_path / "long.mp4"
+    src.write_bytes(b"fake")
+    out = tmp_path / "out.mp4"
+
+    monkeypatch.setattr(engine_glitch_shader, "_validate_input_path", lambda p: p)
+    monkeypatch.setattr(engine_glitch_shader, "_validate_output_path", lambda p: p)
+    monkeypatch.setattr(engine_glitch_shader, "_check_node", lambda: "node")
+    monkeypatch.setattr(engine_glitch_shader, "_check_shader_dependencies", lambda: None)
+    monkeypatch.setattr(
+        "kinocut.engine_probe.probe",
+        lambda _p: SimpleNamespace(audio_codec=None, duration=600.0, fps=30.0),
+    )
+    monkeypatch.setattr(
+        engine_glitch_shader,
+        "_extract_frames",
+        lambda *_a, **_kw: pytest.fail("_extract_frames must not run for over-limit video"),
+    )
+    with pytest.raises(MCPVideoError) as exc_info:
+        engine_glitch_shader._run_shader_effect("pixel_sort", str(src), str(out), {})
+    assert exc_info.value.code == "too_many_frames"

@@ -243,6 +243,18 @@ def _validate_shader_frame_count(frame_count: int, input_path: str, max_frames: 
         )
 
 
+def _probe_shader_input(input_path: str) -> str | None:
+    """Return audio source path if present and reject videos exceeding MAX_SHADER_FRAMES before extraction."""
+    from .engine_probe import probe
+
+    probe_info = probe(input_path)
+    est_duration = getattr(probe_info, "duration", 0.0) or 0.0
+    est_fps = getattr(probe_info, "fps", 0.0) or 0.0
+    if est_duration > 0 and est_fps > 0 and int(est_duration * est_fps) > MAX_SHADER_FRAMES:
+        _validate_shader_frame_count(int(est_duration * est_fps), input_path)
+    return input_path if probe_info.audio_codec is not None else None
+
+
 def _run_shader_effect(
     effect_name: str,
     input_path: str,
@@ -268,10 +280,9 @@ def _run_shader_effect(
             code="missing_shader_renderer",
         )
     _check_shader_dependencies()
-    from .engine_probe import probe
 
     # Copy audio from the original container to retain codec priming and timing.
-    audio_path = input_path if probe(input_path).audio_codec is not None else None
+    audio_path = _probe_shader_input(input_path)
 
     with tempfile.TemporaryDirectory(prefix="crush_shader_") as tmp:
         frames_dir = os.path.join(tmp, "frames")

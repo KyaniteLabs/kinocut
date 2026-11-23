@@ -263,3 +263,19 @@ def cached_sha256_file(path: Path) -> str:
     """SHA-256 of ``path``, cached by filesystem identity so doctor avoids re-hashing ~1 GB weights."""
     st = path.stat()
     return _sha256_file_stat_cached(str(path), st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
+
+
+def check_sphere_director() -> dict[str, Any]:
+    """Run the optional sphere_director doctor check without crashing doctor on import errors."""
+    try:
+        from .te.sphere_director import doctor_check
+
+        return doctor_check()
+    except Exception as exc:
+        return {
+            "name": "sphere_director",
+            "category": "optional",
+            "required": False,
+            "ok": False,
+            "reason": type(exc).__name__,
+        }
