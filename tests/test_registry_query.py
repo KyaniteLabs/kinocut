@@ -512,3 +512,57 @@ def test_query_beds_pagination(tmp_path):
     ids1 = {r.record_id for r in page.records}
     ids2 = {r.record_id for r in page2.records}
     assert ids1.isdisjoint(ids2)
+
+
+# ---- Roast audit T-05: a verdict must be about the clip it is cited for ----
+
+
+_CLIP = "sha256:" + "c" * 64
+_SOURCE = "sha256:" + "e" * 64
+_UNRELATED = "sha256:" + "d" * 64
+
+
+def test_register_clip_rejects_a_verdict_issued_for_another_asset(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    _seed_asset(proj, _CLIP)
+    _seed_asset(proj, _UNRELATED)
+    verdict_id = _seed_verdict(proj, _UNRELATED)  # approved, but about a different asset
+    decision_id = _seed_decision(proj, _CLIP)
+
+    with pytest.raises(MCPVideoError, match="different asset"):
+        _make_clip(proj, _CLIP, verdict_id, decision_id)
+
+
+def test_a_verdict_on_the_source_covers_a_clip_cut_from_it(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    _seed_asset(proj, _SOURCE)
+    _seed_asset(proj, _CLIP)
+    verdict_id = _seed_verdict(proj, _SOURCE)
+    decision_id = _seed_decision(proj, _CLIP)
+
+    record = _make_clip(proj, _CLIP, verdict_id, decision_id, source_asset_id=_SOURCE)
+
+    assert [clip.record_id for clip in query_approved_clips(proj).records] == [record.record_id]
+
+
+def test_approved_search_skips_a_clip_whose_verdict_is_for_another_asset(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    _seed_asset(proj, _CLIP)
+    _seed_asset(proj, _UNRELATED)
+    verdict_id = _seed_verdict(proj, _UNRELATED)
+    decision_id = _seed_decision(proj, _CLIP)
+    # Bypass registration validation, as a record written before the check would.
+    append_record(
+        proj,
+        ClipRecord(
+            **clip_record_kwargs(
+                project_id=proj.project_id,
+                asset_id=_CLIP,
+                source_asset_id=_CLIP,
+                verdict_id=verdict_id,
+                review_decision_id=decision_id,
+            )
+        ),
+    )
+
+    assert query_approved_clips(proj).records == ()

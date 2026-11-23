@@ -27,6 +27,7 @@ from kinocut.projectstore.store import (
     read_records,
 )
 from kinocut.contracts.registry import BedRecord, ClipRecord, LineageLink
+from kinocut.registry._query import verdict_covers_clip
 
 
 def register_clip(project: Project, record: ClipRecord) -> ClipRecord:
@@ -78,7 +79,10 @@ def _validate_clip_refs(project: Project, record: ClipRecord) -> None:
     """
 
     _check_same_project(record.project_id, project)
-    _find_record_by_id(read_records(project, "clip_verdict"), record.verdict_id, ClipVerdict, "clip verdict")
+    verdict = _find_record_by_id(read_records(project, "clip_verdict"), record.verdict_id, ClipVerdict, "clip verdict")
+    if not verdict_covers_clip(verdict, record):
+        # A verdict issued for an unrelated asset vouches for nothing about this clip.
+        raise contract_error("clip verdict was issued for a different asset", INVALID_RECORD)
     _find_record_by_id(
         read_records(project, "review_decision"),
         record.review_decision_id,
