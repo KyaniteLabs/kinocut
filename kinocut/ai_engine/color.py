@@ -152,6 +152,36 @@ def _apply_lut(video: str, output: str, lut_path: str) -> str:
     return output
 
 
+def _extract_mean_rgb(video_path: str) -> dict:
+    """Extract mean RGB values from a video using the signalstats filter.
+
+    ``signalstats`` only publishes its measurements when a ``metadata=print``
+    filter is attached, and it writes them to stdout as
+    ``lavfi.signalstats.YAVG=<n>`` once per frame. Reading stderr (as this
+    used to) never matched, so every reference "match" was a no-op.
+    """
+    cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"]
+    result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+
+    def mean(channel: str) -> float:
+        values = [float(value) for value in re.findall(rf"lavfi\.signalstats\.{channel}AVG=(-?[\d.]+)", result.stdout)]
+        if not values:
+            raise ValueError(f"signalstats reported no {channel}AVG values")
+        return sum(values) / len(values)
+
+    # signalstats reports limited-range YUV; recentre U and V on 128.
+    y = mean("Y")
+    u = mean("U") - 128
+    v = mean("V") - 128
+
+    # Approximate RGB from YUV
+    return {
+        "r": max(0, min(255, y + 1.402 * v)),
+        "g": max(0, min(255, y - 0.344 * u - 0.714 * v)),
+        "b": max(0, min(255, y + 1.772 * u)),
+    }
+
+
 def _match_reference_colors(video: str, reference: str) -> dict:
     """Analyze reference and return matching parameters.
 
@@ -166,41 +196,10 @@ def _match_reference_colors(video: str, reference: str) -> dict:
         Dict with color adjustment parameters
     """
 
-    def extract_mean_color(video_path: str) -> dict:
-        """Extract mean RGB values from a video using the signalstats filter.
-
-        ``signalstats`` only publishes its measurements when a ``metadata=print``
-        filter is attached, and it writes them to stdout as
-        ``lavfi.signalstats.YAVG=<n>`` once per frame. Reading stderr (as this
-        used to) never matched, so every reference "match" was a no-op.
-        """
-        cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"]
-        result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
-
-        def mean(channel: str) -> float:
-            values = [
-                float(value) for value in re.findall(rf"lavfi\.signalstats\.{channel}AVG=(-?[\d.]+)", result.stdout)
-            ]
-            if not values:
-                raise ValueError(f"signalstats reported no {channel}AVG values")
-            return sum(values) / len(values)
-
-        # signalstats reports limited-range YUV; recentre U and V on 128.
-        y = mean("Y")
-        u = mean("U") - 128
-        v = mean("V") - 128
-
-        # Approximate RGB from YUV
-        return {
-            "r": max(0, min(255, y + 1.402 * v)),
-            "g": max(0, min(255, y - 0.344 * u - 0.714 * v)),
-            "b": max(0, min(255, y + 1.772 * u)),
-        }
-
     try:
         # Extract mean colors from both videos
-        video_colors = extract_mean_color(video)
-        ref_colors = extract_mean_color(reference)
+        video_colors = _extract_mean_rgb(video)
+        ref_colors = _extract_mean_rgb(reference)
 
         # Calculate adjustment ratios
         # Avoid division by zero
