@@ -156,9 +156,13 @@ def test_headline_baseline_numbers_are_pinned():
     default to 15,206 B, all to 119,623 B and editor to 81,706 B.
     video_direct and video_direct_apply (#458) then added two intent tools:
     default 15,242 B, all 208 tools / 120,243 B, editor 115 tools / 81,742 B.
+    The roast-audit docstring corrections for audio_preset, audio_synthesize and
+    video_add_generated_audio (full waveform/effect/preset lists, honest
+    intensity semantics, the real mix behaviour) then grew all to 120,942 B and
+    editor to 82,441 B; tool counts and the default surface are unchanged.
     """
-    assert BASELINE["captured"]["git_commit"] == "4093689cceb678ee4c837e4a5f65adbbb9f22572"
-    for mode, count, total in (("default", 18, 15_242), ("all", 208, 120_243), ("profile:editor", 115, 81_742)):
+    assert BASELINE["captured"]["git_commit"] == "e55450574c3597f830c6a400e17ba961b146a70b"
+    for mode, count, total in (("default", 18, 15_242), ("all", 208, 120_942), ("profile:editor", 115, 82_441)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -228,7 +232,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_242), ("all", 208, 120_243)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_242), ("all", 208, 120_942)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

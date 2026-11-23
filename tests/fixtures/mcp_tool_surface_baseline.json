@@ -1,12 +1,12 @@
 {
  "captured": {
-  "git_commit": "4093689cceb678ee4c837e4a5f65adbbb9f22572",
+  "git_commit": "e55450574c3597f830c6a400e17ba961b146a70b",
   "kind": "repo-modes",
   "kinocut_metadata_version": "2.0.1",
   "kinocut_source_version": "2.0.1",
   "mcp_sdk_version": "1.30.0",
   "platform": "Linux-x86_64",
-  "python_version": "3.14.7"
+  "python_version": "3.13.5"
  },
  "modes": {
   "all": {
@@ -70,8 +70,8 @@
      ]
     },
     {
-     "input_schema_bytes": 715,
-     "input_schema_sha256": "630f7d2f453cbaaa60fd1d772b4a1d27e36b01d1272c34bb6ef01e0f285fc9c7",
+     "input_schema_bytes": 821,
+     "input_schema_sha256": "e157edbe15e1e5b00f7321edbb102655107fa90f0260c2192bbe0c09abaa935f",
      "module": "server_tools_audio",
      "name": "audio_preset",
      "profiles": [
@@ -110,8 +110,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1099,
-     "input_schema_sha256": "4990914245239db63ce2d1d287f69daef93547239c35128b7a499f1022726607",
+     "input_schema_bytes": 1691,
+     "input_schema_sha256": "64ec8568ae3424dc9e6fb46f98df4d195c05fd29618d246919fec3b08b5d4d62",
      "module": "server_tools_audio",
      "name": "audio_synthesize",
      "profiles": [
@@ -1462,8 +1462,8 @@
      ]
     },
     {
-     "input_schema_bytes": 570,
-     "input_schema_sha256": "a95b10eee36aca05ba9d4e6ade772da2b476ca3932abbc40673c65b2046e8363",
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "f11aa53aec602430588b1c4c7a421188b24c5fb9b2671164efe5d9d61d97ea5d",
      "module": "server_tools_audio",
      "name": "video_add_generated_audio",
      "profiles": [
@@ -4173,7 +4173,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 120243
+   "total_input_schema_bytes": 120942
   },
   "default": {
    "launch": {
@@ -4589,8 +4589,8 @@
      ]
     },
     {
-     "input_schema_bytes": 715,
-     "input_schema_sha256": "630f7d2f453cbaaa60fd1d772b4a1d27e36b01d1272c34bb6ef01e0f285fc9c7",
+     "input_schema_bytes": 821,
+     "input_schema_sha256": "e157edbe15e1e5b00f7321edbb102655107fa90f0260c2192bbe0c09abaa935f",
      "module": "server_tools_audio",
      "name": "audio_preset",
      "profiles": [
@@ -4629,8 +4629,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1099,
-     "input_schema_sha256": "4990914245239db63ce2d1d287f69daef93547239c35128b7a499f1022726607",
+     "input_schema_bytes": 1691,
+     "input_schema_sha256": "64ec8568ae3424dc9e6fb46f98df4d195c05fd29618d246919fec3b08b5d4d62",
      "module": "server_tools_audio",
      "name": "audio_synthesize",
      "profiles": [
@@ -5310,8 +5310,8 @@
      ]
     },
     {
-     "input_schema_bytes": 570,
-     "input_schema_sha256": "a95b10eee36aca05ba9d4e6ade772da2b476ca3932abbc40673c65b2046e8363",
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "f11aa53aec602430588b1c4c7a421188b24c5fb9b2671164efe5d9d61d97ea5d",
      "module": "server_tools_audio",
      "name": "video_add_generated_audio",
      "profiles": [
@@ -6882,7 +6882,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81742
+   "total_input_schema_bytes": 82441
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
