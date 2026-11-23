@@ -152,3 +152,12 @@ def test_no_settle_window_probes_once(monkeypatch) -> None:
 
     monkeypatch.setattr(live, "PROVIDERS", (("npm", lambda: ("1.16.5", "")),))
     assert live.verify_claim("2.0.0", sleep=never_sleep) == ["npm: expected 2.0.0, got 1.16.5"]
+
+
+def test_github_token_is_sent_only_to_the_github_api(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "t0ken")
+    assert live._headers("https://api.github.com/repos/o/r/releases/latest")["Authorization"] == "Bearer t0ken"
+    assert "Authorization" not in live._headers("https://pypi.org/pypi/kinocut/json")
+    assert "Authorization" not in live._headers("https://api.github.com.evil.example/x")
+    monkeypatch.delenv("GITHUB_TOKEN")
+    assert "Authorization" not in live._headers("https://api.github.com/repos/o/r/releases/latest")
