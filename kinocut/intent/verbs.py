@@ -16,15 +16,22 @@ INTENT_VERBS: Final[dict[str, dict[str, Any]]] = {
         "summary": "Filler/restart phrase removal with human-reviewable cuts.",
         "async_preferred": True,
         "mutates_media": True,
-        "compat_tools": ("video_find_moments",),
-        "notes": "Uses projectstore disfluency + semantic generators; never silent auto-cut.",
+        "compat_tools": (),
+        "next_action": "not_implemented",
+        "blocked_reason": (
+            "No tool performs filler removal end to end. kinocut.semantic.generate_disfluency_edl "
+            "builds a reviewable EDL from a transcript, but no MCP tool exposes it, and "
+            "video_find_moments only searches a semantic index."
+        ),
+        "notes": "Requires a reviewable disfluency EDL; never silent auto-cut.",
     },
     "reformat_vertical": {
-        "summary": "Speaker-aware 9:16 reframe with subject tracking.",
+        "summary": "Reframe to 9:16 for vertical platforms (resize or crop; no speaker tracking).",
         "async_preferred": True,
         "mutates_media": True,
         "compat_tools": ("video_resize",),
-        "params": {"subject_tracking": "auto"},
+        "params": {"aspect_ratio": "9:16"},
+        "notes": "Plain aspect-ratio resize; Kinocut has no subject-tracking reframe.",
     },
     "cut_to_beats": {
         "summary": "Align cuts to audio beats / bed tempo markers.",
