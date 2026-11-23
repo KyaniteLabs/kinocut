@@ -85,8 +85,8 @@ def _normalize_clips(
             vf_parts.insert(0, "transpose=1")
         seconds = info.duration if on_progress is not None else 0.0
         audio_filter = None
-        if info.audio_codec is not None:
-            vdur = _video_stream_duration(clip) or (float(info.duration) if info.duration else None)
+        if getattr(info, "audio_codec", None) is not None:
+            vdur = _video_stream_duration(clip) or (float(info.duration) if getattr(info, "duration", None) else None)
             if vdur is not None and vdur > 0:
                 audio_filter = f"apad=whole_dur={vdur:.6f},atrim=0:{vdur:.6f},asetpts=PTS-STARTPTS"
         _render(
