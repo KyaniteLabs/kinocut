@@ -50,7 +50,13 @@ def video_publish_gate(
 @mcp.tool()
 @_safe_tool
 def video_review_decision(project_dir: str, decision: dict[str, Any]) -> dict[str, Any]:
-    """Record a human review decision (writer); corrections supersede by record id."""
+    """Record a review decision (writer); corrections supersede by record id.
+
+    The decision must name its ``created_by``. This tool refuses decisions
+    labelled ``human:*``: an agent cannot mint the human approval the publish
+    gate trusts. Agents record ``agent:*`` decisions; a person records human
+    decisions from the kino CLI or the review surface.
+    """
 
     return _run("review_decision", project_dir=project_dir, decision=decision)
 

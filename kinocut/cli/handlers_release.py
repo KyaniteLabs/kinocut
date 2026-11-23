@@ -21,6 +21,8 @@ def _run(operation: str, args: Any, use_json: bool) -> None:
         kwargs = {
             "project_dir": args.project_dir,
             "decision": _parse_json_arg(args.decision_json, "decision-json", use_json),
+            # The CLI is a surface a person operates directly; the MCP tool is not.
+            "human_channel": True,
         }
     elif operation in ("learning_report", "cost_ledger"):
         kwargs = {"project_dir": args.project_dir}

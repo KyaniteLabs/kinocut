@@ -32,16 +32,34 @@ def _run_publish_gate(project_dir: str, candidate_artifact: str, blocking_findin
     return {"success": True, "operation": "publish_gate", "publish_gate": _dump(result)}
 
 
-def _run_review_decision(project_dir: str, decision: dict[str, Any]) -> dict[str, Any]:
+def _run_review_decision(project_dir: str, decision: dict[str, Any], *, human_channel: bool = False) -> dict[str, Any]:
+    """Record a review decision.
+
+    ``created_by`` is never defaulted. Publishability trusts a ``human`` label,
+    so an agent-reachable surface must not be the thing that writes it: unless
+    the caller is a surface a person operates directly (``human_channel=True``,
+    the kino CLI), a decision labelled ``human:*`` is refused. Agents record
+    their decisions as ``agent:*``, which never satisfies the publish gate.
+    """
+    from pydantic import ValidationError
+
     from ..contracts.review import ReviewDecision
     from .review import record_review_decision
 
     project = _existing_project(project_dir)
     payload = dict(decision)
     payload.setdefault("project_id", project.project_id)
-    # publishability requires created_by to start with 'human'
-    payload.setdefault("created_by", "human:review")
-    contract = ReviewDecision.model_validate(payload)
+    if not human_channel and str(payload.get("created_by", "")).startswith("human"):
+        raise _error(
+            "Agents cannot record a human review decision; a person records it from the kino CLI or the review surface",
+            "human_decision_requires_human_channel",
+        )
+    try:
+        contract = ReviewDecision.model_validate(payload)
+    except ValidationError as exc:
+        # Name the offending fields only; never echo the submitted values.
+        fields = ", ".join(".".join(str(part) for part in error["loc"]) for error in exc.errors())
+        raise _error(f"Review decision is invalid at: {fields}", "invalid_review_decision") from None
     stored = record_review_decision(project, contract)
     return {"success": True, "operation": "review_decision", "review_decision": _dump(stored)}
 
@@ -69,7 +87,6 @@ def _run_recipe_capture(project_dir: str, recipe: dict[str, Any]) -> dict[str, A
     project = _existing_project(project_dir)
     payload = dict(recipe)
     payload.setdefault("project_id", project.project_id)
-    payload.setdefault("created_by", "human:recipe")
     contract = WorkflowRecipe.model_validate(payload)
     stored = record_workflow_recipe(project, contract)  # idempotent by canonical digest
     return {"success": True, "operation": "recipe_capture", "workflow_recipe": _dump(stored)}
