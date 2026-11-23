@@ -34,6 +34,7 @@ from .engine_composite_layers_rotate import (
 )
 from .engine_composite_layers_source import (
     _enable_expression,
+    _mask_merge_chains,
     _receipt_source,
     resolve_layer_source,
     resolve_mask_source,
@@ -532,25 +533,29 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
         layer_label = f"layer{idx}"
         out_label = "vout" if idx == len(layers) else f"base{idx}"
         chain = _layer_filter_chain(layer)
-        if layer.blend != "normal" and not is_positioned_blend(layer):
+        full_canvas_blend = layer.blend != "normal" and not is_positioned_blend(layer)
+        if full_canvas_blend:
             # Full-canvas only (validated in _validate_blend_geometry). blend=
             # requires matching-size inputs, so force the source to canvas size.
             width = _escape_ffmpeg_filter_value(str(canvas.width))
             height = _escape_ffmpeg_filter_value(str(canvas.height))
             chain = f"{chain},scale={width}:{height}"
-        chains.append(f"[{layer.input_index}:v]{_start_shift(layer, layer.type)}{chain}[{layer_label}raw]")
         if layer.mask_input_index is not None:
             mask_label = f"{layer_label}mask"
-            layer_ref_label = f"{layer_label}ref"
             mask_type = "image" if layer.mask_src is not None and _is_image_path(layer.mask_src) else "video"
-            chains.append(f"[{layer.mask_input_index}:v]{_start_shift(layer, mask_type)}format=gray[{mask_label}raw]")
-            processed_mask_label = f"{mask_label}processed"
-            chains.extend(mask_effect_chains(layer, f"{mask_label}raw", processed_mask_label))
-            # Bare scale2ref scales the mask to the layer size on all FFmpeg
-            # versions; the rw/rh form only parses on FFmpeg 7+ (breaks FFmpeg 6).
-            chains.append(f"[{processed_mask_label}][{layer_label}raw]scale2ref[{mask_label}][{layer_ref_label}]")
-            chains.append(f"[{layer_ref_label}][{mask_label}]alphamerge[{layer_label}]")
+            chains.extend(
+                _mask_merge_chains(
+                    layer,
+                    canvas,
+                    layer_label=layer_label,
+                    chain=chain,
+                    mask_type=mask_type,
+                    mask_effects=mask_effect_chains(layer, f"{mask_label}raw", f"{mask_label}processed"),
+                    full_canvas_blend=full_canvas_blend,
+                )
+            )
         else:
+            chains.append(f"[{layer.input_index}:v]{_start_shift(layer, layer.type)}{chain}[{layer_label}raw]")
             chains.append(f"[{layer_label}raw]null[{layer_label}]")
         if layer.blend == "normal":
             x, y = overlay_position(layer)
