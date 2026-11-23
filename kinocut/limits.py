@@ -179,7 +179,7 @@ MAX_SHADER_FRAMES = 7200
 MAX_REVERSE_FRAME_BYTES = 2 * 1024 * 1024 * 1024
 
 
-def resolve_ffmpeg_timeout(override: float | None = None) -> float:
+def resolve_ffmpeg_timeout(override: float | None = None, *, default: float = DEFAULT_FFMPEG_TIMEOUT) -> float:
     """Return effective FFmpeg timeout: explicit override, KINOCUT_FFMPEG_TIMEOUT, or default."""
     import math
     import os
@@ -196,4 +196,4 @@ def resolve_ffmpeg_timeout(override: float | None = None) -> float:
             env_val = 0.0
         if math.isfinite(env_val) and env_val > 0:
             return min(env_val, float(MAX_VIDEO_DURATION))
-    return float(DEFAULT_FFMPEG_TIMEOUT)
+    return float(default)

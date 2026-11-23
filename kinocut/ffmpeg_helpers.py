@@ -465,7 +465,7 @@ def _run_ffmpeg(
 
     if args and args[0] in {"ffmpeg", "ffprobe"}:
         raise ValueError("_run_ffmpeg takes raw FFmpeg arguments; use _run_command for full command lists")
-    effective_timeout = resolve_ffmpeg_timeout(timeout)
+    effective_timeout = resolve_ffmpeg_timeout(timeout, default=DEFAULT_FFMPEG_TIMEOUT)
     cmd = [_ffmpeg(), "-y", *args]
     from .staged_writers import staged_ffmpeg_command
 
