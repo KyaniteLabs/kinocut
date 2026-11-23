@@ -124,10 +124,72 @@ def staged_ffmpeg_command(cmd: list[str], pass_fds: tuple[int, ...] = ()):
         stage.release(descriptor)
 
 
+_FFMPEG_VALUE_FLAGS = frozenset(
+    {
+        "-f",
+        "-ss",
+        "-t",
+        "-to",
+        "-r",
+        "-s",
+        "-c",
+        "-c:v",
+        "-c:a",
+        "-c:s",
+        "-vcodec",
+        "-acodec",
+        "-vf",
+        "-af",
+        "-filter:v",
+        "-filter:a",
+        "-filter_complex",
+        "-map",
+        "-metadata",
+        "-b:v",
+        "-b:a",
+        "-ar",
+        "-ac",
+        "-pix_fmt",
+        "-preset",
+        "-crf",
+        "-movflags",
+        "-v",
+        "-loglevel",
+        "-threads",
+        "-loop",
+        "-stream_loop",
+        "-itsoffset",
+        "-frames:v",
+        "-vframes",
+        "-q:v",
+        "-q:a",
+        "-protocol_whitelist",
+    }
+)
+
+
+def _find_output_start(cmd: list[str]) -> int:
+    """Locate the index right after the last real ``-i <input>`` pair without misreading option values."""
+    output_start = 1
+    index = 1
+    end = len(cmd) - 1
+    while index < end:
+        arg = cmd[index]
+        if arg == "-i":
+            output_start = min(index + 2, end)
+            index += 2
+            continue
+        if arg in _FFMPEG_VALUE_FLAGS or arg.startswith(("-metadata:", "-c:", "-b:", "-filter:", "-map_metadata")):
+            index += 2
+            continue
+        index += 1
+    return output_start
+
+
 def _darwin_faststart_command(cmd: list[str]) -> tuple[list[str], bool]:
     if sys.platform != "darwin":
         return cmd, False
-    output_start = max((i + 2 for i, value in enumerate(cmd[:-1]) if value == "-i"), default=1)
+    output_start = _find_output_start(cmd)
     enabled = False
     for index in range(output_start, len(cmd) - 2):
         if cmd[index] == "-movflags":
@@ -151,7 +213,7 @@ def _rewrite_command(cmd, pass_fds, descriptor):
     if prefix is None:
         raise MCPVideoError("Descriptor-backed FFmpeg outputs are unavailable", code="unsafe_path")
     suffix = os.path.splitext(cmd[-1])[1].lower()
-    output_start = max((i + 2 for i, value in enumerate(cmd[:-1]) if value == "-i"), default=1)
+    output_start = _find_output_start(cmd)
     options = cmd[output_start:-1]
     additions = []
     if "-f" not in options:

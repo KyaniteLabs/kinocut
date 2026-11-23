@@ -192,3 +192,36 @@ def test_hyperframes_render_error_classifies_environment_failures():
     err_oom = HyperframesRenderError("hyperframes render", 137, "FATAL ERROR: JavaScript heap out of memory")
     assert "out of memory" in err_oom.suggested_action["description"].lower()
     assert "index.html" not in err_oom.suggested_action["description"]
+
+
+def test_spatial_pan_matrix_preserves_stereo_at_center_and_pans_cleanly():
+    """D-16: center pan must be identity (no mono collapse); hard L/R must isolate channels."""
+    from kinocut.ai_engine.spatial import _spatial_pan_matrix
+
+    assert _spatial_pan_matrix(0.0) == (1.0, 0.0, 0.0, 1.0)
+    assert _spatial_pan_matrix(-1.0) == (1.0, 1.0, 0.0, 0.0)
+    assert _spatial_pan_matrix(1.0) == (0.0, 0.0, 1.0, 1.0)
+    assert _spatial_pan_matrix(0.5) == (0.5, 0.0, 0.5, 1.0)
+
+
+def test_resolve_ffmpeg_timeout_honours_override_and_env(monkeypatch):
+    """B-DR1: FFmpeg timeout must support explicit override and KINOCUT_FFMPEG_TIMEOUT."""
+    from kinocut.limits import DEFAULT_FFMPEG_TIMEOUT, MAX_VIDEO_DURATION, resolve_ffmpeg_timeout
+
+    monkeypatch.delenv("KINOCUT_FFMPEG_TIMEOUT", raising=False)
+    assert resolve_ffmpeg_timeout() == float(DEFAULT_FFMPEG_TIMEOUT)
+    assert resolve_ffmpeg_timeout(1800) == 1800.0
+    assert resolve_ffmpeg_timeout(999999) == float(MAX_VIDEO_DURATION)
+
+    monkeypatch.setenv("KINOCUT_FFMPEG_TIMEOUT", "1200")
+    assert resolve_ffmpeg_timeout() == 1200.0
+    monkeypatch.setenv("KINOCUT_FFMPEG_TIMEOUT", "not-a-number")
+    assert resolve_ffmpeg_timeout() == float(DEFAULT_FFMPEG_TIMEOUT)
+
+
+def test_staged_writers_find_output_start_ignores_flag_values_equal_to_minus_i():
+    """B-DR12: a metadata value literally equal to '-i' must not fool _find_output_start."""
+    from kinocut.staged_writers import _find_output_start
+
+    cmd = ["ffmpeg", "-y", "-i", "in.mp4", "-metadata", "-i", "-c:v", "libx264", "out.mp4"]
+    assert _find_output_start(cmd) == 4
