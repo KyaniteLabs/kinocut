@@ -6,29 +6,20 @@ import math
 import os
 import tempfile
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from ..defaults import DEFAULT_SUBTITLE_STYLE
 from ..errors import MCPVideoError, ProcessingError
 from ..engine_edit import trim
 from ..engine_merge import merge
-from ..engine_probe import probe
-from ..engine_resize import resize
-from ..engine_runtime_utils import _intermediate_outputs, _require_filter, _run_video_only
+from ..engine_resize import crop_framing_filter, render_resize, resize
+from ..engine_runtime_utils import _intermediate_outputs
 from ..engine_subtitle_generate import generate_subtitles
-from ..engine_subtitles import subtitles
-from ..ffmpeg_helpers import (
-    _atomic_output,
-    _build_ffmpeg_cmd,
-    _escape_ffmpeg_filter_path,
-    _run_ffmpeg_with_progress,
-    _validate_input_path,
-    _validate_output_path,
-)
-from ..models import ASPECT_RATIOS, QUALITY_PRESETS
-from ..subtitles_common import filter_safe_ass_workdir, parse_force_style, synthesize_dimensioned_ass
+from ..engine_subtitles import burn_subtitles
+from ..ffmpeg_helpers import _validate_input_path, _validate_output_path
+from ..models import ASPECT_RATIOS, QualityLevel
+from ..subtitles_common import staged_burn_source
 from ..workflow.status import StepStatus
 
 Progress = Callable[[float], None]
@@ -107,7 +98,7 @@ def _segment_parts(segment: Mapping[str, Any] | Sequence[Any], index: int) -> tu
     return start_f, end_f, text
 
 
-def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, str, str]:
+def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, QualityLevel, str]:
     if style is None:
         return None, "high", "pad"
     if isinstance(style, str):
@@ -123,7 +114,7 @@ def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, s
     fit_mode = style.get("fit_mode", "pad")
     if fit_mode not in ("pad", "crop"):
         raise _flow_error("style.fit_mode must be pad or crop")
-    return caption_style, quality, fit_mode
+    return caption_style, cast(QualityLevel, quality), fit_mode
 
 
 def _default_output(input_path: str) -> str:
@@ -318,16 +309,7 @@ def _prepare_captions(
     # a stale companion file next to the requested output.
     subtitle_path = os.path.join(workdir, "captions.srt")
     generated = generate_subtitles(caption_entries, assembled_path, output_path=subtitle_path, burn=False)
-    from ..aivideo.subtitle_advisory import subtitle_advisory
-
-    receipt = _caption_receipt(caption_entries, generated, truncated_captions)
-    receipt["subtitle_qa"] = subtitle_advisory(assembled_path, generated.srt_path, profile="vertical")
-    return generated.srt_path, receipt
-
-
-def _filter_safe_ass_dir(srt: str, output: str) -> str:
-    """Pick an owned directory without filter-hostile apostrophes for transient ASS staging."""
-    return filter_safe_ass_workdir(str(Path(srt).parent), os.path.dirname(os.path.abspath(output)))
+    return generated.srt_path, _caption_receipt(caption_entries, generated, truncated_captions)
 
 
 def _render_crop(
@@ -335,51 +317,19 @@ def _render_crop(
     output: str,
     srt: str | None,
     style: str | None,
-    quality: str,
+    quality: QualityLevel,
     duration: float,
     progress: Progress | None,
-) -> None:
+) -> dict[str, Any] | None:
     """Frame the assembled master and, when present, paint captions in output coordinates."""
-    width, height = ASPECT_RATIOS["9:16"]
-    filters = [
-        "scale='max(2,trunc(iw*sar/2)*2)':ih",
-        "setsar=1",
-        f"scale={width}:{height}:force_original_aspect_ratio=increase:force_divisible_by=2",
-        f"crop={width}:{height}",
-        "setsar=1",
-    ]
-    temp_ass: str | None = None
-    try:
-        if srt is not None:
-            _require_filter("subtitles", "Subtitle burn-in")
-            force_style = parse_force_style(DEFAULT_SUBTITLE_STYLE if style is None else style)
-            ass_dir = _filter_safe_ass_dir(srt, output)
-            try:
-                fd, temp_ass = tempfile.mkstemp(suffix=".ass", prefix="kc_shorts_", dir=ass_dir)
-                with os.fdopen(fd, "w", encoding="utf-8") as handle:
-                    handle.write(synthesize_dimensioned_ass(srt, (width, height)))
-            except OSError as exc:
-                raise MCPVideoError(
-                    "Could not prepare Shorts captions", error_type="processing_error", code="subtitle_prepare_failed"
-                ) from exc
-            filters.append(f"subtitles={_escape_ffmpeg_filter_path(temp_ass)}:force_style='{force_style}'")
-
-        preset = QUALITY_PRESETS[quality]
-        with _atomic_output(output) as staged:
-            args = _build_ffmpeg_cmd(
-                assembled,
-                output_path=staged,
-                video_filter=",".join(filters),
-                audio_codec="copy",
-                crf=preset["crf"],
-                preset=preset["preset"],
-            )
-            _run_video_only(_run_ffmpeg_with_progress, args, duration, progress)
-            probe(staged)
-    finally:
-        if temp_ass is not None:
-            with suppress(OSError):
-                os.unlink(temp_ass)
+    size = ASPECT_RATIOS["9:16"]
+    framing = crop_framing_filter(*size)
+    if srt is None:
+        render_resize(assembled, output, framing, quality, duration, progress)
+        return None
+    with staged_burn_source(srt, assembled, output, style=style, display_size=size) as burn:
+        render_resize(assembled, output, f"{framing},{burn.video_filter}", quality, duration, progress)
+        return burn.advisory(assembled, profile="vertical")
 
 
 def _parse_segments(
@@ -515,14 +465,17 @@ def video_shorts(
             srt, caption_step = _prepare_captions(
                 parsed, segment_durations, assembled_path, workdir, truncated_captions
             )
+            caption_qa = None
             if fit_mode == "crop":
-                _render_crop(
+                caption_qa = _render_crop(
                     assembled_path, final_output, srt, caption_style, quality, seconds, progress.stage(seconds)
                 )
             else:
                 if srt is not None:
                     captioned_path = os.path.join(workdir, "captioned.mp4")
-                    subtitles(assembled_path, srt, output_path=captioned_path, style=caption_style)
+                    _, caption_qa = burn_subtitles(
+                        assembled_path, srt, output_path=captioned_path, style=caption_style, qa_profile="vertical"
+                    )
                     assembled_path = captioned_path
                     progress.finish(seconds)
                 final_output = resize(
@@ -532,5 +485,7 @@ def video_shorts(
                     output_path=final_output,
                     on_progress=progress.stage(seconds),
                 ).output_path
+            if caption_qa is not None:
+                caption_step["subtitle_qa"] = caption_qa
             progress.finish(seconds)
             return _shorts_result(len(trimmed_paths), merge_step, caption_step, final_output, fit_mode)

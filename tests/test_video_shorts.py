@@ -37,10 +37,10 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
         Path(output_path).write_text("captions", encoding="utf-8")
         return SimpleNamespace(srt_path=output_path)
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, *, qa_profile):
         calls.append(("caption", input_path, subtitle_path, style))
         Path(output_path).write_bytes(b"captioned")
-        return SimpleNamespace(output_path=output_path)
+        return SimpleNamespace(output_path=output_path), None
 
     def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         calls.append(("vertical", input_path, aspect_ratio, quality))
@@ -50,7 +50,7 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
     monkeypatch.setattr(shorts_flow, "trim", fake_trim)
     monkeypatch.setattr(shorts_flow, "merge", fake_merge)
     monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
-    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "burn_subtitles", fake_subtitles)
     monkeypatch.setattr(shorts_flow, "resize", fake_resize)
     monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
 
@@ -160,9 +160,9 @@ def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
         Path(output_path).write_text("captions", encoding="utf-8")
         return SimpleNamespace(srt_path=output_path)
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, *, qa_profile):
         Path(output_path).write_bytes(b"captioned")
-        return SimpleNamespace(output_path=output_path)
+        return SimpleNamespace(output_path=output_path), None
 
     def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
@@ -171,7 +171,7 @@ def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
     monkeypatch.setattr(shorts_flow, "trim", fake_trim)
     monkeypatch.setattr(shorts_flow, "merge", fake_merge)
     monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
-    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "burn_subtitles", fake_subtitles)
     monkeypatch.setattr(shorts_flow, "resize", fake_resize)
     monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
 
@@ -222,9 +222,9 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
             warnings=["synthetic generator warning"],
         )
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, *, qa_profile):
         Path(output_path).write_bytes(b"captioned")
-        return SimpleNamespace(output_path=output_path)
+        return SimpleNamespace(output_path=output_path), None
 
     def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
@@ -233,7 +233,7 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     monkeypatch.setattr(shorts_flow, "trim", fake_trim)
     monkeypatch.setattr(shorts_flow, "merge", fake_merge)
     monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
-    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "burn_subtitles", fake_subtitles)
     monkeypatch.setattr(shorts_flow, "resize", fake_resize)
     monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
 
@@ -303,9 +303,9 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
         burned = list(entries)[:1]
         return SimpleNamespace(srt_path=output_path, entry_count=len(burned), entries=burned, warnings=[])
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, *, qa_profile):
         Path(output_path).write_bytes(b"captioned")
-        return SimpleNamespace(output_path=output_path)
+        return SimpleNamespace(output_path=output_path), None
 
     def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
@@ -314,7 +314,7 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
     monkeypatch.setattr(shorts_flow, "trim", fake_trim)
     monkeypatch.setattr(shorts_flow, "merge", fake_merge)
     monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
-    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "burn_subtitles", fake_subtitles)
     monkeypatch.setattr(shorts_flow, "resize", fake_resize)
     monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
 

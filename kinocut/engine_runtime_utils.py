@@ -237,10 +237,23 @@ _AUDIO_COPY_MUX_REJECT_MARKERS = (
 )
 
 
+_AVI_CODEC_HEADER_REASONS = (
+    "invalid argument",
+    "not implemented",
+    "invalid data found when processing input",
+    "operation not permitted",
+)
+
+
 def _is_audio_copy_mux_rejection(stderr_lower: str) -> bool:
-    if any(marker in stderr_lower for marker in _AUDIO_COPY_MUX_REJECT_MARKERS):
-        return True
-    return "could not write header" in stderr_lower and "out#0/avi" in stderr_lower
+    if "out#0/avi" in stderr_lower:
+        header_lines = [line for line in stderr_lower.splitlines() if "could not write header" in line]
+        if header_lines:
+            return any(
+                any(marker in line.rsplit(":", 1)[-1].strip() for marker in _AVI_CODEC_HEADER_REASONS)
+                for line in header_lines
+            )
+    return any(marker in stderr_lower for marker in _AUDIO_COPY_MUX_REJECT_MARKERS)
 
 
 def _command_has_audio_input(args: list[str]) -> bool:
@@ -272,8 +285,10 @@ def _run_video_only(runner, args: list[str], *progress) -> None:
 
         try:
             runner([*args[:codec], "aac", "-b:a", DEFAULT_AUDIO_BITRATE, *args[codec + 1 :]], *progress)
-        except MCPVideoError:
-            raise exc from None
+        except ProcessingError as retry_exc:
+            if _is_audio_copy_mux_rejection(retry_exc.full_stderr.lower()):
+                raise exc from None
+            raise
 
 
 def _movflags_args(output_path: str) -> list[str]:

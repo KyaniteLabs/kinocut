@@ -1,37 +1,30 @@
-"""Shared subtitle render helpers (Plan 01 Task 4).
-
-Centralizes the security-sensitive parts of subtitle burn-in so the burn engine
-and the generator use one implementation:
-
-* ``_subtitle_format`` — closed ``ass``/``srt``/``vtt`` suffix detection.
-* ``parse_force_style`` — a closed-key ``force_style`` parser that escapes/validates
-  every value and rejects hostile input with a stable ``invalid_subtitle_style``
-  (whole-string escaping would break ASS grammar; strip-quotes silently corrupts).
-* ``probe_display_dimensions`` — rotation-normalized display size via ``engine_probe``.
-* ``synthesize_dimensioned_ass`` — converts SRT/VTT to ASS and pins exactly one
-  ``PlayResX``/``PlayResY`` equal to the probed display dimensions so captions are
-  dimension-aware across vertical/horizontal/square without positional breaks.
-"""
+"""Stage and validate the ASS source shared by subtitle burn-in and Shorts."""
 
 from __future__ import annotations
 
 import contextlib
 import os
 import re
+import shutil
 import tempfile
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
+from .defaults import DEFAULT_SUBTITLE_STYLE
 from .engine_probe import probe
+from .engine_runtime_utils import _require_filter
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
+    _escape_ffmpeg_filter_path,
     _escape_ffmpeg_filter_value,
     _run_ffmpeg,
     _validate_input_path,
 )
 from .validation import SUBTITLE_STYLE_KEYS, SUBTITLE_STYLE_VALUE_RE
 
-_ASS_SUFFIXES = (".ass",)
-_SRT_SUFFIXES = (".srt",)
-_VTT_SUFFIXES = (".vtt",)
+_SUBTITLE_FORMATS = {"ass", "srt", "vtt"}
 
 _PLAYRES_LINE = re.compile(r"(?i)^\s*PlayRes[XY]\s*:")
 _SCRIPT_INFO_HEADER = re.compile(r"(?i)^\s*\[Script Info\]\s*$")
@@ -71,16 +64,12 @@ def _style_error() -> MCPVideoError:
     )
 
 
-def _subtitle_format(subtitle_path: str) -> str:
+def _subtitle_format(subtitle_path: str, *, format_hint: str | None = None) -> str:
     """Return ``ass`` | ``srt`` | ``vtt`` for a subtitle path; reject anything else."""
 
-    suffix = os.path.splitext(subtitle_path)[1].lower()
-    if suffix in _ASS_SUFFIXES:
-        return "ass"
-    if suffix in _SRT_SUFFIXES:
-        return "srt"
-    if suffix in _VTT_SUFFIXES:
-        return "vtt"
+    subtitle_format = os.path.splitext(subtitle_path)[1][1:].lower() if format_hint is None else format_hint
+    if subtitle_format in _SUBTITLE_FORMATS:
+        return subtitle_format
     raise MCPVideoError(
         "unsupported subtitle format; expected a .srt, .vtt, or .ass file",
         error_type="validation_error",
@@ -166,32 +155,116 @@ def filter_safe_ass_workdir(*preferred_dirs: str) -> str:
             continue
         if "'" not in candidate and os.path.isdir(candidate):
             return candidate
-    raise MCPVideoError(
+    raise _prepare_error()
+
+
+def _prepare_error() -> MCPVideoError:
+    return MCPVideoError(
         "failed to prepare the subtitle file for burn-in",
         error_type="processing_error",
         code="subtitle_prepare_failed",
     )
 
 
-def synthesize_dimensioned_ass(subtitle_path: str, display_size: tuple[int, int]) -> str:
-    """Convert an SRT/VTT file to ASS and pin one PlayResX/Y = ``display_size``.
+def subtitle_burn_workdir(output_path: str) -> str:
+    return filter_safe_ass_workdir(os.path.dirname(os.path.abspath(output_path)))
 
-    The temporary conversion file is always removed; only the ASS *content* is
-    returned so the caller controls where (and whether) it is written to disk.
-    """
 
-    subtitle_path = _validate_input_path(subtitle_path)
-    width, height = int(display_size[0]), int(display_size[1])
-    fd, temp_ass = tempfile.mkstemp(suffix=".ass")
-    os.close(fd)
+@dataclass(frozen=True)
+class StagedBurnSource:
+    path: str
+    video_filter: str
+    original_path: str
+
+    def advisory(self, media: str, *, profile: str | None = None) -> dict[str, Any]:
+        from .aivideo.subtitle_advisory import subtitle_advisory
+
+        return subtitle_advisory(media, self.original_path, profile=profile, burn_ass=self.path)
+
+
+def _copy_authored_ass(source: str, fd: int) -> None:
     try:
-        _run_ffmpeg(["-y", "-i", subtitle_path, temp_ass])
-        with open(temp_ass, encoding="utf-8", errors="replace") as handle:
-            converted = handle.read()
+        with os.fdopen(fd, "wb") as dst:
+            fd = -1
+            with open(source, "rb") as src:
+                if not any(_has_renderable_ass_dialogue(line.decode("utf-8", errors="replace")) for line in src):
+                    _require_renderable_ass_dialogue("")
+                src.seek(0)
+                shutil.copyfileobj(src, dst)
     finally:
-        if os.path.exists(temp_ass):
+        if fd >= 0:
             with contextlib.suppress(OSError):
-                os.remove(temp_ass)
-    normalized = _normalize_playres(converted, width, height)
-    _require_renderable_ass_dialogue(normalized)
-    return normalized
+                os.close(fd)
+
+
+def _convert_to_dimensioned_ass(
+    source: str,
+    fd: int,
+    subtitle_format: str,
+    display_size: tuple[int, int],
+    workdir: str,
+) -> None:
+    input_format = "webvtt" if subtitle_format == "vtt" else "srt"
+    try:
+        with tempfile.TemporaryDirectory(prefix="kc_ass_", dir=workdir) as private_dir:
+            converted = os.path.join(private_dir, "converted.ass")
+            _run_ffmpeg(["-y", "-f", input_format, "-i", source, converted])
+            normalized = _normalize_playres(
+                Path(converted).read_text(encoding="utf-8", errors="replace"), *display_size
+            )
+        _require_renderable_ass_dialogue(normalized)
+        with os.fdopen(fd, "w", encoding="utf-8") as dst:
+            fd = -1
+            dst.write(normalized)
+    finally:
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
+
+
+@contextlib.contextmanager
+def staged_burn_source(
+    subtitle_path: str,
+    input_path: str,
+    output_path: str,
+    *,
+    style: str | None = None,
+    display_size: tuple[int, int] | None = None,
+    format_hint: str | None = None,
+    workdir_for: Callable[[str], str] = subtitle_burn_workdir,
+) -> Iterator[StagedBurnSource]:
+    """Keep a filter-safe ASS and its filter available through render and advisory QA."""
+    source = _validate_input_path(subtitle_path)
+    subtitle_format = _subtitle_format(source, format_hint=format_hint)
+    _require_filter("subtitles", "Subtitle burn-in")
+    if style is None and subtitle_format != "ass":
+        style = DEFAULT_SUBTITLE_STYLE
+    force_style = parse_force_style(style) if style is not None else None
+
+    path = None
+    fd = -1
+    try:
+        try:
+            workdir = workdir_for(output_path)
+            fd, path = tempfile.mkstemp(suffix=".ass", dir=workdir)
+            if subtitle_format == "ass":
+                owned, fd = fd, -1
+                _copy_authored_ass(source, owned)
+            else:
+                size = display_size if display_size is not None else probe_display_dimensions(input_path)
+                owned, fd = fd, -1
+                _convert_to_dimensioned_ass(source, owned, subtitle_format, size, workdir)
+            video_filter = f"subtitles={_escape_ffmpeg_filter_path(path)}"
+            if force_style is not None:
+                video_filter += f":force_style='{force_style}'"
+        except OSError as exc:
+            raise _prepare_error() from exc
+        finally:
+            if fd >= 0:
+                with contextlib.suppress(OSError):
+                    os.close(fd)
+        yield StagedBurnSource(path, video_filter, source)
+    finally:
+        if path is not None:
+            with contextlib.suppress(OSError):
+                os.unlink(path)

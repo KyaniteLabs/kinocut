@@ -5,9 +5,12 @@ import json
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 
 import pytest
 
+from kinocut.aivideo import subtitle_advisory
+from kinocut.engine_resize import crop_framing_filter
 from kinocut.publication import _files as atomic_publication, _staging as staged_writers
 from kinocut.errors import MCPVideoError
 from kinocut.product import shorts_flow
@@ -96,7 +99,9 @@ def test_shorts_matrix(source, tmp_path, monkeypatch, mode, captioned):
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     assemble = shorts_flow._assemble_segments
     stage = staged_writers.staged_ffmpeg_command
+    advisory = subtitle_advisory.subtitle_advisory
     encodes = []
+    qa_sources = []
 
     def observe(cmd, *args):
         if cmd[-1].endswith(".mp4") and not any(
@@ -110,8 +115,19 @@ def test_shorts_matrix(source, tmp_path, monkeypatch, mode, captioned):
         encodes.clear()
         return result
 
+    def inspect_advisory(media, captions, *, profile=None, burn_ass=None):
+        assert profile == "vertical"
+        assert burn_ass is not None
+        ass = Path(burn_ass).read_text(encoding="utf-8")
+        width, height = (1080, 1920) if mode == "crop" else (640, 360)
+        assert f"PlayResX: {width}\nPlayResY: {height}\n" in ass
+        assert f"subtitles='{burn_ass}'" in encodes[0][encodes[0].index("-vf") + 1]
+        qa_sources.append(Path(burn_ass))
+        return advisory(media, captions, profile=profile, burn_ass=burn_ass)
+
     monkeypatch.setattr(shorts_flow, "_assemble_segments", assembled)
     monkeypatch.setattr(staged_writers, "staged_ffmpeg_command", observe)
+    monkeypatch.setattr(subtitle_advisory, "subtitle_advisory", inspect_advisory)
     output = tmp_path / f"{PATH_MARK}.mp4"
     progress = []
     result = shorts_flow.video_shorts(
@@ -122,6 +138,10 @@ def test_shorts_matrix(source, tmp_path, monkeypatch, mode, captioned):
         on_progress=progress.append,
     )
     assert len(encodes) == (2 if mode == "pad" and captioned else 1)
+    assert len(qa_sources) == int(captioned)
+    assert all(not path.exists() for path in qa_sources)
+    if mode == "crop":
+        assert encodes[0][encodes[0].index("-vf") + 1].partition(",subtitles=")[0] == crop_framing_filter(1080, 1920)
     assert progress == sorted(progress) and 0 <= progress[0] < progress[-1] == pytest.approx(100)
     _assert_media(output, mode, captioned)
     _assert_receipt(result, output, mode, captioned)
@@ -129,7 +149,8 @@ def test_shorts_matrix(source, tmp_path, monkeypatch, mode, captioned):
 
 
 @pytest.mark.parametrize("failure", ["encoder", "publication"])
-def test_crop_failure_private_and_clean(source, tmp_path, monkeypatch, failure):
+@pytest.mark.parametrize("mode", ["crop", "pad"])
+def test_shorts_failure_private_and_clean(source, tmp_path, monkeypatch, failure, mode):
     monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
     output = tmp_path / f"{PATH_MARK}.mp4"
     publish = atomic_publication._publish_without_overwrite
@@ -154,7 +175,7 @@ def test_crop_failure_private_and_clean(source, tmp_path, monkeypatch, failure):
     else:
         monkeypatch.setattr(staged_writers, "staged_ffmpeg_command", reject)
     with pytest.raises(MCPVideoError) as caught:
-        shorts_flow.video_shorts(source, [(0, 0.2, CAPTION)], {"fit_mode": "crop"}, str(output))
+        shorts_flow.video_shorts(source, [(0, 0.2, CAPTION)], {"fit_mode": mode}, str(output))
     assert injected
     _assert_private([str(caught.value), caught.value.to_dict(), getattr(caught.value, "full_stderr", "")])
     if failure == "publication":
@@ -189,6 +210,7 @@ def test_captioned_shorts_succeeds_with_apostrophe_in_tmpdir_or_output_dir(
 
 def test_synthesis_workdir_skips_broken_tmpdir_when_preferred_dir_is_safe(tmp_path, monkeypatch):
     from kinocut.engine_subtitles import _synthesis_workdir
+    from kinocut.subtitles_common import filter_safe_ass_workdir
 
     out_dir = tmp_path / "plain_out"
     out_dir.mkdir()
@@ -204,7 +226,7 @@ def test_synthesis_workdir_skips_broken_tmpdir_when_preferred_dir_is_safe(tmp_pa
     monkeypatch.chdir(safe_cwd)
     assert _synthesis_workdir(str(out_dir / "burned.mp4")) == str(out_dir)
     assert _synthesis_workdir(str(apostrophe_dir / "burned.mp4")) == str(safe_cwd)
-    assert shorts_flow._filter_safe_ass_dir(str(apostrophe_dir / "c.srt"), str(out_dir / "short.mp4")) == str(out_dir)
+    assert filter_safe_ass_workdir(str(apostrophe_dir), str(out_dir)) == str(out_dir)
 
 
 def test_subtitles_fails_closed_when_all_staging_dirs_contain_apostrophe(source, tmp_path, monkeypatch):
@@ -223,3 +245,73 @@ def test_subtitles_fails_closed_when_all_staging_dirs_contain_apostrophe(source,
     assert caught.value.code == "subtitle_prepare_failed"
     assert "creator's workspace" not in str(caught.value)
     assert not output.exists()
+
+
+def test_staged_burn_source_writes_through_owned_descriptor_not_reopened_path(source, tmp_path, monkeypatch):
+    import os
+
+    from kinocut import subtitles_common
+
+    ass = tmp_path / "authored.ass"
+    ass.write_text(
+        "[Script Info]\nPlayResX: 640\nPlayResY: 360\n[Events]\nDialogue: 0,0:00:00.00,0:00:00.20,Default,,0,0,0,,Owned\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "out.mp4"
+    victim = tmp_path / "victim.ass"
+    victim.write_text("DO_NOT_OVERWRITE", encoding="utf-8")
+    real_mkstemp = tempfile.mkstemp
+
+    def _replace_after_create(*args, **kwargs):
+        fd, staged_path = real_mkstemp(*args, **kwargs)
+        # Simulate an attacker swapping the directory entry before the copy runs.
+        os.unlink(staged_path)
+        os.symlink(victim, staged_path)
+        return fd, staged_path
+
+    monkeypatch.setattr(subtitles_common.tempfile, "mkstemp", _replace_after_create)
+    with subtitles_common.staged_burn_source(str(ass), source, str(out)):
+        pass
+    assert victim.read_text(encoding="utf-8") == "DO_NOT_OVERWRITE"
+
+
+@pytest.mark.parametrize(
+    ("reason", "retry_stderr"),
+    [
+        (
+            "No space left on device",
+            "[out#0/avi] Could not write header (incorrect codec parameters ?): No space left on device",
+        ),
+        (
+            "File too large",
+            "[out#0/avi] Could not write header (incorrect codec parameters ?): File too large",
+        ),
+        (
+            "No space left on device",
+            "codec frame size is not set\n"
+            "[out#0/avi] Could not write header (incorrect codec parameters ?): No space left on device",
+        ),
+    ],
+)
+def test_subtitles_aac_retry_preserves_unrelated_retry_failure(
+    sample_video, tmp_path, monkeypatch, reason, retry_stderr
+):
+    from kinocut import engine_subtitles
+    from kinocut.errors import ProcessingError
+
+    srt = tmp_path / "captions.srt"
+    srt.write_text("1\n00:00:00,000 --> 00:00:00,200\nRetry\n", encoding="utf-8")
+    out = tmp_path / "out.mp4"
+    calls: list[list[str]] = []
+
+    def _runner(args):
+        calls.append(list(args))
+        if len(calls) == 1:
+            raise ProcessingError("ffmpeg", 1, "Could not find tag for codec pcm_s16le in stream #1")
+        raise ProcessingError("ffmpeg", 1, retry_stderr)
+
+    monkeypatch.setattr(engine_subtitles, "_run_ffmpeg", _runner)
+    with pytest.raises(ProcessingError) as caught:
+        engine_subtitles.subtitles(sample_video, str(srt), output_path=str(out))
+    assert len(calls) == 2
+    assert reason in caught.value.full_stderr

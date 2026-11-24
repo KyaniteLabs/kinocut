@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import os
-import shutil
-import tempfile
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 
 from .paths import (
     _auto_output_dir,
@@ -55,11 +52,10 @@ def generate_subtitles(
 
     srt_file = _write_srt(entries, input_path, output_path)
     if burn:
-        from .engine_subtitles import subtitles as _burn_subtitles
+        from .engine_subtitles import burn_subtitles
 
         video_out = os.path.join(os.path.dirname(srt_file), "subtitled.mp4")
-        with _srt_burn_source(srt_file) as burn_source:
-            result = _burn_subtitles(input_path, burn_source, output_path=video_out)
+        result, _ = burn_subtitles(input_path, srt_file, output_path=video_out, format_hint="srt")
         return SubtitleResult(
             srt_path=srt_file,
             video_path=result.output_path,
@@ -74,30 +70,6 @@ def generate_subtitles(
         entries=list(entries),
         warnings=warnings,
     )
-
-
-@contextlib.contextmanager
-def _srt_burn_source(srt_file: str) -> Iterator[str]:
-    """Yield a suffix-recognized subtitle path for the canonical burn engine.
-
-    The written content is always SRT, but the engine detects format by suffix.
-    Only a genuine ``.srt`` name may be burned in place; an extensionless name
-    (".../burned") or a *misleading* ``.vtt``/``.ass`` name would be misread, so
-    those get a collision-safe temporary ``.srt`` copy created with ``mkstemp``
-    (which never overwrites an existing sibling file), always cleaned up.
-    """
-    if os.path.splitext(srt_file)[1].lower() == ".srt":
-        yield srt_file
-        return
-    fd, temp_srt = tempfile.mkstemp(suffix=".srt", dir=os.path.dirname(srt_file) or ".")
-    try:
-        with os.fdopen(fd, "wb") as dst, open(srt_file, "rb") as src:
-            shutil.copyfileobj(src, dst)
-        yield temp_srt
-    finally:
-        if os.path.exists(temp_srt):
-            with contextlib.suppress(OSError):
-                os.remove(temp_srt)
 
 
 def _is_real_number(value: object) -> bool:
