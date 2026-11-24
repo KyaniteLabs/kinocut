@@ -6,6 +6,7 @@ from contextlib import suppress
 import os
 from typing import Any
 
+from .._install_hints import pip_install_hint
 from ..errors import MCPVideoError
 from ._longform_merge import _validate_chunk_result_shape
 from ._longform_models import LongformChunk
@@ -13,7 +14,7 @@ from .transcribe import _extract_audio_segment, _format_json_transcript
 
 
 def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
-    """Normalize Whisper output while retaining its real word timing entries."""
+    """Normalize Whisper output while retaining real word timings and raw segment metadata."""
     _validate_chunk_result_shape(result_data)
     raw_segments = [segment for segment in result_data.get("segments") or () if isinstance(segment, dict)]
     formatted = _format_json_transcript(
@@ -22,6 +23,9 @@ def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
         str(result_data.get("language", "unknown")),
     )
     for normalized, raw in zip(formatted["segments"], raw_segments, strict=True):
+        for key, value in raw.items():
+            if key not in normalized:
+                normalized[key] = value
         normalized["words"] = list(raw.get("words") or ())
     return formatted
 
@@ -47,13 +51,16 @@ def _transcribe_chunk(
         try:
             import whisper  # type: ignore[import-not-found]
         except ImportError as exc:
+            # Same contract as the single-file path: the hint names the
+            # version that is actually running (audit row 78).
+            hint = pip_install_hint("transcribe")
             raise MCPVideoError(
-                'Whisper not installed. Install with: pip install "kinocut[transcribe]==2.0.1"',
+                f"Whisper not installed. Install with: {hint}",
                 error_type="dependency_error",
                 code="missing_whisper",
                 suggested_action={
                     "auto_fix": False,
-                    "description": 'Run: pip install "kinocut[transcribe]==2.0.1" to enable transcription',
+                    "description": f"Run: {hint} to enable transcription",
                 },
             ) from exc
         whisper_model = model_cache.get(model) if model_cache is not None else None

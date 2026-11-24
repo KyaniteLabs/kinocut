@@ -28,7 +28,7 @@ _CATALOG: tuple[dict[str, Any], ...] = (
     {"id": "subtitles", "required": ("ffmpeg",), "formats": ("srt", "vtt", "ass")},
     {"id": "audio", "required": ("ffmpeg",), "formats": ("wav", "mp3", "aac", "flac", "ogg")},
     {"id": "ai_transcribe", "required": ("openai_whisper",), "formats": ("srt", "vtt")},
-    {"id": "c2pa_signing", "required": (), "optional": ("c2patool",), "formats": ()},
+    {"id": "c2pa_signing", "required": ("c2patool",), "optional": (), "formats": ()},
     {
         "id": "still_plates",
         "required": ("pillow",),

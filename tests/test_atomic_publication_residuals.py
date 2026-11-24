@@ -26,7 +26,7 @@ def test_missing_output_ancestry_is_created_and_published(tmp_path):
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX descriptor-anchored creation")
 def test_planted_missing_ancestor_symlink_cannot_create_files_in_victim(tmp_path, monkeypatch):
-    from kinocut import atomic_publication
+    from kinocut.publication import _files as atomic_publication
 
     safe, victim = tmp_path / "safe", tmp_path / "victim"
     safe.mkdir()
@@ -50,7 +50,7 @@ def test_planted_missing_ancestor_symlink_cannot_create_files_in_victim(tmp_path
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX symlink race fixture")
 def test_canonical_target_is_revalidated_before_directory_creation(tmp_path, monkeypatch):
-    from kinocut import atomic_publication
+    from kinocut.publication import _files as atomic_publication
 
     safe, home = tmp_path / "safe", tmp_path / "home"
     safe.mkdir()
@@ -79,7 +79,7 @@ def test_canonical_target_is_revalidated_before_directory_creation(tmp_path, mon
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX hostile rename fixture")
 def test_swap_after_staging_check_is_reported_as_partial_publication(tmp_path, monkeypatch):
-    from kinocut import atomic_publication
+    from kinocut.publication import _files as atomic_publication
 
     final, victim = tmp_path / "delivery.mp4", tmp_path / "victim.mp4"
     final.write_bytes(b"prior delivery")
@@ -110,7 +110,7 @@ def test_swap_after_staging_check_is_reported_as_partial_publication(tmp_path, m
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX anchored directory rename fixture")
 def test_directory_swap_during_rename_cannot_certify_a_different_returned_path(tmp_path, monkeypatch):
-    from kinocut import atomic_publication
+    from kinocut.publication import _files as atomic_publication
 
     safe, parked = tmp_path / "safe", tmp_path / "parked"
     safe.mkdir()

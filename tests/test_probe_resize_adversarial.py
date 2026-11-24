@@ -84,6 +84,34 @@ def test_probe_cache_returns_defensive_copies_without_second_subprocess(sample_v
     assert engine_probe.probe(sample_video).width == 640
 
 
+@pytest.mark.parametrize("change", ["unchanged", "replaced", "deleted"])
+def test_single_path_eviction_discards_old_identity(sample_video, tmp_path, monkeypatch, change):
+    from unittest.mock import Mock
+
+    source, other = tmp_path / "source.mp4", tmp_path / "other.mp4"
+    source.write_bytes(Path(sample_video).read_bytes())
+    other.write_bytes(source.read_bytes())
+    read = Mock(wraps=engine_probe._run_ffprobe_json)
+    monkeypatch.setattr(engine_probe, "_run_ffprobe_json", read)
+    engine_probe.probe(str(source))
+    engine_probe.probe(str(other))
+    engine_probe.probe(str(source))
+    assert read.call_count == 2
+    if change == "deleted":
+        source.unlink()
+    elif change == "replaced":
+        replacement = tmp_path / "replacement.mp4"
+        replacement.write_bytes(other.read_bytes())
+        replacement.replace(source)
+    engine_probe.invalidate_probe_cache(str(source))
+    assert len(engine_probe._probe_cache) == 1
+    if change == "deleted":
+        source.write_bytes(other.read_bytes())
+    engine_probe.probe(str(other))
+    engine_probe.probe(str(source))
+    assert read.call_count == 3 and read.call_args.args == (str(source),)
+
+
 def test_audio_probe_cannot_change_video_applicability(sample_audio_wav):
     with pytest.raises(InputFileError, match="No video stream"):
         engine_probe.probe(sample_audio_wav)
@@ -178,3 +206,33 @@ def test_single_dimension_resize_uses_rotated_display_geometry(tmp_path, sample_
     result = engine_resize.resize(rotated, width=300, output_path=output)
     assert result.resolution == "300x400"
     assert engine_probe.probe(output).display_resolution == "300x400"
+
+
+def test_invalidate_probe_cache_via_deleted_symlink_evicts_target(tmp_path, sample_video, monkeypatch):
+    import os
+
+    target = tmp_path / "target.mp4"
+    target.write_bytes(Path(sample_video).read_bytes())
+    alias = tmp_path / "alias.mp4"
+    os.symlink(target, alias)
+    engine_probe.invalidate_probe_cache()
+    calls = 0
+    real_ffprobe = engine_probe._run_ffprobe_json
+
+    def counted_ffprobe(path, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_ffprobe(path, *args, **kwargs)
+
+    monkeypatch.setattr(engine_probe, "_run_ffprobe_json", counted_ffprobe)
+    engine_probe.probe(str(alias))
+    assert calls == 1
+    info = engine_probe.probe(str(target))
+    assert calls == 1
+    # Simulate a concurrent direct-path probe finishing after the symlink probe.
+    real_target = os.path.realpath(target)
+    engine_probe._cache_info(real_target, engine_probe._cache_key(real_target), info, has_video=True, alias=real_target)
+    alias.unlink()
+    engine_probe.invalidate_probe_cache(str(alias))
+    engine_probe.probe(str(target))
+    assert calls == 2

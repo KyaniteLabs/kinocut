@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import os
-from contextlib import suppress
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 
 try:
     import fcntl
@@ -16,6 +18,7 @@ except ImportError:  # pragma: no cover - unavailable on Windows
 from kinocut.defaults import DEFAULT_BODY_SWAP_HASH_BUFFER_BYTES
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_input_path
+from kinocut.hashing import stream_sha256
 
 
 @dataclass(frozen=True)
@@ -70,29 +73,40 @@ def _identity_error(message: str) -> MCPVideoError:
     )
 
 
-def stream_source_identity(path: str) -> SourceIdentity:
-    """Hash one stable source stream and bind its byte count."""
-
+@contextmanager
+def _stable_source(path: str) -> Iterator[BinaryIO]:
     try:
         validated = _validate_input_path(path)
     except MCPVideoError as exc:
         raise _identity_error("source identity cannot be verified") from exc
-    digest = hashlib.sha256()
-    size = 0
     try:
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
         fd = os.open(validated, flags)
         with os.fdopen(fd, "rb") as source:
             before = os.fstat(source.fileno())
-            while chunk := source.read(DEFAULT_BODY_SWAP_HASH_BUFFER_BYTES):
-                digest.update(chunk)
-                size += len(chunk)
+            yield source
             after = os.fstat(source.fileno())
     except OSError:
         raise _identity_error("source identity cannot be verified") from None
     markers = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
     if any(getattr(before, field) != getattr(after, field) for field in markers):
         raise _identity_error("source changed while verifying identity")
+
+
+def stable_source_sha256(path: str | Path) -> str:
+    """Hash raw bytes without relaxing descriptor stability or input validation."""
+    with _stable_source(str(path)) as source:
+        return "sha256:" + stream_sha256(source)
+
+
+def stream_source_identity(path: str) -> SourceIdentity:
+    """Hash one stable source stream and bind its byte count."""
+    digest = hashlib.sha256()
+    size = 0
+    with _stable_source(path) as source:
+        while chunk := source.read(DEFAULT_BODY_SWAP_HASH_BUFFER_BYTES):
+            digest.update(chunk)
+            size += len(chunk)
     return SourceIdentity(asset_id="sha256:" + digest.hexdigest(), byte_size=size)
 
 

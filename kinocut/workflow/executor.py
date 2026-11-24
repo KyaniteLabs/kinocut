@@ -50,7 +50,7 @@ from .receipt import (
     _wrap_engine_exception,
     _write_receipt,
 )
-from .spec import WorkflowSpec, WorkflowStep, load_spec, parse_spec, validate_spec_path
+from .spec import WorkflowSpec, WorkflowStep, load_spec_bytes, parse_spec, validate_spec_path
 from .status import RunStatus, StepStatus
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
@@ -115,9 +115,11 @@ def _render_one(
     save_receipt: str | None,
     variant: str | None,
     keep_intermediates: bool,
+    *,
+    _preloaded: tuple[Path, dict[str, Any], str] | None = None,
 ) -> dict[str, Any]:
     """Render exactly one spec (base or a single variant) and return its receipt."""
-    verdict, spec, workspace_root, spec_hash = _load_render_spec(spec_path, variant)
+    verdict, spec, workspace_root, spec_hash = _load_render_spec(spec_path, variant, _preloaded=_preloaded)
     source_paths: dict[str, str] = verdict["source_paths"]
     output_paths: dict[str, str] = verdict["output_paths"]
     resuming, prior_by_id, run_dir_rel, run_dir_abs = _resolve_run_dir(
@@ -173,18 +175,57 @@ def _render_one(
 # --- Single-spec render helpers ---
 
 
-def _load_render_spec(spec_path: str, variant: str | None) -> tuple[dict[str, Any], WorkflowSpec, Path, str]:
-    """Validate + parse the spec; return (verdict, spec, workspace_root, spec_hash)."""
-    verdict = validate_workflow_spec(spec_path, variant=variant)
-    resolved = validate_spec_path(spec_path)
-    data = load_spec(resolved)
-    if variant is not None:
-        data = apply_variant_overrides(data, variant)
-    spec = parse_spec(data)  # real param/input VALUES (verdict carries only names)
+def _load_render_spec(
+    spec_path: str,
+    variant: str | None,
+    *,
+    _preloaded: tuple[Path, dict[str, Any], str] | None = None,
+) -> tuple[dict[str, Any], WorkflowSpec, Path, str]:
+    """Read once, hash, validate and parse the spec (eliminating read-between-validate TOCTOU)."""
+    if _preloaded is not None:
+        resolved, data, spec_hash = _preloaded
+    else:
+        resolved = validate_spec_path(spec_path)
+        raw, data = load_spec_bytes(resolved)
+        spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
+    verdict = validate_workflow_spec(spec_path, variant=variant, _preloaded=(resolved, data))
+    effective = apply_variant_overrides(data, variant) if variant is not None else data
+    spec = parse_spec(effective)  # real param/input VALUES (verdict carries only names)
     workspace_root = Path(os.path.realpath(resolved.parent))
-    # spec_hash is the base spec-FILE hash (variant selection is not part of it — §5a).
-    spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
     return verdict, spec, workspace_root, spec_hash
+
+
+def _snapshot_output(output_abs: Path | None) -> tuple[int, int, int] | None:
+    if output_abs is None:
+        return None
+    try:
+        st = output_abs.stat()
+    except OSError:
+        return None
+    return (st.st_ino, st.st_mtime_ns, st.st_size)
+
+
+def _verify_step_output(
+    step: WorkflowStep, adapter: OpAdapter, output_abs: Path | None, before: tuple[int, int, int] | None
+) -> None:
+    if not adapter.has_output or output_abs is None:
+        return
+    if not output_abs.is_file():
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} completed without creating its declared output",
+            "missing_step_output",
+        )
+    st = output_abs.stat()
+    if st.st_size == 0:
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} wrote an empty output file",
+            "missing_step_output",
+        )
+    if before is not None and (st.st_ino, st.st_mtime_ns, st.st_size) == before:
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} left a pre-existing output untouched instead of producing a fresh artifact",
+            "stale_step_output",
+        )
 
 
 def _resolve_run_dir(
@@ -198,6 +239,20 @@ def _resolve_run_dir(
         prior_by_id = {}
         run_dir_rel, run_dir_abs = make_run_dir(workspace_root, spec_hash)
     return resuming, prior_by_id, run_dir_rel, run_dir_abs
+
+
+def _run_and_verify_step(
+    adapter: OpAdapter,
+    step: WorkflowStep,
+    workspace_root: Path,
+    source_paths: dict[str, str],
+    work_paths: dict[str, Path],
+    output_abs: Path | None,
+    run_dir_abs: Path,
+) -> None:
+    before_stat = _snapshot_output(output_abs) if adapter.has_output else None
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+    _verify_step_output(step, adapter, output_abs, before_stat)
 
 
 def _execute_steps(
@@ -264,7 +319,7 @@ def _execute_steps(
             resumed_from = step.id
         started_at = _utcnow()
         try:
-            _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+            _run_and_verify_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
         except Exception as exc:  # fail closed on ANY engine fault, not only MCPVideoError
             failure = _record_failed_step(
                 steps_receipt, step, exc, input_hashes, output_rel, started_at, workspace_root
@@ -455,20 +510,21 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
     error propagates.
     """
     resolved = validate_spec_path(spec_path)
-    data = load_spec(resolved)
+    raw, data = load_spec_bytes(resolved)
     ids = variant_ids(data)
     if not ids:
         raise workflow_error("all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC)
-    spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
     workspace_root = Path(os.path.realpath(resolved.parent))
-    _reject_variant_output_collisions(spec_path, ids)
+    snapshot = (resolved, data, spec_hash)
+    _reject_variant_output_collisions(spec_path, ids, _preloaded=(resolved, data))
     if save_receipt_dir is not None:
         _ensure_receipt_dir(save_receipt_dir, workspace_root)
 
     receipts: list[dict[str, Any]] = []
     for variant_id in ids:
         save_path = _variant_receipt_path(save_receipt_dir, variant_id)
-        receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates))
+        receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates, _preloaded=snapshot))
 
     return {
         "schema_version": 1,
@@ -483,7 +539,12 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
     }
 
 
-def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
+def _reject_variant_output_collisions(
+    spec_path: str,
+    ids: list[str],
+    *,
+    _preloaded: tuple[Path, dict[str, Any]] | None = None,
+) -> None:
     """Fail closed when two variants resolve an output to the SAME path.
 
     Auto-naming keeps default outputs distinct per variant, but two variants can
@@ -493,7 +554,7 @@ def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
     """
     seen: dict[str, str] = {}  # resolved output path -> owning variant id
     for variant_id in ids:
-        verdict = validate_workflow_spec(spec_path, variant=variant_id)
+        verdict = validate_workflow_spec(spec_path, variant=variant_id, _preloaded=_preloaded)
         for output_path in verdict["output_paths"].values():
             prior = seen.get(output_path)
             if prior is not None:

@@ -333,11 +333,15 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
         "aliases": {"output": "output_path"},
     },
     "hyperframes_to_mcpvideo": {"category": "media", "return_type": MEDIA_RETURN, "aliases": {"output": "output_path"}},
-    "hyperframes_compositions": {"category": "report", "return_type": "list", "aliases": {}},
-    "hyperframes_preview": {"category": "report", "return_type": "dict", "aliases": {}},
-    "hyperframes_init": {"category": "report", "return_type": "dict", "aliases": {"output_dir": "output_path"}},
-    "hyperframes_add_block": {"category": "report", "return_type": "dict", "aliases": {}},
-    "hyperframes_validate": {"category": "report", "return_type": "dict", "aliases": {}},
+    "hyperframes_compositions": {"category": "report", "return_type": "CompositionsResult", "aliases": {}},
+    "hyperframes_preview": {"category": "report", "return_type": "HyperframesPreviewResult", "aliases": {}},
+    "hyperframes_init": {
+        "category": "report",
+        "return_type": "HyperframesProjectResult",
+        "aliases": {"output_dir": "output_path"},
+    },
+    "hyperframes_add_block": {"category": "report", "return_type": "HyperframesBlockResult", "aliases": {}},
+    "hyperframes_validate": {"category": "report", "return_type": "HyperframesValidationResult", "aliases": {}},
     "repurpose_plan": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},
     "repurpose": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},
     # Image/report methods
@@ -355,7 +359,7 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "release_checkpoint": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},
     "design_quality_check": {
         "category": "report",
-        "return_type": "DesignQualityReport",
+        "return_type": "dict",
         "aliases": {"video": "input_path"},
     },
     "fix_design_issues": {

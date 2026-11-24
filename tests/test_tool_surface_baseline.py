@@ -27,6 +27,7 @@ import hashlib
 import json
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
@@ -156,9 +157,15 @@ def test_headline_baseline_numbers_are_pinned():
     default to 15,206 B, all to 119,623 B and editor to 81,706 B.
     video_direct and video_direct_apply (#458) then added two intent tools:
     default 15,242 B, all 208 tools / 120,243 B, editor 115 tools / 81,742 B.
+    The roast-audit docstring corrections for audio_preset, audio_synthesize and
+    video_add_generated_audio (full waveform/effect/preset lists, honest
+    intensity semantics, the real mix behaviour) then grew all to 120,942 B and
+    editor to 82,441 B; tool counts and the default surface are unchanged.
+    Shorts crop help and removal of the packaging QC bypass changed the totals
+    to 15,357 B, 121,009 B and 82,508 B, respectively.
     """
-    assert BASELINE["captured"]["git_commit"] == "4093689cceb678ee4c837e4a5f65adbbb9f22572"
-    for mode, count, total in (("default", 18, 15_242), ("all", 208, 120_243), ("profile:editor", 115, 81_742)):
+    assert BASELINE["captured"]["git_commit"] == "1f87d401bb2ed10bc88c99ab7df48fa559d14f38"
+    for mode, count, total in (("default", 18, 15_349), ("all", 208, 121_009), ("profile:editor", 115, 82_500)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -201,25 +208,23 @@ def test_in_process_surface_matches_baseline_byte_for_byte(mode):
 # --- re-derivation 2: real stdio client (the bytes clients see) -------------------
 
 
-def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
+@asynccontextmanager
+async def _stdio_session(mode: str, state: Path):
     from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
+    from mcp.client.stdio import get_default_environment, stdio_client
 
+    env = get_default_environment() | {"KINOCUT_STATE_DIR": str(state)}
+    if mode != "default":
+        env["KINOCUT_TOOLS"] = mode
+    params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"], env=env, cwd=ROOT)
+    async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+        await session.initialize()
+        yield session
+
+
+def _stdio_surface(mode: str, state: Path) -> tuple[int, int, list[str]]:
     async def capture() -> tuple[int, int, list[str]]:
-        from mcp.client.stdio import get_default_environment
-
-        if mode == "default":
-            # Hermetic by construction: build the SDK's safe allowlist
-            # environment explicitly and select the default mode by hand, so
-            # an ambient KINOCUT_TOOLS on the test host can never change what
-            # "default" measures (the allowlist never carries KINOCUT_TOOLS
-            # or PYTHONPATH; "" selects the default mode exactly like unset).
-            env = get_default_environment() | {"KINOCUT_TOOLS": ""}
-        else:
-            env = {**os.environ, "KINOCUT_TOOLS": mode}
-        params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"], env=env)
-        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
-            await session.initialize()
+        async with _stdio_session(mode, state) as session:
             tools = await session.list_tools()
         names = sorted(tool.name for tool in tools.tools)
         total = sum(len(canonical_schema_bytes(tool.inputSchema)) for tool in tools.tools)
@@ -228,20 +233,35 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_242), ("all", 208, 120_243)])
-def test_stdio_wire_surface_matches_baseline(mode, count, total):
-    wire_count, wire_total, names = _stdio_surface(mode)
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_349), ("all", 208, 121_009)])
+def test_stdio_wire_surface_matches_baseline(mode, count, total, tmp_path):
+    wire_count, wire_total, names = _stdio_surface(mode, tmp_path)
     baseline = BASELINE["modes"][mode]
     assert wire_count == count == baseline["tool_count"], mode
     assert wire_total == total == baseline["total_input_schema_bytes"], mode
     assert names == [row["name"] for row in baseline["tools"]], mode
 
 
-def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools():
-    _, _, names = _stdio_surface("default")
+@pytest.mark.asyncio
+async def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools(tmp_path, sample_video):
     from kinocut.tool_families import FAMILY_SURFACE_TOOLS
 
-    assert names == sorted(set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS))
+    operation = "video_audio_waveform"
+    async with _stdio_session("default", tmp_path) as session:
+        names = {tool.name for tool in (await session.list_tools()).tools}
+        assert names == set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS)
+        assert len(names) == 18 and operation not in names
+        listing = await session.call_tool("list_operations", {"query": operation})
+        (row,) = listing.structuredContent["operations"]
+        assert row["name"] == operation
+        description = await session.call_tool("describe_operation", {"operation": operation})
+        assert "bins" in description.structuredContent["inputSchema"]["properties"]
+        result = await session.call_tool(row["family"], {"operation": operation, "input_path": sample_video, "bins": 2})
+        assert (
+            not result.isError and result.structuredContent["success"] and len(result.structuredContent["peaks"]) == 2
+        )
+        hidden = await session.call_tool(operation, {"input_path": sample_video, "bins": 2})
+        assert hidden.isError and operation in hidden.content[0].text
 
 
 # --- re-derivation 3: declarative registry inventory ------------------------------

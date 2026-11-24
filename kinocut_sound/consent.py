@@ -35,10 +35,20 @@ class ConsentState(StrEnum):
     MISSING = "missing"
 
 
+class BiometricRetention(StrEnum):
+    """Closed vocabulary for biometric material: a misspelled code must be an error, not a silent keep."""
+
+    DELETE = "delete"
+    DELETE_AFTER_USE = "delete_after_use"
+    DELETE_ON_REVOCATION = "delete_on_revocation"
+    QUARANTINE_ON_REVOCATION = "quarantine_on_revocation"
+    RETAIN = "retain"
+
+
 class RetentionPolicy(FrozenModel):
     """How biometric and audit material is retained after expiry/revocation."""
 
-    biometric_retention: str
+    biometric_retention: BiometricRetention
     audit_retention: str
 
     @field_validator("biometric_retention", "audit_retention")
@@ -48,7 +58,14 @@ class RetentionPolicy(FrozenModel):
 
 
 class ConsentScope(FrozenModel):
-    """What a grant authorizes: projects, characters, ops, providers, territory."""
+    """What a grant authorizes: projects, characters, ops, providers, territory.
+
+    ``operations`` must name at least one operation; a grant that names none
+    is refused at authorization time instead of authorizing every operation.
+    An empty ``project_ids``, ``character_ids`` or ``provider_classes`` leaves
+    the grant unrestricted in that dimension, so list them whenever the grant
+    should be bound to specific projects, people or providers.
+    """
 
     project_ids: tuple[str, ...] = ()
     character_ids: tuple[str, ...] = ()

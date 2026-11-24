@@ -72,7 +72,7 @@ def test_direct_human_output_collapses_home_but_json_preserves_it(home, capsys):
         "estimate": {"step_count": 0},
     }
     result = {"success": True, "plan": plan, "assumptions": [], "question": None, "plan_id": "fixture"}
-    with patch("kinocut.server_tools_direct.video_direct", return_value=result):
+    with patch("kinocut.direct.executor.review", return_value=result):
         handle_direct_command(args, use_json=False)
         human = capsys.readouterr().out
         handle_direct_command(args, use_json=True)
@@ -102,7 +102,7 @@ def test_direct_human_output_hides_non_ascii_and_windows_home_paths(home, monkey
         overwrite=False,
     )
     result = {"success": True, "plan": {"output_path": cut}, "question": None}
-    with patch("kinocut.server_tools_direct.video_direct", return_value=result):
+    with patch("kinocut.direct.executor.review", return_value=result):
         handle_direct_command(args, use_json=False)
         human = capsys.readouterr().out
         handle_direct_command(args, use_json=True)

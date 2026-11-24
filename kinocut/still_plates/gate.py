@@ -7,7 +7,9 @@ from typing import Any
 
 from ..defaults import STILL_GATE_MAX_LUMA_SPREAD, STILL_GATE_MAX_SHADOW_GREEN_CYAN
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_artifact_path, _validate_output_path
 from .io import (
+    confined_leaf,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -16,6 +18,67 @@ from .io import (
     write_receipt,
 )
 from .stats import package_metrics
+
+
+class _Frames:
+    def __init__(self, paths: list[Path]):
+        self.paths = paths
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __iter__(self):
+        return (load_rgb_array(path) for path in self.paths)
+
+
+def _gate_destinations(out_dir: Path, sheet_name: str, receipt_name: str) -> tuple[Path, Path]:
+    sheet = confined_leaf(out_dir, sheet_name)
+    receipt = confined_leaf(out_dir, receipt_name)
+    _validate_output_path(str(sheet))
+    _validate_artifact_path(str(receipt))
+    if sheet == receipt:
+        raise MCPVideoError("Gate outputs must be distinct", error_type="validation_error", code="invalid_output_path")
+    return sheet, receipt
+
+
+def _collect_gate_failures(
+    paths: list[Path],
+    metrics: dict[str, Any],
+    max_luma_spread: float,
+    max_shadow_green_cyan: float,
+) -> list[dict[str, Any]]:
+    failures: list[dict[str, Any]] = []
+    if metrics["luma_spread"] > max_luma_spread:
+        lumas = [fm["mean_luma"] for fm in metrics["per_frame"]]
+        dark_i = min(range(len(lumas)), key=lambda i: lumas[i])
+        bright_i = max(range(len(lumas)), key=lambda i: lumas[i])
+        failures.append(
+            {
+                "metric": "luma_spread",
+                "value": metrics["luma_spread"],
+                "threshold": max_luma_spread,
+                "frame": str(paths[bright_i]),
+                "frame_index": bright_i,
+                "darkest_frame": str(paths[dark_i]),
+                "darkest_frame_index": dark_i,
+                "brightest_frame": str(paths[bright_i]),
+                "brightest_frame_index": bright_i,
+            }
+        )
+    if metrics["shadow_green_cyan_max"] > max_shadow_green_cyan:
+        worst_i = max(
+            range(len(metrics["per_frame"])), key=lambda i: metrics["per_frame"][i]["shadow_green_cyan_fraction"]
+        )
+        failures.append(
+            {
+                "metric": "shadow_green_cyan_fraction",
+                "value": metrics["shadow_green_cyan_max"],
+                "threshold": max_shadow_green_cyan,
+                "frame": str(paths[worst_i]),
+                "frame_index": worst_i,
+            }
+        )
+    return failures
 
 
 def still_gate(
@@ -35,49 +98,14 @@ def still_gate(
             code="empty_inputs",
         )
     paths = [validate_still_path(p) for p in inputs]
+    sheet_dest, receipt_dest = _gate_destinations(
+        Path(output_dir).expanduser().resolve(), contact_sheet_name, receipt_name
+    )
     out_dir = ensure_output_dir(output_dir)
-    frames = [load_rgb_array(p) for p in paths]
-    metrics = package_metrics(frames)
+    metrics = package_metrics(_Frames(paths))
+    failures = _collect_gate_failures(paths, metrics, max_luma_spread, max_shadow_green_cyan)
 
-    failures: list[dict[str, Any]] = []
-    if metrics["luma_spread"] > max_luma_spread:
-        # Name the darkest and brightest frames by mean luma.
-        lumas = [fm["mean_luma"] for fm in metrics["per_frame"]]
-        dark_i = min(range(len(lumas)), key=lambda i: lumas[i])
-        bright_i = max(range(len(lumas)), key=lambda i: lumas[i])
-        failures.append(
-            {
-                "metric": "luma_spread",
-                "value": metrics["luma_spread"],
-                "threshold": max_luma_spread,
-                "frame": str(paths[bright_i]),
-                "frame_index": bright_i,
-                "darkest_frame": str(paths[dark_i]),
-                "darkest_frame_index": dark_i,
-                "brightest_frame": str(paths[bright_i]),
-                "brightest_frame_index": bright_i,
-            }
-        )
-    if metrics["shadow_green_cyan_max"] > max_shadow_green_cyan:
-        # Name the worst frame.
-        worst_i = 0
-        worst_v = -1.0
-        for i, fm in enumerate(metrics["per_frame"]):
-            v = fm["shadow_green_cyan_fraction"]
-            if v > worst_v:
-                worst_v = v
-                worst_i = i
-        failures.append(
-            {
-                "metric": "shadow_green_cyan_fraction",
-                "value": metrics["shadow_green_cyan_max"],
-                "threshold": max_shadow_green_cyan,
-                "frame": str(paths[worst_i]),
-                "frame_index": worst_i,
-            }
-        )
-
-    sheet_path = _write_contact_sheet(paths, out_dir / contact_sheet_name)
+    sheet_path = _write_contact_sheet(paths, sheet_dest)
     passed = len(failures) == 0
     receipt = {
         "tool": "still_gate",
@@ -93,7 +121,7 @@ def still_gate(
         "contact_sheet": str(sheet_path),
         "exit_code": 0 if passed else 1,
     }
-    receipt_path = write_receipt(out_dir / receipt_name, receipt)
+    receipt_path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
     return receipt
@@ -104,19 +132,15 @@ def _write_contact_sheet(paths: list[Path], dest: Path) -> Path:
     require_still_deps()
     from PIL import Image
 
-    images = []
-    for p in paths:
-        with Image.open(p) as im:
-            images.append(im.convert("RGB").copy())
-    if not images:
+    if not paths:
         raise MCPVideoError("no images for contact sheet", error_type="validation_error", code="empty_inputs")
 
     thumb_h = 256
     thumbs = []
-    for im in images:
-        w, h = im.size
-        scale = thumb_h / max(h, 1)
-        thumbs.append(im.resize((max(1, int(w * scale)), thumb_h)))
+    for path in paths:
+        with Image.open(path) as image:
+            width, height = image.size
+            thumbs.append(image.convert("RGB").resize((max(1, int(width * (thumb_h / max(height, 1)))), thumb_h)))
 
     gap = 8
     total_w = sum(t.size[0] for t in thumbs) + gap * (len(thumbs) + 1)
@@ -125,6 +149,7 @@ def _write_contact_sheet(paths: list[Path], dest: Path) -> Path:
     for t in thumbs:
         sheet.paste(t, (x, gap))
         x += t.size[0] + gap
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(dest)
+    fmt = Image.registered_extensions().get(dest.suffix.lower()) or "PNG"
+    with _atomic_output(_validate_output_path(str(dest))) as staged, _open_staged_writer(staged) as stream:
+        sheet.save(stream, format=fmt)
     return dest.resolve()

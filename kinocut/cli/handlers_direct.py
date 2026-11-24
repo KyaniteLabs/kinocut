@@ -11,13 +11,19 @@ from .home_paths import collapse_home
 def handle_direct_command(args, *, use_json: bool) -> bool:
     if args.command != "direct":
         return False
-    from ..server_tools_direct import video_direct, video_direct_apply
+    from ..direct import executor
+    from ..operation_results import _error_result
+    from ..output_policy import output_operation
+    from ..tool_routing import retry_context
 
-    result = video_direct(args.input, args.direction, output_path=args.output)
-    if args.apply and result.get("success") and not result.get("question"):
-        result = video_direct_apply(
-            result["plan"], confirm=True, overwrite=args.overwrite or getattr(args, "allow_existing_output", False)
-        )
+    with retry_context("direct", cli=True):
+        try:
+            result = executor.review(args.input, args.direction, output_path=args.output)
+            if args.apply and result.get("success") and not result.get("question"):
+                with output_operation(args.overwrite or getattr(args, "allow_existing_output", False)):
+                    result = executor.apply(result["plan"], confirm=True)
+        except Exception as exc:
+            result = _error_result(exc)
     if use_json:
         output_json(result)
     else:

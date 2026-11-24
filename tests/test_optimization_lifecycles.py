@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+from contextlib import ExitStack
 from pathlib import Path
 import struct
 import sys
@@ -123,10 +124,12 @@ def test_thumbnail_candidates_live_during_scoring_and_clean_up_afterwards(monkey
     # Keep this focused on file lifetime; the minimum duration is checked elsewhere.
     monkeypatch.setattr(smart_thumbnail, "DEFAULT_NIMA_MIN_DURATION", 0)
     if fail:
-        with pytest.raises(RuntimeError, match="scoring failed"):
-            smart_thumbnail._select_best_with_nima(sample_video, 3)
+        with pytest.raises(RuntimeError, match="scoring failed"), ExitStack() as stack:
+            smart_thumbnail._select_best_with_nima(sample_video, 3, stack, ".jpg")
     else:
-        assert smart_thumbnail._select_best_with_nima(sample_video, 3) == pytest.approx(1.5)
+        with smart_thumbnail.selected_frame(sample_video, 3) as (timestamp, path):
+            assert timestamp == pytest.approx(1.5)
+            assert Path(path).is_file()
     assert len(seen) == 3
     assert all(not Path(path).exists() for path in seen)
     assert not Path(seen[0]).parent.exists()

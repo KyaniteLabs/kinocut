@@ -42,9 +42,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
-from typing import Any
-
-from .output_ledger import _state_dir
+from typing import Any, cast
 
 ENV_REQUEST_LOG = "KINOCUT_REQUEST_LOG"
 _LOG_NAME = "request_log.jsonl"
@@ -127,14 +125,14 @@ def redact_text(text: str) -> str:
     return text
 
 
-def _redact_value(value: Any) -> Any:
+def _redact_value(value: object) -> object:
     """Return a redacted copy of ``value``; never mutates the input."""
     if isinstance(value, str):
         return redact_text(value)
     if isinstance(value, dict):
-        return {redact_text(str(key)): _redact_value(item) for key, item in value.items()}
+        return {redact_text(str(key)): _redact_value(item) for key, item in cast(dict[object, object], value).items()}
     if isinstance(value, (list, tuple)):
-        return [_redact_value(item) for item in value]
+        return [_redact_value(item) for item in cast(list[object] | tuple[object, ...], value)]
     return value
 
 
@@ -148,7 +146,9 @@ def resolve_log_path() -> Path | None:
     if raw.lower() in _FALSY:
         return None
     if raw.lower() in _TRUTHY:
-        return Path(_state_dir()) / _LOG_NAME
+        from .output_ledger import state_dir
+
+        return Path(state_dir()) / _LOG_NAME
     return Path(raw).expanduser()
 
 

@@ -8,7 +8,7 @@ import pytest
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_write_path
 from kinocut.output_policy import output_operation
-from kinocut.projectstore.receipt_ownership import durable_receipt_ownership
+from kinocut.publication import durable_receipt_ownership
 from kinocut.workflow.receipt import _write_receipt
 
 
@@ -19,6 +19,24 @@ def test_durable_receipt_is_owned_after_restart(tmp_path):
     with output_operation(), durable_receipt_ownership(target):
         _write_receipt({"status": "completed"}, str(target), tmp_path, overwrite=True)
     assert '"completed"' in target.read_text()
+
+
+def test_anchored_artifact_automatically_witnesses_receipt_before_publishing(tmp_path):
+    from kinocut.publication import atomic_artifact, open_staged_writer
+
+    target = tmp_path / "receipt.json"
+    with (
+        output_operation(),
+        durable_receipt_ownership(target),
+        atomic_artifact(str(target)) as staged,
+        open_staged_writer(staged) as stream,
+    ):
+        stream.write(b"{}")
+    (witness,) = (tmp_path / ".receipt.json.ownership").iterdir()
+    assert witness.samefile(target)
+    with output_operation(), durable_receipt_ownership(target):
+        _write_receipt({"status": "completed"}, str(target), tmp_path, overwrite=True)
+    assert target.read_bytes() != b"{}"
 
 
 @pytest.mark.parametrize("replace_owned", [False, True])

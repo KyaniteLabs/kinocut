@@ -42,10 +42,15 @@ def fade(
     _validate_output_path(output)
     identity = _source_identity(input_path)
     metadata = _run_ffprobe_json(input_path)
-    start, duration = _packet_extent(input_path, "v:0")
+    container_start = _timestamp(metadata.get("format", {}).get("start_time")) or 0.0
+    if fade_out > 0:
+        start, duration = _packet_extent(input_path, "v:0")
+    else:
+        video = next((s for s in metadata.get("streams", []) if s.get("codec_type") == "video"), {})
+        stream_start = _timestamp(video.get("start_time"))
+        start, duration = container_start if stream_start is None else stream_start, 0.0
     if _source_identity(input_path) != identity:
         raise _timeline_error("Source changed while measuring its timeline", "media_source_changed")
-    container_start = _timestamp(metadata.get("format", {}).get("start_time")) or 0.0
     origin = start - container_start
 
     vf_parts: list[str] = []

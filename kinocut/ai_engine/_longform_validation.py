@@ -27,7 +27,7 @@ def _validate_longform_path(video: str) -> str:
     duration = _get_video_duration(video)
     if duration <= 0:
         raise MCPVideoError(
-            f"Could not determine positive duration for {video!r}",
+            "Could not determine a positive media duration",
             error_type="validation_error",
             code="invalid_input",
         )

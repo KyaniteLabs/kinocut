@@ -26,8 +26,8 @@ def _classification_script(workflow):
             break
         body.append(line)
     script = textwrap.dedent("\n".join(body))
-    for expression in ("github.event.before", "github.event.pull_request.base.sha"):
-        script = script.replace("${{ " + expression + " }}", "${FIXTURE_BASE_SHA}")
+    script = script.replace("${{ github.event.pull_request.base.sha }}", "${FIXTURE_PR_BASE_SHA:-}")
+    script = script.replace("${{ github.event.before }}", "${FIXTURE_BASE_SHA}")
     for expression in ("github.sha", "github.event.pull_request.head.sha"):
         script = script.replace("${{ " + expression + " }}", "${FIXTURE_HEAD_SHA}")
     assert script and "${{" not in script
@@ -89,12 +89,12 @@ def repository(tmp_path):
     return _Repository(directory)
 
 
-@pytest.fixture(params=["ci.yml", "pr-safety.yml"])
+@pytest.fixture(params=["ci.yml"])
 def workflow(request):
     return request.param
 
 
-def _classify(repository, workflow, tmp_path, head, base=None):
+def _classify(repository, workflow, tmp_path, head, base=None, pr_base=""):
     runner_temp = tmp_path / "runner-temp"
     runner_temp.mkdir()
     output = tmp_path / "github-output"
@@ -102,6 +102,7 @@ def _classify(repository, workflow, tmp_path, head, base=None):
         "RUNNER_TEMP": str(runner_temp),
         "GITHUB_OUTPUT": str(output),
         "FIXTURE_BASE_SHA": repository.base if base is None else base,
+        "FIXTURE_PR_BASE_SHA": pr_base,
         "FIXTURE_HEAD_SHA": head,
     }
     result = subprocess.run(
@@ -141,7 +142,7 @@ def _assert_classification(result, values, workflow, code, docker):
         ("Dockerfile", True, False, True),
         (".dockerignore", False, False, True),
         (".github/workflows/ci.yml", True, True, True),
-        (".github/workflows/pr-safety.yml", True, True, False),
+        (".github/actions/cache-ffmpeg/action.yml", True, False, False),
         (".github/workflows/integration-smoke.yml", True, True, False),
         (".github/workflows/mcpb.yml", True, True, False),
         (".github/workflows/publish.yml", True, True, False),
@@ -149,7 +150,7 @@ def _assert_classification(result, values, workflow, code, docker):
         (".github/scripts/check-hyperframes-results.py", True, True, False),
         (".github/scripts/check-built-artifacts.py", True, True, False),
         (".github/scripts/future-guard.py", True, True, False),
-        ("scripts/annotate-pytest-failures.py", False, True, False),
+        ("scripts/annotate-pytest-failures.py", True, True, False),
         ("docs/guide.md", False, False, False),
         ("CHANGELOG.md", False, False, False),
     ],
@@ -233,13 +234,6 @@ def test_large_changes_preserve_early_matches_without_pipefail(repository, workf
     _assert_classification(result, values, workflow, first_path is not None, first_path == "mcp_video.py")
 
 
-def test_invalid_base_fails_closed_and_cleans_private_list(repository, tmp_path):
-    repository.write("kinocut/feature.py")
-    result, values = _classify(repository, "pr-safety.yml", tmp_path, repository.commit(), base="f" * 40)
-    assert result.returncode != 0
-    assert values == {}, "Failed Git comparison must not publish a successful skip"
-
-
 @pytest.mark.parametrize("base", ["", "0" * 40])
 def test_master_without_event_base_validates_parent_difference(repository, tmp_path, base):
     repository.write("kinocut/feature.py")
@@ -260,3 +254,35 @@ def test_unreachable_event_base_runs_every_check(repository, tmp_path, path):
     result, values = _classify(repository, "ci.yml", tmp_path, repository.commit(), base="f" * 40)
     _assert_classification(result, values, "ci.yml", True, True)
     assert "running every check" in result.stdout
+
+
+def test_pr_uses_pull_request_base_not_latest_push_delta(repository, tmp_path):
+    """A code commit followed by a docs-only push on a PR must still classify code=true."""
+    pr_base = repository.base
+    repository.write("kinocut/feature.py")
+    prior_head = repository.commit()
+    repository.write("docs/guide.md")
+    latest_head = repository.commit()
+    result, values = _classify(repository, "ci.yml", tmp_path, latest_head, base=prior_head, pr_base=pr_base)
+    _assert_classification(result, values, "ci.yml", True, True)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "docs/public_claims.json",
+        "README.md",
+        "llms.txt",
+        "qa/runner.py",
+        "scripts/run_full_suite.py",
+        "server.json",
+        "Dockerfile.ci",
+    ],
+)
+def test_claims_qa_scripts_and_manifests_trigger_code_suite(repository, tmp_path, path):
+    target = repository.directory / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("updated fixture content\n")
+    result, values = _classify(repository, "ci.yml", tmp_path, repository.commit())
+    assert result.returncode == 0, result.stderr
+    assert values["code"] == "true"

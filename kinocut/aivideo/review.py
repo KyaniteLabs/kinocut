@@ -89,10 +89,12 @@ def _states_for_candidate(project: Project, candidate: str) -> list[ApprovalStat
     ]
 
 
-def _active_state(project: Project, candidate: str) -> ApprovalState | None:
-    states = _states_for_candidate(project, candidate)
+def _active_state(states: list[ApprovalState]) -> ApprovalState | None:
     superseded = {item.supersedes for item in states if item.supersedes is not None}
     active = [item for item in states if item.record_id not in superseded]
+    for item in active:
+        if item.state in {ApprovalStateValue.REJECTED, ApprovalStateValue.INVALIDATED}:
+            return item
     return active[-1] if active else None
 
 
@@ -157,6 +159,13 @@ def _active_defects(project: Project) -> list[DefectFinding]:
     return [item for item in rows if item.record_id not in superseded]
 
 
+def _open_defect_ids(project: Project) -> tuple[str, ...]:
+    """Ids of active defects whose status blocks publishing."""
+    return tuple(
+        finding.record_id for finding in _active_defects(project) if finding.status not in _NON_BLOCKING_DEFECT_STATUSES
+    )
+
+
 def review_package(
     project: Project,
     candidate_artifact: str,
@@ -168,16 +177,13 @@ def review_package(
     gate = evaluate_publish_gate(project, candidate_artifact, blocking_findings=blocking_findings)
     decisions = review_decisions_for_target(project, candidate_artifact)
     limitations = known_limitations(project)
-    open_defects = [
-        finding.record_id for finding in _active_defects(project) if finding.status not in _NON_BLOCKING_DEFECT_STATUSES
-    ]
     return ReviewPackage(
         candidate_artifact=candidate_artifact,
         publishable=gate.publishable,
         publish_gate_reasons=gate.reasons,
         review_decision_ids=tuple(decision.record_id for decision in decisions),
         known_limitation_ids=tuple(item.record_id for item in limitations),
-        open_defect_ids=tuple(open_defects),
+        open_defect_ids=_open_defect_ids(project),
     )
 
 
@@ -190,23 +196,25 @@ def evaluate_publish_gate(
     """Derive whether ``candidate_artifact`` may publish (design §4.9).
 
     Fail-closed: no approval state, any blocking finding, any invalidation, or
-    any failed integrity/decision sub-check blocks publishing. The authoritative
-    verdict comes from :meth:`ApprovalState.is_publishable`; ``reasons`` are an
-    advisory human-readable explanation.
+    any failed integrity/decision sub-check blocks publishing. The project's
+    own open defects block it whether or not the caller lists them. The
+    authoritative verdict comes from :meth:`ApprovalState.is_publishable`;
+    ``reasons`` are an advisory human-readable explanation.
     """
 
+    blockers = tuple(dict.fromkeys((*blocking_findings, *_open_defect_ids(project))))
     reasons: list[str] = []
-    if blocking_findings:
-        reasons.append(f"blocked by {len(blocking_findings)} unresolved finding(s)")
-    active = _active_state(project, candidate_artifact)
+    if blockers:
+        reasons.append(f"blocked by {len(blockers)} unresolved finding(s)")
+    states = _states_for_candidate(project, candidate_artifact)
+    active = _active_state(states)
     if active is None:
         reasons.append("no active approval state for candidate")
         return PublishGateResult(publishable=False, reasons=tuple(reasons))
     if active.invalidation_reasons:
         reasons.append("candidate approval is invalidated/superseded")
-    states = _states_for_candidate(project, candidate_artifact)
     decisions = [item for item in read_records(project, "review_decision") if type(item) is ReviewDecision]
-    publishable = active.is_publishable(decisions, states, blocking_findings=blocking_findings)
+    publishable = active.is_publishable(decisions, states, blocking_findings=blockers)
     if not publishable and not reasons:
         reasons.append("publish conditions not satisfied (approval/integrity/decision checks)")
     return PublishGateResult(publishable=publishable, reasons=tuple(reasons))

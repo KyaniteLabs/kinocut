@@ -125,6 +125,10 @@ VALID_AUDIO_EFFECT_TYPES = {
     "vibrato",
 }
 VALID_SPATIAL_METHODS = {"hrtf", "panning"}
+VALID_TEXT_ANIMATIONS = {"fade", "glitch", "slide-up", "typewriter"}
+VALID_GRID_LAYOUTS = {"2x2", "3x1", "1x3", "2x3"}
+VALID_PIP_POSITIONS = {"top-left", "top-right", "bottom-left", "bottom-right"}
+VALID_TEXT_POSITIONS = {"center", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"}
 VALID_MOGRAPH_STYLES = {"bar", "circle", "dots"}
 
 # Closed, ordered set of add-audio duration policies (first is the safe default).

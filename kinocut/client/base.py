@@ -21,6 +21,23 @@ from ..validation_errors import rejected_value
 
 DESTRUCTIVE_POLISH_OPS = {"effect_glow", "effect_noise", "effect_vignette", "effect_scanlines"}
 QUALITY_GATE_OPS = {"assert_quality", "release_checkpoint", "quality_check"}
+# ``assert_quality`` and ``release_checkpoint`` raise when the video fails, so a
+# return value means the gate passed. ``quality_check`` only reports.
+HARD_QUALITY_GATE_OPS = {"assert_quality", "release_checkpoint"}
+
+
+def _raise_reported_failure(result: dict[str, Any]) -> None:
+    """A result that says it failed is a failure, even when it carries an output path."""
+    error = result.get("error")
+    if isinstance(error, dict):
+        raise MCPVideoError(
+            str(error.get("message") or "Operation reported failure"),
+            error_type=str(error.get("type") or "processing_error"),
+            code=str(error.get("code") or "operation_failed"),
+        )
+    raise MCPVideoError(
+        str(error or "Operation reported failure"), error_type="processing_error", code="operation_failed"
+    )
 
 
 class ClientBase:
@@ -33,11 +50,13 @@ class ClientBase:
             if callable(method) and not getattr(method, "_mcp_video_guarded", False):
                 setattr(cls, name, _guard_client_method(name, method))
 
-    def _normalize_kwargs_for_method(self, method_name: str, method: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_kwargs_for_method(
+        self, method_name: str, signature: inspect.Signature, kwargs: dict[str, Any]
+    ) -> dict[str, Any]:
         """Map primary/legacy aliases to the concrete method signature."""
         if not kwargs:
             return kwargs
-        params = inspect.signature(method).parameters
+        params = signature.parameters
         normalized = dict(kwargs)
         aliases = CLIENT_METHOD_CONTRACTS.get(method_name, {}).get("aliases", {})
         for legacy, primary in aliases.items():
@@ -85,8 +104,15 @@ class ClientBase:
         output_path = getattr(result, "output_path", None)
         if output_path:
             return EditResult(output_path=str(output_path), operation=operation)
-        if isinstance(result, dict) and result.get("output_path"):
-            return EditResult(output_path=str(result["output_path"]), operation=operation)
+        if isinstance(result, dict):
+            if result.get("success") is False or (result.get("error") and not result.get("output_path")):
+                _raise_reported_failure(result)
+            if result.get("output_path"):
+                return EditResult(
+                    output_path=str(result["output_path"]),
+                    operation=operation,
+                    warnings=[str(warning) for warning in result.get("warnings") or []],
+                )
         raise MCPVideoError(
             f"Expected media operation to return output_path, got {rejected_value(result)}",
             error_type="contract_error",
@@ -187,29 +213,71 @@ class ClientBase:
     def _run_pipeline_steps(
         self, steps: list[dict[str, Any]], final_output: str | None
     ) -> tuple[EditResult, list[str], bool, list[str]]:
-        """Execute pipeline steps and collect guardrail state."""
+        """Execute pipeline steps and collect guardrail state.
+
+        A hard quality gate counts as the pipeline's release checkpoint only
+        while nothing edits the artifact afterwards: any later media step
+        invalidates it, so the final output is never vouched for by a check
+        that ran on an earlier cut.
+        """
         current: str | None = None
         result: EditResult | None = None
         warnings: list[str] = []
         intermediates: list[str] = []
         previous_op: str | None = None
-        saw_quality_gate = False
+        checkpointed: bool = False
+        last_media_index = self._last_media_step_index(steps)
         for index, step in enumerate(steps):
-            op, params = self._prepare_pipeline_step(step, current, final_output, index == len(steps) - 1)
+            op, params = self._prepare_pipeline_step(step, current, final_output, index == last_media_index)
             if op in QUALITY_GATE_OPS:
-                saw_quality_gate = True
-            step_result = self._execute_pipeline_media_step(op, params, previous_op, warnings)
-            if step_result is not None:
+                report = getattr(self, op)(**params)
+                warnings.extend(self._quality_gate_warnings(op, params, report))
+                # A gate does not change the artifact: what it inspected is what later steps edit.
+                if current is None and params.get("input_path"):
+                    current = str(params["input_path"])
+                checkpointed = op in HARD_QUALITY_GATE_OPS
+            else:
+                step_result = self._execute_pipeline_media_step(op, params, previous_op, warnings)
                 if result is not None and result.output_path != final_output:
                     intermediates.append(result.output_path)
                 result = step_result
                 current = result.output_path
+                checkpointed = False
             previous_op = op
         if result is None:
             raise MCPVideoError(
                 "pipeline produced no media output", error_type="validation_error", code="no_media_output"
             )
-        return result, warnings, saw_quality_gate, intermediates
+        return result, warnings, checkpointed, intermediates
+
+    @classmethod
+    def _last_media_step_index(cls, steps: list[dict[str, Any]]) -> int | None:
+        """Index of the last step that produces media; quality gates never receive the final output."""
+        media_indexes = [index for index, step in enumerate(steps) if step.get("op") not in QUALITY_GATE_OPS]
+        return media_indexes[-1] if media_indexes else None
+
+    @classmethod
+    def _quality_gate_warnings(cls, op: str, params: dict[str, Any], report: Any) -> list[str]:
+        """Carry what a quality gate found into the pipeline result instead of dropping its report."""
+        if not isinstance(report, dict):
+            return []
+        if op == "quality_check":
+            if report.get("all_passed") is not False:
+                return []
+            failed = [
+                str(check.get("name") or "unnamed check")
+                for check in report.get("checks") or []
+                if isinstance(check, dict) and check.get("passed") is False
+            ]
+            target = params.get("video") or params.get("input_path") or "the current output"
+            names = ", ".join(failed) if failed else "one or more checks"
+            return [
+                f"quality_check FAILED for {target} ({names}). quality_check only reports; "
+                "fix the failures before publishing."
+            ]
+        if op == "release_checkpoint" and report.get("review_required"):
+            return ["release_checkpoint passed its quality gate; human review is still required before publishing."]
+        return []
 
     @staticmethod
     def _cleanup_pipeline_intermediates(intermediates: list[str]) -> list[str]:
@@ -240,10 +308,8 @@ class ClientBase:
 
     def _execute_pipeline_media_step(
         self, op: str, params: dict[str, Any], previous_op: str | None, warnings: list[str]
-    ) -> EditResult | None:
+    ) -> EditResult:
         raw_result = getattr(self, op)(**params)
-        if op in QUALITY_GATE_OPS:
-            return None
         if op in DESTRUCTIVE_POLISH_OPS and previous_op in DESTRUCTIVE_POLISH_OPS:
             warnings.append("Stacked visual polish effects detected; inspect thumbnail/storyboard before publishing.")
         result = self._to_edit_result(raw_result, operation=op)
@@ -260,14 +326,39 @@ class ClientBase:
             )
 
 
+# Methods that validate steps or unexpected kwargs before coalescing path aliases.
+_MANUAL_PATH_ALIAS_METHODS = frozenset({"pipeline", "create_from_images"})
+
+
 def _guard_client_method(method_name: str, method: Any) -> Any:
     """Wrap public client methods once at class creation time."""
     from ..output_policy import with_output_policy
 
+    signature = inspect.signature(method)
+    # Explicit path aliases can also be supplied positionally; bind before coalescing them.
+    path_aliases = (
+        {}
+        if method_name in _MANUAL_PATH_ALIAS_METHODS
+        else {
+            legacy: primary
+            for legacy, primary in CLIENT_METHOD_CONTRACTS[method_name].get("aliases", {}).items()
+            if primary in {"input_path", "output_path"} and {legacy, primary} <= signature.parameters.keys()
+        }
+    )
+
     @wraps(method)
     def guarded_call(self: ClientBase, *args: Any, **kwargs: Any) -> Any:
         try:
-            result = method(self, *args, **self._normalize_kwargs_for_method(method_name, method, kwargs))
+            kwargs = self._normalize_kwargs_for_method(method_name, signature, kwargs)
+            if path_aliases:
+                bound = signature.bind(self, *args, **kwargs)
+                for legacy, primary in path_aliases.items():
+                    bound.arguments[primary] = self._resolve_alias(
+                        primary, bound.arguments.get(primary), legacy, bound.arguments.pop(legacy, None)
+                    )
+                result = method(*bound.args, **bound.kwargs)
+            else:
+                result = method(self, *args, **kwargs)
         except TypeError as exc:
             self._raise_helpful_type_error(method_name, exc)
         if CLIENT_METHOD_CONTRACTS[method_name]["return_type"] == MEDIA_RETURN:

@@ -211,7 +211,7 @@ def test_run_job_resumes_from_existing_receipt(tmp_path, monkeypatch):
     prior = render_jobs.job_receipt_path(project, job.job_id)
     prior.parent.mkdir(parents=True, exist_ok=True)
     from kinocut.output_policy import output_operation
-    from kinocut.projectstore.receipt_ownership import durable_receipt_ownership
+    from kinocut.publication import durable_receipt_ownership
     from kinocut.workflow.receipt import _write_receipt
 
     with output_operation(), durable_receipt_ownership(prior):

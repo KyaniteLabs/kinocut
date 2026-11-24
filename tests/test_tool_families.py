@@ -672,7 +672,7 @@ def test_vision_provider_boundary_off_vs_remote_through_video_plan_ops(monkeypat
 
 
 def test_doctor_package_launcher_boundary_through_video_qc_ops(monkeypatch):
-    """Security round 3 R1: ``video_qc_ops`` stays open-world-annotated, but
+    """Security round 3 R1: ``video_qc_ops`` is closed-world and
     ``video_doctor`` must never reach a package launcher.
 
     ``npx --yes hyperframes --version`` is not a local version query: npx may
@@ -689,7 +689,7 @@ def test_doctor_package_launcher_boundary_through_video_qc_ops(monkeypatch):
 
     configure_tool_surface()
     surface = _surface()
-    assert surface["video_qc_ops"].annotations.openWorldHint is True
+    assert surface["video_qc_ops"].annotations.openWorldHint is False
 
     original_diagnostics = doctor.run_diagnostics
     seen: list[list[str]] = []
@@ -941,7 +941,7 @@ def _kino_commands() -> frozenset[str]:
 
 
 def test_every_family_cli_route_is_a_real_kino_subcommand():
-    from kinocut.server_tools_families import _KINO_ROUTE, _family_invocation, cli_route_for_operation
+    from kinocut.tool_routing import cli_route_for_operation, retry_context, retry_message
 
     commands = _kino_commands()
     assert "video-ai-remove-silence" in commands  # the operation's real route ...
@@ -951,18 +951,19 @@ def test_every_family_cli_route_is_a_real_kino_subcommand():
         if route is None:
             continue
         assert route in commands, (operation, route)
-        for token in _KINO_ROUTE.findall(_family_invocation(family, operation)):
-            assert token in commands, (operation, token)
+        with retry_context(operation, family=family):
+            assert f"kino {route} " in retry_message("bad", "invalid_parameter")
 
 
 def test_operation_without_a_cli_route_gets_an_mcp_only_hint():
-    from kinocut.server_tools_families import _family_invocation, cli_route_for_operation
+    from kinocut.tool_routing import cli_route_for_operation, retry_context, retry_message
 
     commands = _kino_commands()
     routeless = [op for op in FAMILY_OF_OPERATION if cli_route_for_operation(op) is None]
     assert routeless, "the registry contains operations the CLI does not expose"
     operation = routeless[0]
-    hint = _family_invocation(FAMILY_OF_OPERATION[operation], operation)
+    with retry_context(operation, family=FAMILY_OF_OPERATION[operation]):
+        hint = retry_message("bad", "invalid_parameter")
     assert hint.endswith("(MCP)")
     assert "kino " not in hint
     assert operation not in commands

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from threading import Lock
 from pathlib import Path
 from typing import cast
 
@@ -15,6 +16,40 @@ from kinocut.projectstore.cas_lifecycle import cleanup_backups, restore_blob, un
 from kinocut.projectstore.ingest import _best_effort_unlink, _hash_copy_to_temp
 
 _CHUNK = 1 << 20
+_TRUSTED_LINUX_FSTYPES = frozenset({b"ext2", b"ext3", b"ext4", b"xfs", b"btrfs", b"tmpfs", b"zfs"})
+_VERIFIED: dict[tuple[int, ...], str] = {}
+_CACHE_LOCK = Lock()
+
+
+def _identity(info: os.stat_result) -> tuple[int, ...]:
+    return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
+def _device_has_trusted_ctime(dev: int) -> bool:
+    """Return True only when the device is confirmed as a local POSIX filesystem with reliable ctime."""
+    if os.name != "posix" or not hasattr(os, "major") or not hasattr(os, "minor"):
+        return False
+    dev_id = f"{os.major(dev)}:{os.minor(dev)}".encode("ascii")
+    try:
+        with open("/proc/self/mountinfo", "rb") as handle:
+            for line in handle:
+                parts = line.split(b" - ", 1)
+                if len(parts) != 2:
+                    continue
+                head = parts[0].split()
+                tail = parts[1].split()
+                if len(head) >= 3 and head[2] == dev_id and tail:
+                    return tail[0] in _TRUSTED_LINUX_FSTYPES
+    except OSError:
+        return False
+    return False
+
+
+def _cacheable_identity(info: os.stat_result) -> tuple[int, ...] | None:
+    """Return a cache key only when the backing filesystem reliably advances ctime on rewrites."""
+    if info.st_ino == 0 or info.st_ctime_ns <= 0 or not _device_has_trusted_ctime(info.st_dev):
+        return None
+    return _identity(info)
 
 
 def _manifest(project: store.Project, digest: str) -> CASManifestRecord | None:
@@ -68,8 +103,8 @@ def ingest_blob(project: store.Project, source_path: str | Path, *, media_type: 
             _best_effort_unlink(temporary)
 
 
-def resolve_blob(project: store.Project, digest: str) -> Path:
-    """Resolve and integrity-check a recorded blob after any project reopen."""
+def resolve_blob(project: store.Project, digest: str, *, verify_content: bool = True) -> Path:
+    """Resolve and integrity-check a recorded blob; set verify_content=False to opt into cached reuse."""
 
     with store._project_lock(project):
         manifest = _manifest(project, digest)
@@ -80,26 +115,40 @@ def resolve_blob(project: store.Project, digest: str) -> Path:
                 "CAS blob is unavailable after garbage collection or interrupted restoration", INVALID_RECORD
             )
         target = store.safe_target(project, manifest.blob_location)
-        if not _blob_matches(target, manifest):
+        if not _blob_matches(target, manifest, verify_content=verify_content):
             raise contract_error("CAS blob is unavailable or failed its manifest integrity check", INVALID_RECORD)
         return target
 
 
-def _blob_matches(target: Path, manifest: CASManifestRecord) -> bool:
-    actual, size = hashlib.sha256(), 0
+def _blob_matches(target: Path, manifest: CASManifestRecord, *, verify_content: bool = True) -> bool:
     try:
         if not target.is_file():
             return False
         fd = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
         with os.fdopen(fd, "rb") as reader:
-            if os.fstat(reader.fileno()).st_size != manifest.byte_size:
+            before = os.fstat(fd)
+            if before.st_size != manifest.byte_size:
                 return False
+            key = _identity(before)
+            cache_key = _cacheable_identity(before)
+            if not verify_content and cache_key is not None:
+                with _CACHE_LOCK:
+                    if cache_key in _VERIFIED:
+                        return _VERIFIED[cache_key] == manifest.digest
+            actual = hashlib.sha256()
             while chunk := reader.read(_CHUNK):
                 actual.update(chunk)
-                size += len(chunk)
+            if key != _identity(os.fstat(fd)):
+                return False
+            digest = "sha256:" + actual.hexdigest()
+            if cache_key is not None:
+                with _CACHE_LOCK:
+                    if len(_VERIFIED) >= 1024:
+                        _VERIFIED.pop(next(iter(_VERIFIED)))
+                    _VERIFIED[cache_key] = digest
+            return digest == manifest.digest
     except OSError:
         return False
-    return "sha256:" + actual.hexdigest() == manifest.digest and size == manifest.byte_size
 
 
 def _deleted_digests(project: store.Project) -> set[str]:

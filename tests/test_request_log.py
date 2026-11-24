@@ -80,14 +80,12 @@ def test_redaction_table(text: str, forbidden: list[str], must_contain: list[str
         assert needle in out, f"{needle!r} missing from redacted text: {out!r}"
 
 
-def test_disabled_by_default(monkeypatch, tmp_path) -> None:
+def test_disabled_by_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.delenv(request_log.ENV_REQUEST_LOG, raising=False)
+    monkeypatch.setenv("KINOCUT_STATE_DIR", str(tmp_path))
     assert resolve_log_path() is None
     _call("video_intent", {"verb": "trim", "goal": "trim /home/alice/secret.mp4"})
     assert not (tmp_path / "request_log.jsonl").exists()
-    # The default state directory must stay untouched too.
-    default_dir = Path(request_log._state_dir())
-    assert not (default_dir / "request_log.jsonl").exists()
 
 
 def test_falsy_values_disable(monkeypatch) -> None:
@@ -134,18 +132,15 @@ def test_direct_invocation_logs_redacted_pair(enabled_log: Path) -> None:
     assert record["session_id"]
 
 
-def test_family_invocation_logs_operation(enabled_log: Path) -> None:
+@pytest.mark.parametrize("flat", [False, True])
+def test_family_invocation_logs_operation(enabled_log: Path, flat: bool) -> None:
     from kinocut.tool_registry import configure_tool_surface
 
+    params = {"verb": "trim", "goal": "trim /home/alice/secret.mp4 with token=abc987xyz654"}
+    payload = params if flat else {"params": params}
     try:
         configure_tool_surface()  # default surface: typed family tools
-        result = _call(
-            "video_plan_ops",
-            {
-                "operation": "video_intent",
-                "params": {"verb": "trim", "goal": "trim /home/alice/secret.mp4 with token=abc987xyz654"},
-            },
-        )
+        result = _call("video_plan_ops", {"operation": "video_intent", **payload})
     finally:
         configure_tool_surface("all")  # restore the session-wide full catalog
     assert result is not None
@@ -155,6 +150,7 @@ def test_family_invocation_logs_operation(enabled_log: Path) -> None:
     assert record["chosen_operation"] == "video_intent"
     assert "/home/alice/secret.mp4" not in record["request_text"]
     assert "abc987xyz654" not in record["request_text"]
+    assert '"params":{"verb":"trim"' in record["request_text"]
 
 
 def test_discovery_tools_are_not_operations(enabled_log: Path) -> None:

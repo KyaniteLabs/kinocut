@@ -114,7 +114,15 @@ def test_variant_output_collision_fails_closed(tmp_path):
     spec = {
         "schema_version": 1,
         "sources": {"a": {"path": "in.mp4"}},
-        "steps": [{"id": "p", "op": "probe", "inputs": {"src": "@sources.a"}}],
+        "steps": [
+            {
+                "id": "cut",
+                "op": "trim",
+                "inputs": {"src": "@sources.a"},
+                "params": {"start": 0, "duration": 1},
+                "output": "@outputs.o",
+            }
+        ],
         "outputs": {"o": {"path": "out.mp4"}},
         "variants": [
             {"id": "a", "overrides": {"outputs.o.path": "same/final.mp4"}},
@@ -132,13 +140,26 @@ def test_distinct_variant_outputs_do_not_collide(tmp_path):
     spec = {
         "schema_version": 1,
         "sources": {"a": {"path": "in.mp4"}},
-        "steps": [{"id": "p", "op": "probe", "inputs": {"src": "@sources.a"}}],
+        "steps": [
+            {
+                "id": "cut",
+                "op": "trim",
+                "inputs": {"src": "@sources.a"},
+                "params": {"start": 0, "duration": 1},
+                "output": "@outputs.o",
+            }
+        ],
         "outputs": {"o": {"path": "out.mp4"}},
         "variants": [{"id": "a", "overrides": {}}, {"id": "b", "overrides": {}}],
     }
     from mcp_video.workflow.executor import _reject_variant_output_collisions
 
-    _reject_variant_output_collisions(_write_spec(tmp_path, spec), ["a", "b"])  # no raise
+    spec_path = _write_spec(tmp_path, spec)
+    _reject_variant_output_collisions(spec_path, ["a", "b"])
+    from mcp_video.workflow import validate_workflow_spec
+
+    paths = [validate_workflow_spec(spec_path, variant=name)["output_paths"]["o"] for name in ("a", "b")]
+    assert paths[0] != paths[1]
 
 
 # --- C5: execution-time re-confinement --------------------------------------

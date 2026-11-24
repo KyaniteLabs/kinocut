@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from enum import StrEnum
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _validate_artifact_location, _validate_input_path
+from ..hashing import file_sha256 as file_sha256
 
 
 class ReceiptStatus(StrEnum):
@@ -49,12 +50,8 @@ def require_still_deps() -> None:
 def validate_still_path(path: str | Path, *, must_exist: bool = True) -> Path:
     """Validate a still image path."""
     p = Path(path).expanduser()
-    if must_exist and not p.is_file():
-        raise MCPVideoError(
-            "Still not found",
-            error_type="input_error",
-            code="file_not_found",
-        )
+    if must_exist:
+        _validate_input_path(str(p))
     if p.suffix.lower() not in STILL_EXTENSIONS:
         raise MCPVideoError(
             f"Unsupported still format. Supported: {', '.join(sorted(STILL_EXTENSIONS))}",
@@ -78,35 +75,41 @@ def load_rgb_array(path: str | Path):
 
 
 def save_rgb_array(arr, path: str | Path) -> Path:
-    """Save a float RGB array (0..1) as PNG/JPEG by extension."""
+    """Save a float RGB array (0..1) as PNG/JPEG by extension.
+
+    Goes through the shared output validation and anchored publication like
+    every other media output: an existing file needs overwrite consent, and a
+    destination that aliases one of this operation's inputs is refused.
+    """
     require_still_deps()
     import numpy as np
     from PIL import Image
 
+    from ..ffmpeg_helpers import _atomic_output, _validate_output_path
+
     out = Path(path)
-    out.parent.mkdir(parents=True, exist_ok=True)
+    target = _validate_output_path(str(out))
     clipped = np.clip(arr, 0.0, 1.0)
     u8 = (clipped * 255.0 + 0.5).astype("uint8")
-    Image.fromarray(u8, mode="RGB").save(out)
-    return out.resolve()
-
-
-def file_sha256(path: str | Path) -> str:
-    """Content hash for receipts."""
-    h = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    with _atomic_output(target) as staged:
+        Image.fromarray(u8, mode="RGB").save(staged)
+    return Path(target).resolve()
 
 
 def write_receipt(path: str | Path, payload: dict[str, Any]) -> Path:
-    """Write a JSON receipt; strip absolute home-rooted paths from string values."""
+    """Write a JSON receipt through the anchored artifact publisher.
+
+    Strips absolute home-rooted paths from string values. An existing receipt
+    is only replaced with overwrite consent, never silently.
+    """
+    from ..ffmpeg_helpers import _atomic_artifact, _validate_artifact_path
+
     out = Path(path)
-    out.parent.mkdir(parents=True, exist_ok=True)
+    target = _validate_artifact_path(str(out))
     sanitized = _sanitize_receipt(payload)
-    out.write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return out.resolve()
+    with _atomic_artifact(target) as staged:
+        Path(staged).write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return Path(target).resolve()
 
 
 def _sanitize_receipt(value: Any) -> Any:
@@ -122,8 +125,20 @@ def _sanitize_receipt(value: Any) -> Any:
     return value
 
 
+def confined_leaf(directory: Path, name: str) -> Path:
+    """Return a direct, non-symlink child on either supported path syntax."""
+    if not name or name in {".", ".."} or PureWindowsPath(name).name != name or Path(name).name != name:
+        raise MCPVideoError(
+            "Expected a plain output filename", error_type="validation_error", code="invalid_output_path"
+        )
+    leaf = directory / name
+    _validate_artifact_location(str(leaf), "Output filename")
+    return leaf
+
+
 def ensure_output_dir(path: str | Path) -> Path:
     """Create and return an output directory path."""
     out = Path(path).expanduser()
+    _validate_artifact_location(str(out), "Output directory")
     out.mkdir(parents=True, exist_ok=True)
     return out.resolve()

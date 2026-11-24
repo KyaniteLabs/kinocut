@@ -97,3 +97,55 @@ def test_review_run_and_decide() -> None:
     else:
         dec = decide_review(data, "accept", reason="ok")
     assert dec.decision == "accept"
+
+
+# --- roast-audit regressions: honest routing and translation ---------------------
+
+
+def test_translate_never_rewrites_inside_a_word() -> None:
+    from kinocut.intent.caption_translate import _default_translate
+
+    assert _default_translate("Yesterday I said yes", "en", "es") == "Yesterday I said sí"
+    assert _default_translate("Hello world", "en", "es") == "Hola mundo"
+
+
+def test_translate_reports_how_much_of_the_source_it_left_untranslated(tmp_path: Path) -> None:
+    srt = tmp_path / "en.srt"
+    srt.write_text(
+        "1\n00:00:00,000 --> 00:00:02,000\nI love the music today\n\n2\n00:00:02,000 --> 00:00:04,000\nKeep watching\n",
+        encoding="utf-8",
+    )
+    result = translate_caption_file(str(srt), source_lang="en", target_lang="es")
+    out = Path(result.output_path).read_text(encoding="utf-8")
+    assert "música" in out and "hoy" in out and "Keep watching" in out
+    assert (result.translated_words, result.total_words) == (2, 7)
+    assert result.untranslated_cues == 1
+    assert any("replaced 2 of 7 words" in warning for warning in result.warnings)
+    payload = result.to_dict()
+    assert payload["warnings"] == result.warnings
+    assert payload["translated_words"] == 2
+
+
+def test_broll_rejects_non_finite_or_negative_timestamps() -> None:
+    for bad in (float("nan"), float("inf"), -1.0):
+        with pytest.raises(MCPVideoError):
+            propose_broll([{"start": bad, "end": 3.0, "text": "the music video"}])
+    with pytest.raises(MCPVideoError):
+        propose_broll([{"start": 0.0, "end": float("nan"), "text": "the music video"}])
+
+
+def test_route_reformat_vertical_only_promises_what_video_resize_accepts() -> None:
+    plan = route_intent("reformat_vertical")
+    assert plan.compat_tools == ("video_resize",)
+    assert plan.params == {"aspect_ratio": "9:16"}
+    assert "subject_tracking" not in plan.summary
+
+
+def test_route_remove_filler_is_declared_not_implemented_instead_of_misrouted() -> None:
+    plan = route_intent("remove_filler")
+    assert plan.next_action == "not_implemented"
+    assert plan.compat_tools == ()
+    assert plan.blocked_reason
+    listed = next(verb for verb in list_intent_verbs() if verb["verb"] == "remove_filler")
+    assert listed["next_action"] == "not_implemented"
+    assert listed["blocked_reason"]

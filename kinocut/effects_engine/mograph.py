@@ -12,11 +12,10 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _run_command, _escape_ffmpeg_filter_value
+from ..validation import VALID_MOGRAPH_STYLES
 from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
-
-VALID_MOGRAPH_STYLES = {"bar", "circle", "dots"}
 
 
 def _validate_timing(duration: float, fps: int) -> None:

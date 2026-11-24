@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import shutil
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -15,6 +14,7 @@ from ..engine_convert import convert
 from ..engine_filters import apply_filter
 from ..engine_rotate import rotate
 from ..engine_transcode import normalize
+from ..hashing import prefixed_file_sha256 as _sha256
 from ._errors import RESCUE_POLICY_VIOLATION, UNSAFE_RESCUE_OUTPUT, rescue_error
 from .models import Disposition, Repair, RepairType
 
@@ -34,14 +34,6 @@ class OperationResult:
 class OperationAdapter:
     allowed_parameters: frozenset[str]
     run: Callable[[str, str, Mapping[str, Any]], None]
-
-
-def _sha256(path: str | Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
 
 
 def _number(parameters: Mapping[str, Any], name: str, default: float) -> float:

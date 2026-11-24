@@ -104,7 +104,7 @@ def test_postflight_failure_does_not_replace_prior_media_or_plan(tmp_path, monke
 
 @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="Real FFmpeg needed")
 def test_receipt_publication_failure_reports_committed_media_without_unsafe_rollback(tmp_path, monkeypatch):
-    from kinocut import atomic_publication
+    from kinocut.publication import _files as atomic_publication
 
     spec = _spec(tmp_path)
     output, plan = tmp_path / "out.png", tmp_path / "plan.json"

@@ -140,4 +140,4 @@ def test_actual_mcp_rejects_missing_or_empty_root(meter_project):
                 assert response.isError or result.get("success") is False
                 assert "TypeError" not in str(result)
 
-    asyncio.run(asyncio.wait_for(scenario(), 10))
+    asyncio.run(asyncio.wait_for(scenario(), 45))

@@ -1,17 +1,16 @@
 """Thumbnail/frame extraction operations for the FFmpeg engine."""
 
 from __future__ import annotations
-import logging
+import os
+import shutil
 
 from .engine_edit import _time_to_seconds
 from .errors import MCPVideoError, ValidationError
-from .ffmpeg_helpers import _validate_input_path, _validate_output_path
+from .ffmpeg_helpers import _validate_input_path
 from .engine_probe import get_duration
 from .paths import _auto_output
-from .ffmpeg_helpers import _run_ffmpeg
+from .ffmpeg_helpers import _atomic_output, _open_staged_writer, _run_ffmpeg
 from .models import ThumbnailResult
-
-logger = logging.getLogger(__name__)
 
 
 def thumbnail(
@@ -30,13 +29,19 @@ def thumbnail(
 
     if timestamp is None:
         if smart:
-            # NIMA smart selection — finds the most beautiful frame
-            try:
-                from .aesthetic.smart_thumbnail import find_best_thumbnail_timestamp
+            from .aesthetic.smart_thumbnail import selected_frame
 
-                timestamp = find_best_thumbnail_timestamp(input_path)
-            except Exception as exc:
-                logger.warning("NIMA smart thumbnail unavailable (%s); using 10%% default", exc)
+            suffix = os.path.splitext(output_path)[1].lower() if output_path else ".jpg"
+            with selected_frame(input_path, suffix=suffix) as (timestamp, candidate):
+                if candidate is not None and os.path.splitext(candidate)[1] == suffix:
+                    output = output_path or _auto_output(input_path, f"frame_{timestamp:.1f}s", ext=".jpg")
+                    with (
+                        _atomic_output(output) as staged,
+                        _open_staged_writer(staged) as dest,
+                        open(candidate, "rb") as frame,
+                    ):
+                        shutil.copyfileobj(frame, dest)
+                    return ThumbnailResult(frame_path=output, timestamp=timestamp)
         if timestamp is None:
             # Default: 10% of video duration
             dur = get_duration(input_path)
@@ -60,22 +65,8 @@ def thumbnail(
         timestamp = requested_timestamp
 
     output = output_path or _auto_output(input_path, f"frame_{timestamp:.1f}s", ext=".jpg")
-    _validate_output_path(output)
-
-    _run_ffmpeg(
-        [
-            "-ss",
-            str(timestamp),
-            "-i",
-            input_path,
-            "-vframes",
-            "1",
-            "-q:v",
-            "2",
-            "-y",
-            output,
-        ]
-    )
+    with _atomic_output(output) as staged:
+        _run_ffmpeg(["-ss", str(timestamp), "-i", input_path, "-vframes", "1", "-q:v", "2", "-y", staged])
 
     return ThumbnailResult(
         frame_path=output,

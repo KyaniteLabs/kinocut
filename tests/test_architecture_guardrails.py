@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from importlib.util import resolve_name
 from pathlib import Path
 
 
@@ -43,6 +44,32 @@ def source_lines(path: Path) -> list[str]:
 
 def parse_module(path: Path) -> ast.Module:
     return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+
+
+def _imports_below(path: Path, forbidden: str) -> list[str]:
+    package = ".".join(path.parent.relative_to(ROOT).parts)
+    imports = []
+    for node in ast.walk(parse_module(path)):
+        if isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            base = resolve_name("." * node.level + (node.module or ""), package)
+            imports.extend(f"{base}.{alias.name}" for alias in node.names)
+    return [name for name in imports if name == forbidden or name.startswith(forbidden + ".")]
+
+
+def test_workflow_does_not_import_projectstore():
+    for path in (PACKAGE / "workflow").rglob("*.py"):
+        assert not _imports_below(path, "kinocut.projectstore"), path
+
+
+def test_errors_do_not_import_cli_parser():
+    assert not _imports_below(PACKAGE / "errors.py", "kinocut.cli.parser")
+    assert not _imports_below(PACKAGE / "tool_routing.py", "kinocut.cli.parser")
+
+
+def test_core_cli_handlers_do_not_dispatch_through_legacy_facade():
+    assert "mcp_video.engine:" not in (PACKAGE / "cli/handlers_core.py").read_text(encoding="utf-8")
 
 
 def module_line_count(path: Path) -> int:

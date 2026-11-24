@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import functools
+import inspect
 import json
 from collections.abc import Callable
 from typing import Any, get_args
+
+import anyio
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
@@ -16,7 +20,9 @@ from pydantic_core import PydanticCustomError
 from .errors import MCPVideoError
 from .request_log import log_invocation
 from .tool_docstrings import fold_args
-from .tool_families import DESCRIBE_TOOL_NAME, FAMILY_MODULES, FAMILY_OF_OPERATION
+from .tool_families import DESCRIBE_TOOL_NAME, FAMILY_OF_OPERATION
+
+_FAMILY_TOOL_NAMES = frozenset(FAMILY_OF_OPERATION.values())
 
 
 def _numeric_boolean_validator(model: Any) -> Any:
@@ -67,6 +73,20 @@ def forgive_argument_aliases(tool: Any, arguments: dict[str, Any]) -> dict[str, 
         if len(present) == 1:
             renamed[canonical] = renamed.pop(present[0])
     return renamed
+
+
+def _fold_family_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Accept a flat payload for a known member, then validate it as normal params."""
+    operation = arguments.get("operation")
+    if not isinstance(operation, str) or FAMILY_OF_OPERATION.get(operation) != name or "params" in arguments:
+        return arguments
+    envelope = {"operation", "overwrite"}
+    if any(alias in arguments for alias in _ARGUMENT_ALIASES["params"]):
+        return arguments
+    params = {key: value for key, value in arguments.items() if key not in envelope}
+    if not params:
+        return arguments
+    return {**{key: arguments[key] for key in envelope if key in arguments}, "params": params}
 
 
 def call_shape(tool_name: str, tool: Any, *, operation: str | None = None) -> str:
@@ -189,7 +209,7 @@ def _log_request_pair(name: str, arguments: dict[str, Any]) -> None:
     logged.  ``log_invocation`` is best effort and never raises; when the log
     is disabled (the default) this returns after the membership checks.
     """
-    if name in FAMILY_MODULES:
+    if name in _FAMILY_TOOL_NAMES:
         operation = arguments.get("operation")
         if not isinstance(operation, str) or not operation:
             return
@@ -200,13 +220,27 @@ def _log_request_pair(name: str, arguments: dict[str, Any]) -> None:
     log_invocation(operation, arguments)
 
 
+def _offload_sync_tool(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Run synchronous MCP tool handlers on a worker thread so FastMCP's event loop stays responsive."""
+
+    @functools.wraps(fn, assigned=(*functools.WRAPPER_ASSIGNMENTS, "__annotations__"))
+    async def _async_offload(*args: Any, **kwargs: Any) -> Any:
+        return await anyio.to_thread.run_sync(functools.partial(fn, *args, **kwargs))
+
+    return _async_offload
+
+
 class _ContractFastMCP(FastMCP):
     """Reject undeclared top-level arguments before a handler executes."""
 
     def add_tool(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
-        from .output_policy import with_output_policy
+        # Raw SDK registrations bypass the policy already established by @_safe_tool.
+        if not getattr(fn, "_kinocut_output_policy", False) and not getattr(fn, "_kinocut_read_only", False):
+            from .output_policy import with_output_policy
 
-        fn = with_output_policy(fn)
+            fn = with_output_policy(fn)
+        if not inspect.iscoroutinefunction(fn):
+            fn = _offload_sync_tool(fn)
         super().add_tool(fn, *args, **kwargs)
         name = kwargs.get("name") or (args[0] if args else None) or fn.__name__
         tool = self._tool_manager.get_tool(name)
@@ -225,6 +259,8 @@ class _ContractFastMCP(FastMCP):
         )
         tool.fn_metadata.arg_model = model
         tool.parameters = model.model_json_schema(by_alias=True, schema_generator=_UntitledSchema)
+        if name in _FAMILY_TOOL_NAMES:
+            tool.parameters["additionalProperties"] = True
         tool.description = fold_args(tool.description, tool.parameters)
         _compact_tool_metadata(tool)
 
@@ -233,7 +269,7 @@ class _ContractFastMCP(FastMCP):
         if tool is None:
             self._raise_if_unlisted_operation(name)
             return await super().call_tool(name, arguments)
-        arguments = forgive_argument_aliases(tool, arguments)
+        arguments = _fold_family_arguments(name, forgive_argument_aliases(tool, arguments))
         _log_request_pair(name, arguments)
         try:
             validate_tool_arguments(name, tool, arguments)

@@ -53,13 +53,15 @@ class QualityChecksMixin:
 
     def check_contrast(self, video: str) -> QualityReport:
         """Check video has adequate contrast."""
+        metric_name = "ffmpeg.signalstats.YHIGH-YLOW"
         y_high = self._mean_signalstat(video, "YHIGH")
         y_low = self._mean_signalstat(video, "YLOW")
         if y_high is None or y_low is None:
+            metric_name = "ffmpeg.signalstats.YMAX-YMIN"
             y_high = self._mean_signalstat(video, "YMAX")
             y_low = self._mean_signalstat(video, "YMIN")
         if y_high is None or y_low is None:
-            metric = _metric("ffmpeg.signalstats.YHIGH-YLOW", None, "percent_of_8bit_luma_range")
+            metric = _metric(metric_name, None, "percent_of_8bit_luma_range")
             return QualityReport(
                 check_name="contrast",
                 passed=False,
@@ -71,24 +73,25 @@ class QualityChecksMixin:
                 },
             )
 
-        y_std = max(0.0, (y_high - y_low) / 2.56)
+        luma_spread = max(0.0, (y_high - y_low) / 2.56)
         metric = _metric(
-            "ffmpeg.signalstats.YHIGH-YLOW",
-            y_std,
+            metric_name,
+            luma_spread,
             "percent_of_8bit_luma_range",
             raw={"y_low": y_low, "y_high": y_high, "unit": "8bit_luma"},
         )
-        passed = self.CONTRAST_MIN <= y_std <= self.CONTRAST_MAX
-        score = self.profile.contrast.score(y_std)
+        passed = self.CONTRAST_MIN <= luma_spread <= self.CONTRAST_MAX
+        score = self.profile.contrast.score(luma_spread)
 
-        if y_std < self.CONTRAST_MIN:
+        if luma_spread < self.CONTRAST_MIN:
             message = (
-                f"Video has low contrast (std dev: {y_std:.1f}). Image may appear flat. Consider increasing contrast."
+                f"Video has low contrast (luma spread: {luma_spread:.1f}%). "
+                "Image may appear flat. Consider increasing contrast."
             )
-        elif y_std > self.CONTRAST_MAX:
-            message = f"Video has very high contrast (std dev: {y_std:.1f}). May lose detail in shadows/highlights."
+        elif luma_spread > self.CONTRAST_MAX:
+            message = f"Video has very high contrast (luma spread: {luma_spread:.1f}%). May lose detail in shadows/highlights."
         else:
-            message = f"Contrast is good (std dev: {y_std:.1f})"
+            message = f"Contrast is good (luma spread: {luma_spread:.1f}%)"
 
         return QualityReport(
             check_name="contrast",
@@ -96,7 +99,7 @@ class QualityChecksMixin:
             score=score,
             message=message,
             details={
-                "y_std": y_std,
+                "y_std": luma_spread,
                 "y_low": y_low,
                 "y_high": y_high,
                 "target_range": [self.CONTRAST_MIN, self.CONTRAST_MAX],

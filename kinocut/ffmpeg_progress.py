@@ -32,7 +32,9 @@ class _Diagnostics:
             parse_time,
         )
         self.total = 0
-        self.prefix, self.pending, self.errors = bytearray(), bytearray(), []
+        self.head_limit = FFMPEG_PROGRESS_STDERR_BYTES // 2
+        self.tail_limit = FFMPEG_PROGRESS_STDERR_BYTES - self.head_limit
+        self.prefix, self.tail, self.pending, self.errors = bytearray(), bytearray(), bytearray(), []
 
     def read(self):
         try:
@@ -43,8 +45,16 @@ class _Diagnostics:
                 self.total += len(chunk)
                 if self.total > MAX_SUBPROCESS_STDERR_BYTES:
                     raise output_limit_error("stderr")
-                space = FFMPEG_PROGRESS_STDERR_BYTES - len(self.prefix)
-                self.prefix.extend(chunk[: max(0, space)])
+                if len(self.prefix) < self.head_limit:
+                    space = self.head_limit - len(self.prefix)
+                    self.prefix.extend(chunk[:space])
+                    overflow = chunk[space:]
+                else:
+                    overflow = chunk
+                if overflow:
+                    self.tail.extend(overflow)
+                    if len(self.tail) > self.tail_limit:
+                        del self.tail[: -self.tail_limit]
                 self.pending.extend(chunk)
                 self._lines()
                 if len(self.pending) > FFMPEG_PROGRESS_LINE_BYTES:
@@ -56,6 +66,10 @@ class _Diagnostics:
                 self.tree.kill()
             except BaseException as cleanup:
                 self.errors.append(cleanup)
+
+    def captured_stderr(self) -> str:
+        raw = bytes(self.prefix) + bytes(self.tail)
+        return raw.decode("utf-8", errors="replace")
 
     def _lines(self):
         while True:
@@ -112,7 +126,7 @@ def run_progress(
         raise ProcessingError(" ".join(cmd), -1, "", reason="FFmpeg diagnostic reader did not stop")
     if diagnostics.errors:
         raise diagnostics.errors[0] from None
-    stderr = diagnostics.prefix.decode("utf-8", errors="replace")
+    stderr = diagnostics.captured_stderr()
     if returncode != 0:
         raise parse_ffmpeg_error(stderr, command=cmd)
     callback(100.0)

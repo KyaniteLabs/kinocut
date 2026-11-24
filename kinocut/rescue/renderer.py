@@ -478,6 +478,8 @@ def _try_caption_generation(
             prep.operations.append(transcript_entry)
             persist_fn()
             _check_cancel(prep.cancel)
+        except RescueCancellation:
+            raise
         except MCPVideoError as exc:
             if exc.code == "missing_whisper":
                 captions_unavailable_reason = "missing_whisper"

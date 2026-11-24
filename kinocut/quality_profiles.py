@@ -8,8 +8,8 @@ intent explicitly and auditably instead of lowering ``min_score`` for everything
 ``dark-grade`` does the same for camera footage graded dark on purpose, so
 a night or noir look is not scored as underexposure.
 
-A profile only changes the brightness, contrast and saturation bands. Audio,
-color balance and temporal motion are profile-independent. Under any
+A profile can change picture bands and color-cast tolerance. Audio and
+temporal motion are profile-independent. Under any
 non-default profile the relaxed bands become hard limits: a failed visual check
 fails the release gate even when the overall score clears ``min_score``, so a
 blank or black capture cannot slip through on the strength of its audio.
@@ -57,6 +57,7 @@ class QualityProfile:
     contrast: VisualBand
     saturation: VisualBand
     visual_checks_gate: bool
+    color_balance_max_deviation: float = 15.0
 
     def receipt(self) -> dict:
         """Auditable record of the profile and every threshold it applied."""
@@ -64,7 +65,8 @@ class QualityProfile:
             "name": self.name,
             "description": self.description,
             "visual_checks_gate": self.visual_checks_gate,
-            "profile_independent_checks": ["audio_levels", "color_balance", "temporal_motion"],
+            "profile_independent_checks": ["audio_levels", "temporal_motion"],
+            "color_balance_max_deviation": self.color_balance_max_deviation,
             "bands": {
                 "brightness": asdict(self.brightness),
                 "contrast": asdict(self.contrast),
@@ -108,6 +110,7 @@ QUALITY_PROFILES: dict[str, QualityProfile] = {
         # Desaturated and monochrome grades are deliberate looks, not defects.
         saturation=VisualBand(target_min=0, target_max=120, optimum=40, scale=50, plateau=True),
         visual_checks_gate=True,
+        color_balance_max_deviation=30.0,
     ),
     "ui-capture-light": QualityProfile(
         name="ui-capture-light",

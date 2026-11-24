@@ -12,9 +12,16 @@ from kinocut.errors import MCPVideoError
 from kinocut.limits import MAX_CLI_JSON_ARTIFACT_BYTES
 
 
-@pytest.mark.parametrize("raw", [None, "", " \n\t "])
-def test_missing_or_blank_plan_preserves_none(raw):
-    assert handlers_sound._load_plan_json(raw) is None
+def test_missing_plan_preserves_none():
+    assert handlers_sound._load_plan_json(None) is None
+
+
+@pytest.mark.parametrize("raw", ["", " \n\t "])
+def test_explicit_blank_plan_is_rejected(raw):
+    with pytest.raises(MCPVideoError) as failure:
+        handlers_sound._load_plan_json(raw)
+    assert failure.value.error_type == "validation_error"
+    assert failure.value.code == "invalid_parameter"
 
 
 def test_valid_inline_and_file_plan_are_forwarded(tmp_path, monkeypatch, capsys):

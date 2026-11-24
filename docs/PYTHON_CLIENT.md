@@ -251,9 +251,9 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | `ai_transcribe(video, output_srt?, model?, language?)` | `dict` | Speech-to-text with Whisper |
 | `ai_scene_detect(video, threshold?, use_ai?)` | `list[dict]` | Scene change detection |
 | `ai_stem_separation(video, output_dir, stems?, model?)` | `dict[str, str]` | Isolate vocals, drums, bass, other with Demucs |
-| `ai_upscale(video, output, scale?, model?)` | `str` | AI super-resolution upscaling |
-| `ai_color_grade(video, output, reference?, style?, lut_path?)` | `str` | Color grade with a style, reference or explicit `.cube` LUT |
-| `ai_remove_silence(video, output, silence_threshold?, min_silence_duration?, keep_margin?)` | `str` | Auto-remove silent sections |
+| `ai_upscale(video, output, scale?, model?)` | `EditResult` | AI super-resolution upscaling |
+| `ai_color_grade(video, output, reference?, style?, lut_path?)` | `EditResult` | Color grade with a style, reference or explicit `.cube` LUT |
+| `ai_remove_silence(video, output, silence_threshold?, min_silence_duration?, keep_margin?)` | `EditResult` | Auto-remove silent sections |
 
 ---
 
@@ -262,8 +262,8 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `quality_check(video, fail_on_warning?)` | `dict` | Check brightness, contrast, saturation, audio levels, color balance |
-| `design_quality_check(video, auto_fix?, strict?)` | `Any` | Full design quality analysis: layout, typography, color, motion, composition |
-| `fix_design_issues(video, output?)` | `str` | Auto-fix brightness and saturation issues (audio is not changed; use `normalize_audio`) |
+| `design_quality_check(video, auto_fix?, strict?)` | `dict` | Full design quality analysis: layout, typography, color, motion, composition |
+| `fix_design_issues(video, output?)` | `EditResult` | Auto-fix brightness and saturation issues (audio is not changed; use `normalize_audio`) |
 | `detect_scenes(video, threshold?, output?)` | `SceneDetectionResult` | Auto-detect scene changes |
 | `thumbnail(video, timestamp?, output?)` | `ThumbnailResult` | Extract single frame |
 | `extract_frame(video, timestamp?, output?)` | `ThumbnailResult` | Alias for `thumbnail` |
@@ -390,7 +390,7 @@ TypeScript. Dependency installation may access npm; rendering is local.
 |--------|---------|-------------|
 | `repurpose_plan(video, output_dir?, platforms?)` | `dict` | Write a dry-run `repurpose_plan.json` |
 | `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score=80.0?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts. Default `min_score` is `DEFAULT_QUALITY_GATE_SCORE` (80). Since 1.16.0, MCP `video_repurpose` is a durable job and applies `min_score` before job success; the worker enforces its frozen checkpoint policy. 1.15.3 did not. |
-| `shorts_package(..., allow_fail=False?)` | `dict` | Package approved shorts renders. Quality gate fails closed unless `allow_fail=True`. |
+| `shorts_package(...)` | `dict` | Package approved shorts renders. The legacy `allow_fail` argument no longer bypasses QC. |
 
 ---
 
@@ -547,7 +547,7 @@ Every entry below is generated from the code, so nothing is missing. The section
 | `audio_waveform()` | Extract audio waveform data (peaks and silence regions). |
 | `auto_chapters()` | Auto-detect scene changes and create chapters. |
 | `batch()` | Apply the same operation to multiple video files. |
-| `benchmark_run()` | See MCP `video_benchmark_run`: Run the AI-video benchmark corpus against host capabilities. |
+| `benchmark_run()` | See MCP `video_benchmark_run`: Count which AI-video corpus capabilities are available on this host. |
 | `blur()` | Apply blur effect to a video. |
 | `body_swap()` | See MCP `video_body_swap`: Replace video while preserving approved audio with explicit duration policy. |
 | `capabilities()` | See MCP `video_capabilities`: Probe host capabilities (ffmpeg, whisper, c2pa) and return a capability report. |
@@ -640,7 +640,7 @@ Every entry below is generated from the code, so nothing is missing. The section
 | `revideo_materialize()` | See MCP `revideo_materialize`: Materialize Kinocut's pinned Revideo project for a validated job. |
 | `revideo_render()` | See MCP `revideo_render`: Render and atomically publish a verified local Revideo artifact. |
 | `revideo_render_job()` | See MCP `revideo_render_job`: Materialize, install, render, and verify one local Revideo job. |
-| `review_decision()` | See MCP `video_review_decision`: Record a human review decision (writer); corrections supersede by record id. |
+| `review_decision()` | See MCP `video_review_decision`: Record a review decision (writer); corrections supersede by record id. |
 | `review_package()` | See MCP `video_review_package`: Assemble a review package and publish-gate verdict for a candidate artifact. |
 | `rotate()` | Rotate and/or flip a video. |
 | `salvage()` | See MCP `video_salvage`: Create one lineage-bound salvage derivative and a fresh review slot. |

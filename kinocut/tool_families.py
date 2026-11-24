@@ -128,21 +128,7 @@ DESCRIBE_TOOL_NAME = "describe_operation"
 # * image_ops (image) — OPEN. image_analyze_product(use_ai=true) calls a
 #   configured Anthropic-compatible vision endpoint over httpx
 #   (image_engine._describe_product_with_vision), a supported configuration.
-# * video_qc_ops (inspection, doctor, guardrails, motion_acceptance, release)
-#   — OPEN (Security round 3 correction). doctor's node check executes
-#     `npx --yes hyperframes --version` once the node version probe succeeds
-#     and a hyperframes CLI is on PATH (doctor.py _check_command), and
-#     _check_hyperframes_cli executes the supported
-#     MCP_VIDEO_HYPERFRAMES_COMMAND prefix, including that same npx launcher.
-#     npx may fetch and install a *missing* `hyperframes` package from the
-#     npm registry before executing it — `--yes` suppresses the installation
-#     prompt and `--version` is passed through to the package — so these are
-#     package-launcher invocations, not local version queries. The family's
-#     other members are local FFmpeg/JSON checks and find_spec presence
-#     reports that only report packages, never execute them; with no
-#     hyperframes on PATH and no configured command doctor performs zero
-#     launcher calls (asserted at the final subprocess boundary in
-#     tests/test_tool_families.py).
+# * video_qc_ops — CLOSED. Doctor inspects installed tools offline.
 # * video_plan_ops (intent, creation, postrescue, repurpose, rescue, workflow)
 #   — OPEN (Security round 2 correction). server_tools_intent.video_qc_vision
 #   → watching.vision_qc.run_vision_qc → vision_provider.assess_keyframes →
@@ -165,7 +151,7 @@ FAMILY_OPEN_WORLD: Mapping[str, bool] = {
     "audio_ops": False,
     "video_ai_ops": True,
     "image_ops": True,
-    "video_qc_ops": True,
+    "video_qc_ops": False,
     "video_plan_ops": True,
     "platform_ops": True,
 }

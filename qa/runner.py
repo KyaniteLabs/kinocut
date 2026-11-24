@@ -57,7 +57,7 @@ EXPECTED_PATH_IDS = {
     "source-alias-guard",
     "mcp-video_doctor",
     "mcp-video_info",
-    "mcp-search_tools",
+    "mcp-list_operations",
     "mcp-protocol",
     "static-review-ui",
     "hyperframes-preview",
@@ -66,6 +66,7 @@ EXPECTED_PATH_IDS = {
 PLACEHOLDER = re.compile(r"\{\{([a-z_]+)\}\}")
 COMMAND_ALLOWLIST = {"kino", "ffmpeg", "ffprobe", "uv", "{{python}}", "{{venv_python}}"}
 BRAND_RENDER_ASSET = Path("assets") / "kinocut-wordmark.svg"
+HYPERFRAMES_VERSION = "0.8.104"
 FLEET_ROOT_ENV = "KINOCUT_QA_FLEET_ROOT"
 
 
@@ -344,19 +345,29 @@ def measured_waveform(data: dict[str, Any] | None) -> bool:
     return (
         isinstance(peaks, list)
         and len(peaks) == 8
-        and all(isinstance(p, dict) and isinstance(p.get("time"), (int, float))
-                and isinstance(p.get("level"), (int, float)) and math.isfinite(p["level"]) for p in peaks)
+        and all(
+            isinstance(p, dict)
+            and isinstance(p.get("time"), (int, float))
+            and isinstance(p.get("level"), (int, float))
+            and math.isfinite(p["level"])
+            for p in peaks
+        )
         and any(p["level"] > -50 for p in peaks)
     )
 
 
 def subtitle_search_matches(data: dict[str, Any]) -> list[str]:
-    tools = data.get("tools")
+    tools = data.get("operations")
     if data.get("success") is False or not isinstance(tools, list):
         return []
-    return [item["name"] for item in tools if isinstance(item, dict)
-            and isinstance(item.get("name"), str) and "subtitle" in item["name"].lower()
-            and isinstance(item.get("required_params"), list)]
+    return [
+        item["name"]
+        for item in tools
+        if isinstance(item, dict)
+        and isinstance(item.get("name"), str)
+        and "subtitle" in item["name"].lower()
+        and isinstance(item.get("required_params"), list)
+    ]
 
 
 def sound_plan_rejection(cp: subprocess.CompletedProcess[str]) -> dict[str, Any] | None:
@@ -492,7 +503,9 @@ class OperatorRunner:
     ) -> subprocess.CompletedProcess[str]:
         executable = argv[0] if argv else ""
         trusted_paths = {str(Path(sys.executable).resolve()), str(self.python.resolve()), str(self.kino.resolve())}
-        trusted = executable in {"git", "kino", "ffmpeg", "ffprobe", "uv"} or str(Path(executable).resolve()) in trusted_paths
+        trusted = (
+            executable in {"git", "kino", "ffmpeg", "ffprobe", "uv"} or str(Path(executable).resolve()) in trusted_paths
+        )
         if self.hyperframes_executable and str(Path(executable).resolve()) == str(
             Path(self.hyperframes_executable).resolve()
         ):
@@ -550,19 +563,15 @@ class OperatorRunner:
                 return entry
         raise CatalogError(f"required path not found: {path_id}")
 
-    def _fleet_root(self) -> Path:
-        configured = os.environ.get(FLEET_ROOT_ENV)
-        root = Path(configured).expanduser() if configured else Path.home() / "fleet"
-        return root.resolve()
-
     def _values(self) -> dict[str, Any]:
+        fleet_root = os.environ.get(FLEET_ROOT_ENV)
         return {
             "qa_work": self.work,
             "product_root": self.product_root,
             "venv": self.venv,
             "python": sys.executable,
             "venv_python": self.python,
-            "fleet_root": self._fleet_root(),
+            **({"fleet_root": Path(fleet_root).expanduser().resolve()} if fleet_root else {}),
         }
 
     def _expanded(self, entry: dict[str, Any], key: str = "argv") -> list[str]:
@@ -620,7 +629,7 @@ class OperatorRunner:
         ):
             self._run_operator(self._entry(path_id))
         self._run_mcp_protocol()
-        for path_id in ("mcp-video_doctor", "mcp-video_info", "mcp-search_tools"):
+        for path_id in ("mcp-video_doctor", "mcp-video_info", "mcp-list_operations"):
             self._run_mcp_call(self._entry(path_id))
         self._run_static_review(self._entry("static-review-ui"))
         self._run_hyperframes(self._entry("hyperframes-preview"))
@@ -681,7 +690,11 @@ class OperatorRunner:
                     self._fail(entry, f"CLI help failed in the supplied checkout: {tail}", code=install.returncode)
                 return
         check = self._run(
-            [str(self.python), "-c", "import kinocut,pathlib,importlib.metadata; print(pathlib.Path(kinocut.__file__).resolve()); print(importlib.metadata.version('kinocut'))"],
+            [
+                str(self.python),
+                "-c",
+                "import kinocut,pathlib,importlib.metadata; print(pathlib.Path(kinocut.__file__).resolve()); print(importlib.metadata.version('kinocut'))",
+            ],
             cwd=self.work,
             timeout=30,
         )
@@ -889,6 +902,12 @@ class OperatorRunner:
         if quality is None or receipt is None or self._decode(output / "final_clip.mp4").returncode != 0:
             self._fail(entry, "golden-path artifact JSON or full media decode failed")
             return
+        if quality.get("all_passed") is not True or float(quality.get("overall_score") or 0) < 80:
+            self._fail(
+                entry,
+                f"golden-path quality gate did not pass: all_passed={quality.get('all_passed')} score={quality.get('overall_score')}",
+            )
+            return
         self._pass(
             entry, "isolated exact-SHA clone wrote receipt/quality/checkpoint/media; human review remains pending"
         )
@@ -1013,12 +1032,17 @@ class OperatorRunner:
             if entry["id"] == "info":
                 probe = self._ffprobe(self.work / "fixtures" / "input.mp4")
                 data = _read_json_object(cp.stdout)
+                info_res = data.get("resolution") if isinstance(data, dict) else None
+                dims_match = isinstance(data, dict) and (
+                    (data.get("width") == probe["width"] and data.get("height") == probe["height"])
+                    or info_res == f"{probe['width']}x{probe['height']}"
+                )
                 if (
                     not probe
                     or probe["width"] != 320
                     or probe["height"] != 180
                     or not probe["has_audio"]
-                    or data is None
+                    or not dims_match
                 ):
                     self._fail(entry, "CLI info did not return JSON metadata matching independent ffprobe")
                     return
@@ -1076,7 +1100,13 @@ class OperatorRunner:
         if self.product_problem or not self.product_sha:
             self._blocked(entry, self.product_problem or "exact product SHA is unavailable")
             return
+        if not os.environ.get(FLEET_ROOT_ENV):
+            self._blocked(entry, f"set {FLEET_ROOT_ENV} to the external brand-gate checkout")
+            return
         argv = self._expanded(entry)
+        if not Path(argv[1]).is_file():
+            self._blocked(entry, f"brand gate is absent from the configured {FLEET_ROOT_ENV}")
+            return
         try:
             report_path = Path(argv[argv.index("--json") + 1])
         except (ValueError, IndexError):
@@ -1088,7 +1118,7 @@ class OperatorRunner:
         # but must also see the interpreter's Pillow install, which the product
         # PYTHONNOUSERSITE guard would hide.
         base_env = self._base_env()
-        with tempfile.TemporaryDirectory(prefix="kinoqa-brand-", dir="/tmp") as chrome_tmp:
+        with tempfile.TemporaryDirectory(prefix="kinoqa-brand-") as chrome_tmp:
             env = {
                 "PATH": base_env["PATH"],
                 "HOME": base_env["HOME"],
@@ -1150,12 +1180,16 @@ class OperatorRunner:
                 problems.append(f"{label}: gate ok={item.get('ok')!r} {detail}")
             if not isinstance(ink, int) or ink <= 0:
                 problems.append(f"{label}: ink_pixels={ink!r} is not a positive measured count")
-            if not isinstance(bbox, list) or len(bbox) != 4 or not all(
-                isinstance(value, (int, float)) for value in bbox
+            if (
+                not isinstance(bbox, list)
+                or len(bbox) != 4
+                or not all(isinstance(value, (int, float)) for value in bbox)
             ):
                 problems.append(f"{label}: ink_bbox={bbox!r} is not a measured box")
-            if not isinstance(canvas, list) or len(canvas) != 4 or not all(
-                isinstance(value, (int, float)) for value in canvas
+            if (
+                not isinstance(canvas, list)
+                or len(canvas) != 4
+                or not all(isinstance(value, (int, float)) for value in canvas)
             ):
                 problems.append(f"{label}: canvas={canvas!r} is not a measured canvas")
             if (
@@ -1167,18 +1201,11 @@ class OperatorRunner:
             ):
                 left, top, right, bottom = (float(value) for value in bbox)
                 x, y, width, height = (float(value) for value in canvas)
-                if (
-                    left < x - 0.5
-                    or top < y - 0.5
-                    or right > x + width + 0.5
-                    or bottom > y + height + 0.5
-                ):
+                if left < x - 0.5 or top < y - 0.5 or right > x + width + 0.5 or bottom > y + height + 0.5:
                     problems.append(f"{label}: ink bbox {_format_box(bbox)} lies outside canvas {_format_box(canvas)}")
             if item.get("outside_edges"):
                 problems.append(f"{label}: outside_edges={item.get('outside_edges')}")
-            measured.append(
-                f"{label} ink_pixels={ink} ink_bbox={_format_box(bbox)} canvas={_format_box(canvas)}"
-            )
+            measured.append(f"{label} ink_pixels={ink} ink_bbox={_format_box(bbox)} canvas={_format_box(canvas)}")
         evidence = "; ".join(measured)
         if problems:
             self._fail(entry, f"{'; '.join(problems)}; measured: {evidence}", code=cp.returncode)
@@ -1423,7 +1450,8 @@ class OperatorRunner:
         try:
             request = entry["request"]
             args = expand_data(request.get("arguments", {}), self._values())
-            _, data, raw, is_error = self._mcp_call("default", entry["argv"], request["tool"], args)
+            tool = request["tool"]
+            _, data, raw, is_error = self._mcp_call("default", entry["argv"], tool, args)
         except ImportError:
             self._blocked(entry, "MCP Python SDK is not available locally; no dependency installation attempted")
             return
@@ -1452,9 +1480,9 @@ class OperatorRunner:
         else:
             names = subtitle_search_matches(data)
             if names:
-                self._pass(entry, f"actual stdio search_tools returned subtitle operations ({len(names)} matches)")
+                self._pass(entry, f"actual stdio list_operations returned subtitle operations ({len(names)} matches)")
             else:
-                self._fail(entry, "search_tools returned no structured subtitle operation matches")
+                self._fail(entry, "list_operations returned no structured subtitle operation matches")
 
     @staticmethod
     def _free_port() -> int:
@@ -1589,19 +1617,26 @@ class OperatorRunner:
             return
         self.preview_process = process
         http_code = None
+        html = ""
         try:
+            import http.client
+
             url = f"http://127.0.0.1:{port}/review.html?media=input.mp4"
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
+                conn = http.client.HTTPConnection("127.0.0.1", port, timeout=1)
                 try:
-                    with urllib.request.urlopen(url, timeout=1) as response:
-                        http_code = response.status
-                        html = response.read().decode("utf-8", errors="replace")
+                    conn.request("GET", "/review.html?media=input.mp4")
+                    response = conn.getresponse()
+                    http_code = response.status
+                    html = response.read().decode("utf-8", errors="replace")
                     break
-                except (urllib.error.URLError, TimeoutError):
+                except (OSError, http.client.HTTPException):
                     if process.poll() is not None:
                         break
                     time.sleep(0.1)
+                finally:
+                    conn.close()
             if http_code != 200 or 'id="player"' not in html or "setInterval(load, 2000)" not in html:
                 self._fail(
                     entry,
@@ -1610,9 +1645,15 @@ class OperatorRunner:
                 )
                 return
             for name in ("timeline.json", "input.mp4"):
-                with urllib.request.urlopen(f"http://127.0.0.1:{port}/{name}", timeout=5) as response:
+                conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+                try:
+                    conn.request("GET", f"/{name}")
+                    response = conn.getresponse()
+                    response.read()
                     if response.status != 200:
                         raise RuntimeError(f"HTTP {response.status} for {name}")
+                finally:
+                    conn.close()
             try:
                 sync_playwright = importlib.import_module("playwright.sync_api").sync_playwright
             except ImportError:
@@ -1630,7 +1671,11 @@ class OperatorRunner:
             try:
                 with browser_tempdir() as browser_tmp, sync_playwright() as playwright:
                     try:
-                        browser = playwright.chromium.launch(headless=True, executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"), env={**self._base_env(), "TMPDIR": browser_tmp})
+                        browser = playwright.chromium.launch(
+                            headless=True,
+                            executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"),
+                            env={**self._base_env(), "TMPDIR": browser_tmp},
+                        )
                     except Exception as exc:
                         browser_log.write_text(
                             json.dumps({"console": console_lines, "requests": requests, "page_errors": page_errors}),
@@ -1759,7 +1804,7 @@ class OperatorRunner:
         self.hyperframes_executable = executable
         version_cp = self._run([executable, "--version"], cwd=self.work, timeout=15)
         version = version_cp.stdout.strip() or version_cp.stderr.strip()
-        if version_cp.returncode or not any(tag in version for tag in ("0.8.104", "0.8.140")):
+        if version_cp.returncode or version != HYPERFRAMES_VERSION:
             self._blocked(
                 entry,
                 f"installed Hyperframes CLI version is not verified as supported by target docs: {version!r}; no package install attempted",
@@ -1837,7 +1882,11 @@ class OperatorRunner:
         try:
             with browser_tempdir() as browser_tmp, sync_playwright() as playwright:
                 try:
-                    browser = playwright.chromium.launch(headless=True, executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"), env={**self._base_env(), "TMPDIR": browser_tmp})
+                    browser = playwright.chromium.launch(
+                        headless=True,
+                        executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"),
+                        env={**self._base_env(), "TMPDIR": browser_tmp},
+                    )
                 except Exception as exc:
                     browser_log.write_text(
                         json.dumps({"console": console_lines, "requests": requests, "page_errors": page_errors}),

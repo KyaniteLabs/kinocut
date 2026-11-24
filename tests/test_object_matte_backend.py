@@ -74,7 +74,7 @@ def test_missing_extra_is_dependency_error_and_never_calls_hf(monkeypatch, tmp_p
     source = _png(tmp_path / "sku.png")
     monkeypatch.setattr("mcp_video.object_matte.api.require_object_matte_deps", _missing_extra)
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
         pytest.raises(MCPVideoError) as excinfo,
     ):
@@ -140,7 +140,7 @@ def test_mocked_still_writes_output_and_hole_cut(monkeypatch, tmp_path: Path):
         lambda _weights, _device: (_FakeSession(), ["CPUExecutionProvider"]),
     )
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
     ):
         result = remove_background(
@@ -276,7 +276,7 @@ def test_mp4_is_rejected_before_weight_fetch(tmp_path: Path, monkeypatch: pytest
     monkeypatch.setattr("mcp_video.object_matte.api.require_object_matte_deps", lambda: None)
     with (
         patch("mcp_video.object_matte.api.ensure_weights") as mock_weights,
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         pytest.raises(MCPVideoError) as excinfo,
     ):
         remove_background(str(src), output_path=str(dest), model="birefnet-general")
@@ -326,7 +326,7 @@ def test_run_object_matte_scratch_cap_stops_before_writes(tmp_path: Path, monkey
     )
     with (
         patch("mcp_video.object_matte.encode.write_alpha_video") as mock_encode,
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         pytest.raises(MCPVideoError) as excinfo,
     ):
         remove_background(str(src), output_path=str(dest), model="birefnet-general")
@@ -365,25 +365,25 @@ def test_unknown_frame_count_refuses_before_decode(monkeypatch: pytest.MonkeyPat
 def test_stalled_decode_raises_timeout_and_reaps(monkeypatch: pytest.MonkeyPatch) -> None:
     killed: list[str] = []
 
-    class _Proc:
-        stdout = object()
-        stderr = None
+    import io
+    from types import SimpleNamespace
 
-        def poll(self):
-            return None if not killed else -9
+    class _Tree:
+        process = SimpleNamespace(stdout=io.BytesIO())
 
-        def kill(self):
+        def close(self):
             killed.append("kill")
 
         def wait(self, timeout=None):
             return -9
 
-    monkeypatch.setattr("mcp_video.object_matte.media.subprocess.Popen", lambda *a, **k: _Proc())
+    monkeypatch.setattr("mcp_video.object_matte.media.ProcessTree", lambda *a, **k: _Tree())
     monkeypatch.setattr("mcp_video.object_matte.media.select.select", lambda *_a, **_k: ([], [], []))
     with pytest.raises(MCPVideoError) as excinfo:
         list(iter_video_rgb("turn.mp4", 2, 2, deadline=0))
     assert excinfo.value.code == "object_matte_timeout"
     assert killed == ["kill"]
+    assert _Tree.process.stdout.closed
 
 
 def test_parse_rate_rejects_zero_denominators() -> None:

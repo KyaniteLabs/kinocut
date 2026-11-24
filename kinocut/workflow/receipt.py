@@ -29,7 +29,7 @@ from pydantic import ValidationError
 from ..contracts.trusted_execution import ReceiptLineage
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer
-from ..output_policy import output_operation
+from ..publication import output_operation
 from ._errors import (
     INVALID_WORKFLOW_RECEIPT,
     INVALID_WORKFLOW_SPEC,
@@ -271,9 +271,6 @@ def _write_receipt(
         _open_staged_writer(staged) as stream,
     ):
         stream.write(payload.encode("utf-8"))
-        from ..projectstore.receipt_ownership import witness_receipt_stage
-
-        witness_receipt_stage(save_receipt, staged)
 
 
 # --- Receipt lineage ---------------------------------------------------------

@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import warnings
-from typing import ClassVar
 
 from ..errors import MCPVideoError
 from ..models import EditResult
+from ..validation import (
+    VALID_GRID_LAYOUTS,
+    VALID_MOGRAPH_STYLES,
+    VALID_PIP_POSITIONS,
+    VALID_TEXT_ANIMATIONS,
+    VALID_TEXT_POSITIONS,
+)
 
 
 class ClientEffectsMixin:
@@ -23,9 +29,8 @@ class ClientEffectsMixin:
         """Apply vignette effect - darkened edges."""
         from ..effects_engine import effect_vignette
 
-        return self._to_edit_result(
-            effect_vignette(input_path=video, output=output, intensity=intensity, radius=radius, smoothness=smoothness),
-            operation="effect_vignette",
+        return effect_vignette(
+            input_path=video, output=output, intensity=intensity, radius=radius, smoothness=smoothness
         )
 
     def effect_chromatic_aberration(
@@ -38,10 +43,7 @@ class ClientEffectsMixin:
         """Apply RGB channel separation effect."""
         from ..effects_engine import effect_chromatic_aberration
 
-        return self._to_edit_result(
-            effect_chromatic_aberration(input_path=video, output=output, intensity=intensity, angle=angle),
-            operation="effect_chromatic_aberration",
-        )
+        return effect_chromatic_aberration(input_path=video, output=output, intensity=intensity, angle=angle)
 
     def effect_scanlines(
         self,
@@ -63,19 +65,14 @@ class ClientEffectsMixin:
                 stacklevel=2,
             )
             opacity = intensity
-        video = self._resolve_alias("input_path", input_path, "video", video)
-        output = self._resolve_alias("output_path", output_path, "output", output)
         from ..effects_engine import effect_scanlines
 
-        return self._to_edit_result(
-            effect_scanlines(
-                input_path=video,
-                output=output,
-                line_height=line_height,
-                opacity=opacity,
-                flicker=flicker,
-            ),
-            operation="effect_scanlines",
+        return effect_scanlines(
+            input_path=input_path,
+            output=output_path,
+            line_height=line_height,
+            opacity=opacity,
+            flicker=flicker,
         )
 
     def effect_noise(
@@ -89,10 +86,7 @@ class ClientEffectsMixin:
         """Apply film grain / digital noise."""
         from ..effects_engine import effect_noise
 
-        return self._to_edit_result(
-            effect_noise(input_path=video, output=output, intensity=intensity, mode=mode, animated=animated),
-            operation="effect_noise",
-        )
+        return effect_noise(input_path=video, output=output, intensity=intensity, mode=mode, animated=animated)
 
     def effect_glow(
         self,
@@ -106,32 +100,15 @@ class ClientEffectsMixin:
         output_path: str | None = None,
     ) -> EditResult:
         """Apply bloom/glow effect for highlights."""
-        video = self._resolve_alias("input_path", input_path, "video", video)
-        output = self._resolve_alias("output_path", output_path, "output", output)
         from ..effects_engine import effect_glow
 
-        return self._to_edit_result(
-            effect_glow(input_path=video, output=output, intensity=intensity, radius=radius, threshold=threshold),
-            operation="effect_glow",
+        return effect_glow(
+            input_path=input_path, output=output_path, intensity=intensity, radius=radius, threshold=threshold
         )
 
     # ------------------------------------------------------------------
     # Layout & Composition
     # ------------------------------------------------------------------
-
-    _VALID_LAYOUTS: ClassVar[set[str]] = {"2x2", "3x1", "1x3", "2x3"}
-    _VALID_PIP_POSITIONS: ClassVar[set[str]] = {"top-left", "top-right", "bottom-left", "bottom-right"}
-    _VALID_TEXT_ANIMATIONS: ClassVar[set[str]] = {"fade", "glitch", "slide-up", "typewriter"}
-    _VALID_MOGRAPH_STYLES: ClassVar[set[str]] = {"bar", "circle", "dots"}
-    _VALID_TEXT_POSITIONS: ClassVar[set[str]] = {
-        "center",
-        "top",
-        "bottom",
-        "top-left",
-        "top-right",
-        "bottom-left",
-        "bottom-right",
-    }
 
     def layout_grid(
         self,
@@ -155,12 +132,10 @@ class ClientEffectsMixin:
         Raises:
             ValueError: If layout is invalid
         """
-        self._validate_choice("layout", layout, self._VALID_LAYOUTS)
+        self._validate_choice("layout", layout, VALID_GRID_LAYOUTS)
         from ..effects_engine import layout_grid
 
-        return self._to_edit_result(
-            layout_grid(clips, layout, output, gap, padding, background), operation="layout_grid"
-        )
+        return layout_grid(clips, layout, output, gap, padding, background)
 
     def layout_pip(
         self,
@@ -192,12 +167,11 @@ class ClientEffectsMixin:
         Raises:
             ValueError: If position is invalid
         """
-        self._validate_choice("position", position, self._VALID_PIP_POSITIONS)
+        self._validate_choice("position", position, VALID_PIP_POSITIONS)
         from ..effects_engine import layout_pip
 
-        return self._to_edit_result(
-            layout_pip(main, pip, output, position, size, margin, rounded_corners, border, border_color, border_width),
-            operation="layout_pip",
+        return layout_pip(
+            main, pip, output, position, size, margin, rounded_corners, border, border_color, border_width
         )
 
     # ------------------------------------------------------------------
@@ -221,15 +195,12 @@ class ClientEffectsMixin:
         """Add animated text to video."""
         if not text or not text.strip():
             raise MCPVideoError("Text cannot be empty", error_type="validation_error", code="invalid_parameter")
-        self._validate_choice("animation", animation, self._VALID_TEXT_ANIMATIONS)
-        self._validate_choice("position", position, self._VALID_TEXT_POSITIONS)
+        self._validate_choice("animation", animation, VALID_TEXT_ANIMATIONS)
+        self._validate_choice("position", position, VALID_TEXT_POSITIONS)
         from ..effects_engine import text_animated
 
-        return self._to_edit_result(
-            text_animated(
-                video, text, output, animation, font, size, color, position, start, duration, typewriter_speed
-            ),
-            operation="text_animated",
+        return text_animated(
+            video, text, output, animation, font, size, color, position, start, duration, typewriter_speed
         )
 
     def text_subtitles(
@@ -242,10 +213,7 @@ class ClientEffectsMixin:
         """Burn subtitles from SRT/VTT with styling."""
         from ..effects_engine import text_subtitles
 
-        return self._to_edit_result(
-            text_subtitles(video=video, subtitles=subtitles, output=output, style=style),
-            operation="text_subtitles",
-        )
+        return text_subtitles(video=video, subtitles=subtitles, output=output, style=style)
 
     def subtitles_styled(
         self,
@@ -290,10 +258,7 @@ class ClientEffectsMixin:
             raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
         from ..effects_engine import mograph_count
 
-        return self._to_edit_result(
-            mograph_count(start, end, duration, output, style, fps),
-            operation="mograph_count",
-        )
+        return mograph_count(start, end, duration, output, style, fps)
 
     def mograph_progress(
         self,
@@ -309,13 +274,10 @@ class ClientEffectsMixin:
             raise MCPVideoError("duration must be positive", error_type="validation_error", code="invalid_parameter")
         if fps <= 0:
             raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
-        self._validate_choice("style", style, self._VALID_MOGRAPH_STYLES)
+        self._validate_choice("style", style, VALID_MOGRAPH_STYLES)
         from ..effects_engine import mograph_progress
 
-        return self._to_edit_result(
-            mograph_progress(duration, output, style, color, track_color, fps),
-            operation="mograph_progress",
-        )
+        return mograph_progress(duration, output, style, color, track_color, fps)
 
     # ------------------------------------------------------------------
     # Utility
@@ -351,10 +313,7 @@ class ClientEffectsMixin:
         """
         from ..transitions_engine import transition_glitch
 
-        return self._to_edit_result(
-            transition_glitch(clip1, clip2, output, duration, intensity),
-            operation="transition_glitch",
-        )
+        return transition_glitch(clip1, clip2, output, duration, intensity)
 
     def transition_pixelate(
         self, clip1: str, clip2: str, output: str, duration: float = 0.4, pixel_size: int = 50
@@ -370,10 +329,7 @@ class ClientEffectsMixin:
         """
         from ..transitions_engine import transition_pixelate
 
-        return self._to_edit_result(
-            transition_pixelate(clip1, clip2, output, duration, pixel_size),
-            operation="transition_pixelate",
-        )
+        return transition_pixelate(clip1, clip2, output, duration, pixel_size)
 
     def transition_morph(
         self, clip1: str, clip2: str, output: str, duration: float = 0.6, mesh_size: int = 10
@@ -389,10 +345,7 @@ class ClientEffectsMixin:
         """
         from ..transitions_engine import transition_morph
 
-        return self._to_edit_result(
-            transition_morph(clip1, clip2, output, duration, mesh_size),
-            operation="transition_morph",
-        )
+        return transition_morph(clip1, clip2, output, duration, mesh_size)
 
     # ------------------------------------------------------------------
     # AI Features (Wave 3)

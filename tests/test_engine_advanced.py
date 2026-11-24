@@ -1071,12 +1071,14 @@ class TestSceneDetection:
 
     def test_detect_scenes_timeout_raises_processing_error(self, sample_video, monkeypatch):
         from mcp_video.engine import detect_scenes
-        from mcp_video import engine_detect_scenes
+        from mcp_video import bounded_process, engine_detect_scenes
+
+        monkeypatch.setattr(engine_detect_scenes, "probe", lambda _: type("Info", (), {"duration": 1})())
 
         def raise_timeout(*args, **kwargs):
             raise subprocess.TimeoutExpired(cmd=args[0], timeout=kwargs.get("timeout"))
 
-        monkeypatch.setattr(engine_detect_scenes.subprocess, "run", raise_timeout)
+        monkeypatch.setattr(bounded_process, "run_bounded", raise_timeout)
 
         with pytest.raises(ProcessingError, match="timed out"):
             detect_scenes(sample_video)

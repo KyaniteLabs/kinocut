@@ -1,77 +1,9 @@
 """Targeted tests to raise coverage on small utility modules."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
-
-class TestFontManager:
-    def test_list_available_fonts(self):
-        from mcp_video.font_manager import list_available_fonts
-
-        fonts = list_available_fonts()
-        assert isinstance(fonts, list)
-        assert "roboto" in fonts
-
-    def test_resolve_font_local_file(self, tmp_path):
-        from mcp_video.font_manager import resolve_font
-
-        font_file = tmp_path / "test.ttf"
-        font_file.write_text("fake font")
-        result = resolve_font(str(font_file))
-        assert result == str(font_file)
-
-    def test_resolve_font_unknown_raises(self):
-        from mcp_video.errors import MCPVideoError
-        from mcp_video.font_manager import resolve_font
-
-        with pytest.raises(MCPVideoError, match="Unknown font"):
-            resolve_font("not-a-real-font-name")
-
-    def test_resolve_font_caches(self, tmp_path, monkeypatch):
-        from mcp_video.font_manager import resolve_font
-
-        cache_dir = tmp_path / "fonts"
-        monkeypatch.setattr("mcp_video.font_manager._FONT_CACHE_DIR", str(cache_dir))
-        # Cached entries do not trigger a network call.
-        fake_font = cache_dir / "roboto.ttf"
-        fake_font.parent.mkdir(parents=True, exist_ok=True)
-        from tests.test_font_download_bounds import FONT
-
-        fake_font.write_bytes(FONT)
-
-        with patch("mcp_video.font_manager.run_bounded") as mock_dl:
-            result = resolve_font("roboto")
-            assert result == str(fake_font)
-            mock_dl.assert_not_called()  # Already cached
-
-    def test_resolve_font_downloads(self, tmp_path, monkeypatch):
-        from mcp_video.font_manager import resolve_font
-
-        cache_dir = tmp_path / "fonts"
-        monkeypatch.setattr("mcp_video.font_manager._FONT_CACHE_DIR", str(cache_dir))
-
-        from tests.test_font_download_bounds import FONT
-
-        from tests.test_font_download_bounds import Response, network
-
-        network(monkeypatch, Response(FONT))
-        result = resolve_font("roboto")
-        assert Path(result).exists()
-
-    def test_resolve_font_download_fails(self, tmp_path, monkeypatch):
-        from mcp_video.errors import MCPVideoError
-        from mcp_video.font_manager import resolve_font
-
-        cache_dir = tmp_path / "fonts"
-        monkeypatch.setattr("mcp_video.font_manager._FONT_CACHE_DIR", str(cache_dir))
-
-        with (
-            patch("mcp_video.font_manager.run_bounded", side_effect=OSError("network down")),
-            pytest.raises(MCPVideoError, match="Failed to download"),
-        ):
-            resolve_font("roboto")
 
 
 class TestServerToolsImage:
@@ -191,51 +123,20 @@ class TestAudioEngineInit:
         with pytest.raises(InputFileError):
             add_generated_audio("/nonexistent.mp4", {"events": [{"type": "tone"}]}, str(tmp_path / "out.mp4"))
 
-    def test_add_generated_audio_with_drone(self, tmp_path):
-        from mcp_video.audio_engine import add_generated_audio
+    def test_add_generated_audio_unreadable_video_is_a_processing_error(self, tmp_path):
+        from kinocut.audio_engine import add_generated_audio
+        from kinocut.errors import ProcessingError
 
-        video = str(tmp_path / "v.mp4")
-        Path(video).write_bytes(b"fake")
-        out = str(tmp_path / "out.mp4")
+        video = tmp_path / "not-a-video.mp4"
+        video.write_bytes(b"\x00" * 4096)
 
-        # Mock audio_sequence to avoid actual generation, then ffmpeg will fail
-        with patch("mcp_video.audio_engine.audio_sequence"), patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stderr="")
-            result = add_generated_audio(
-                video,
-                {"drone": {"frequency": 100, "volume": 0.2}, "events": []},
-                out,
+        with pytest.raises(ProcessingError):
+            add_generated_audio(
+                str(video),
+                {"events": [{"type": "tone", "at": 0, "duration": 1, "freq": 440}]},
+                str(tmp_path / "out.mp4"),
             )
-            assert result == out
-
-    def test_add_generated_audio_ffmpeg_timeout(self, tmp_path):
-        from mcp_video.audio_engine import add_generated_audio
-
-        video = str(tmp_path / "v.mp4")
-        Path(video).write_bytes(b"fake")
-        out = str(tmp_path / "out.mp4")
-
-        with (
-            patch("mcp_video.audio_engine.audio_sequence"),
-            patch("subprocess.run", side_effect=TimeoutError("timeout")),
-            pytest.raises(Exception),
-        ):
-            # The code catches subprocess.TimeoutExpired, not TimeoutError
-            # So this will actually raise a different error
-            add_generated_audio(video, {"events": [{"type": "tone"}]}, out)
-
-    def test_add_generated_audio_ffmpeg_error(self, tmp_path):
-        from mcp_video.audio_engine import add_generated_audio
-        from mcp_video.errors import ProcessingError
-
-        video = str(tmp_path / "v.mp4")
-        Path(video).write_bytes(b"fake")
-        out = str(tmp_path / "out.mp4")
-
-        with patch("mcp_video.audio_engine.audio_sequence"):
-            mock_result = MagicMock(returncode=1, stderr="ffmpeg error")
-            with patch("subprocess.run", return_value=mock_result), pytest.raises(ProcessingError):
-                add_generated_audio(video, {"events": [{"type": "tone"}]}, out)
+        assert not (tmp_path / "out.mp4").exists()
 
 
 class TestServerToolsImageSuccess:

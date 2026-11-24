@@ -139,7 +139,8 @@ class NimaScorer:
         from PIL import Image
 
         torch = self._torch
-        img = Image.open(frame_path).convert("RGB").resize((224, 224))
+        with Image.open(frame_path) as raw:
+            img = raw.convert("RGB").resize((224, 224))
         tensor = self._transform(img).unsqueeze(0)
         with torch.no_grad():
             logits = self._head(torch.flatten(self._avgpool(self._features(tensor)), 1))
@@ -153,7 +154,8 @@ class NimaScorer:
         torch = self._torch
         tensors = []
         for path in frame_paths:
-            img = Image.open(path).convert("RGB").resize((224, 224))
+            with Image.open(path) as raw:
+                img = raw.convert("RGB").resize((224, 224))
             tensors.append(self._transform(img))
         batch = torch.stack(tensors)
         with torch.no_grad():
@@ -197,9 +199,11 @@ class NimaScorer:
 
 def is_available() -> bool:
     """Check if NIMA scoring is available (torch installed + weights present)."""
+    if not any(os.path.isfile(path) for path in WEIGHTS_SEARCH):
+        return False
     try:
         import torch  # noqa: F401
 
-        return any(os.path.isfile(path) for path in WEIGHTS_SEARCH)
+        return True
     except ImportError:
         return False

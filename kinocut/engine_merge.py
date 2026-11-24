@@ -84,11 +84,17 @@ def _normalize_clips(
         elif info.rotation == 270:
             vf_parts.insert(0, "transpose=1")
         seconds = info.duration if on_progress is not None else 0.0
+        audio_filter = None
+        if getattr(info, "audio_codec", None) is not None:
+            vdur = _video_stream_duration(clip) or (float(info.duration) if getattr(info, "duration", None) else None)
+            if vdur is not None and vdur > 0:
+                audio_filter = f"apad=whole_dur={vdur:.6f},atrim=0:{vdur:.6f},asetpts=PTS-STARTPTS"
         _render(
             _build_ffmpeg_cmd(
                 clip,
                 output_path=norm_path,
                 video_filter=",".join(vf_parts),
+                audio_filter=audio_filter,
                 crf=DEFAULT_CRF,
                 preset=DEFAULT_PRESET,
                 extra=[
@@ -99,6 +105,7 @@ def _normalize_clips(
                     "-ac",
                     str(DEFAULT_AUDIO_CHANNELS),
                 ],
+                movflags=False,
             ),
             seconds,
             _stage(on_progress, done, seconds, total),
@@ -124,13 +131,42 @@ def _merge_single_clip(clip: str, output_path: str | None) -> EditResult:
     return result.model_copy(update={"output_path": output})
 
 
-def _concat_clips(clips: list[str], output: str, tmpdir: str) -> None:
+def _video_stream_duration(clip: str) -> float | None:
+    from .engine_media_timeline import _picture_extent
+    from .ffmpeg_helpers import _run_ffprobe_json
+
+    try:
+        return _picture_extent(clip, _run_ffprobe_json(clip))[1]
+    except MCPVideoError:
+        return None
+
+
+def _fill_missing_duration(clip: str, info):
+    """Populate missing container duration from video tags/packets (e.g. live Matroska)."""
+    if (getattr(info, "duration", 0.0) or 0.0) > 0:
+        return info
+    measured = _video_stream_duration(clip)
+    if measured is not None and measured > 0 and hasattr(info, "model_copy"):
+        return info.model_copy(update={"duration": measured})
+    return info
+
+
+def _resolve_merge_infos(clips: list[str], infos: list | None) -> list:
+    raw_infos = [probe(c) for c in clips] if (infos is None or len(infos) != len(clips)) else infos
+    return [_fill_missing_duration(c, info) for c, info in zip(clips, raw_infos, strict=True)]
+
+
+def _concat_clips(clips: list[str], output: str, tmpdir: str, *, use_video_duration: bool = False) -> None:
     """Concatenate clips using FFmpeg concat demuxer."""
     concat_file = os.path.join(tmpdir, "concat.txt")
     with open(concat_file, "w") as f:
         for clip in clips:
             abs_path = os.path.abspath(clip).replace("\\", "\\\\").replace("'", "'\\''")
             f.write(f"file '{abs_path}'\n")
+            if use_video_duration:
+                vdur = _video_stream_duration(clip)
+                if vdur is not None:
+                    f.write(f"duration {vdur:.6f}\n")
     _run_ffmpeg(["-f", "concat", "-safe", "0", "-i", concat_file, "-c", "copy", *_movflags_args(output), output])
 
 
@@ -161,6 +197,7 @@ def _normalize_needs(infos: list) -> tuple[bool, bool]:
         len({i.display_resolution for i in infos}) > 1
         or len({i.codec for i in infos}) > 1
         or len({round(i.fps, 2) for i in infos}) > 1
+        or len({i.audio_codec for i in infos if i.audio_codec}) > 1
         or len({i.audio_sample_rate for i in infos if i.audio_sample_rate}) > 1
     )
     return differs or mixed_audio, mixed_audio
@@ -216,8 +253,7 @@ def merge(
         return _merge_single_clip(_validate_input_path(clips[0]), output_path)
 
     clips = [_validate_input_path(c) for c in clips]
-    if infos is None or len(infos) != len(clips):
-        infos = [probe(c) for c in clips]
+    infos = _resolve_merge_infos(clips, infos)
 
     # --- Guardrails: pre-merge compatibility ---
     has_transitions = bool(transition or transitions)
@@ -260,7 +296,7 @@ def merge(
                         transition_seconds,
                     )
                 else:
-                    _concat_clips(working_clips, staged, tmpdir)
+                    _concat_clips(working_clips, staged, tmpdir, use_video_duration=needs_normalize)
                 result = _build_edit_result(staged, "merge", timing)
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
@@ -308,7 +344,7 @@ def _compute_xfade_offsets(clips: list[str], pairs: int, transition_duration: fl
     offsets: list[float] = []
     cumulative = 0.0
     for i in range(pairs):
-        clip_dur = get_duration(clips[i])
+        clip_dur = _video_stream_duration(clips[i]) or get_duration(clips[i])
         if transition_duration >= clip_dur:
             raise MCPVideoError(
                 f"Transition duration ({transition_duration}s) must be less than "

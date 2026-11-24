@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -21,8 +22,18 @@ TIMEOUT = 20
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 
+def _headers(url: str) -> dict[str, str]:
+    headers = {"User-Agent": USER_AGENT}
+    # Unauthenticated api.github.com calls from shared CI runners hit the
+    # per-IP rate limit (HTTP 403); send the job token only to GitHub's API.
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if token and urllib.parse.urlsplit(url).hostname == "api.github.com":
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
 def _get_json(url: str) -> tuple[int, dict[str, Any] | None, str]:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(url, headers=_headers(url))
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)

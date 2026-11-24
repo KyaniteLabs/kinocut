@@ -50,7 +50,13 @@ def video_publish_gate(
 @mcp.tool()
 @_safe_tool
 def video_review_decision(project_dir: str, decision: dict[str, Any]) -> dict[str, Any]:
-    """Record a human review decision (writer); corrections supersede by record id."""
+    """Record a review decision (writer); corrections supersede by record id.
+
+    The decision must name its ``created_by``. This tool refuses decisions
+    labelled ``human:*``: an agent cannot mint the human approval the publish
+    gate trusts. Agents record ``agent:*`` decisions; a person records human
+    decisions from the kino CLI or the review surface.
+    """
 
     return _run("review_decision", project_dir=project_dir, decision=decision)
 
@@ -90,6 +96,11 @@ def video_capabilities() -> dict[str, Any]:
 @mcp.tool()
 @_safe_tool
 def video_benchmark_run() -> dict[str, Any]:
-    """Run the AI-video benchmark corpus against host capabilities."""
+    """Count which AI-video corpus capabilities are available on this host.
+
+    No media is rendered or exported: a passed item means the capability it
+    needs reported ``available``, nothing more. Use it as an environment audit,
+    not as evidence that an edit or export works.
+    """
 
     return _run("benchmark_run")

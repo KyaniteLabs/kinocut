@@ -12,37 +12,44 @@ and the ``keep_intermediates`` cleanup override.
 
 from __future__ import annotations
 
-from ._errors import (
-    INVALID_WORKFLOW_PARAMS as INVALID_WORKFLOW_PARAMS,
-    INVALID_WORKFLOW_RECEIPT as INVALID_WORKFLOW_RECEIPT,
-    INVALID_WORKFLOW_SPEC as INVALID_WORKFLOW_SPEC,
-    INVALID_WORKFLOW_VARIANT as INVALID_WORKFLOW_VARIANT,
-    RESUME_SPEC_MISMATCH as RESUME_SPEC_MISMATCH,
-    RESUME_VARIANT_MISMATCH as RESUME_VARIANT_MISMATCH,
-    UNKNOWN_WORKFLOW_REF as UNKNOWN_WORKFLOW_REF,
-    UNSAFE_WORKFLOW_SOURCE as UNSAFE_WORKFLOW_SOURCE,
-    UNSUPPORTED_WORKFLOW_OP as UNSUPPORTED_WORKFLOW_OP,
-    workflow_error as workflow_error,
-)
-from .executor import render_workflow as render_workflow
-from .inspector import (
-    inspect_receipt as inspect_receipt,
-    read_receipt as read_receipt,
-)
-from .ops import (
-    OP_ADAPTERS as OP_ADAPTERS,
-    OpAdapter as OpAdapter,
-)
-from .planner import plan_workflow as plan_workflow
-from .spec import (
-    WorkflowOutput as WorkflowOutput,
-    WorkflowSource as WorkflowSource,
-    WorkflowSpec as WorkflowSpec,
-    WorkflowStep as WorkflowStep,
-    WorkflowVariant as WorkflowVariant,
-)
-from .validator import validate_workflow_spec as validate_workflow_spec
-from .variants import (
-    apply_variant_overrides as apply_variant_overrides,
-    variant_ids as variant_ids,
-)
+import importlib as _importlib
+
+_EXPORTS = {
+    "INVALID_WORKFLOW_PARAMS": "._errors",
+    "INVALID_WORKFLOW_RECEIPT": "._errors",
+    "INVALID_WORKFLOW_SPEC": "._errors",
+    "INVALID_WORKFLOW_VARIANT": "._errors",
+    "RESUME_SPEC_MISMATCH": "._errors",
+    "RESUME_VARIANT_MISMATCH": "._errors",
+    "UNKNOWN_WORKFLOW_REF": "._errors",
+    "UNSAFE_WORKFLOW_SOURCE": "._errors",
+    "UNSUPPORTED_WORKFLOW_OP": "._errors",
+    "workflow_error": "._errors",
+    "render_workflow": ".executor",
+    "inspect_receipt": ".inspector",
+    "read_receipt": ".inspector",
+    "OP_ADAPTERS": ".ops",
+    "OpAdapter": ".ops",
+    "plan_workflow": ".planner",
+    "WorkflowOutput": ".spec",
+    "WorkflowSource": ".spec",
+    "WorkflowSpec": ".spec",
+    "WorkflowStep": ".spec",
+    "WorkflowVariant": ".spec",
+    "validate_workflow_spec": ".validator",
+    "apply_variant_overrides": ".variants",
+    "variant_ids": ".variants",
+}
+__all__ = tuple(_EXPORTS)
+
+
+def __getattr__(name: str):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(_importlib.import_module(_EXPORTS[name], __name__), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

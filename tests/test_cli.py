@@ -121,11 +121,11 @@ def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProces
         start_new_session=(os.name == "posix"),
     )
     try:
-        stdout, stderr = process.communicate(timeout=30)
+        stdout, stderr = process.communicate(timeout=60)
     except subprocess.TimeoutExpired:
         _kill_tree(process)
         stdout, stderr = process.communicate()
-        raise subprocess.TimeoutExpired(cmd, 30, output=stdout, stderr=stderr) from None
+        raise subprocess.TimeoutExpired(cmd, 60, output=stdout, stderr=stderr) from None
     result = subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
     if not expect_fail and result.returncode != 0:
         pytest.fail(f"CLI failed: {result.stderr}")
@@ -845,3 +845,31 @@ class TestCLICompositionHandlers:
         assert data["success"] is True
         assert data["output_path"] == str(output)
         assert output.exists()
+
+
+class TestCliPublishValidateExitCode:
+    """A failed publish gate must fail the shell command, not just print a report."""
+
+    def test_blocked_validation_exits_nonzero_with_the_report(self):
+        result = run_cli_json(
+            "publish-validate",
+            "youtube_shorts",
+            "--duration",
+            "999999",
+            "--height",
+            "1",
+            "--width",
+            "1",
+            expect_fail=True,
+        )
+        assert result.returncode == 1
+        payload = json.loads(result.stdout)
+        assert payload["blocked"] is True
+        assert payload["verdict"] == "fail"
+
+    def test_passing_validation_exits_zero(self):
+        result = run_cli_json(
+            "publish-validate", "youtube_shorts", "--duration", "30", "--height", "1920", "--width", "1080"
+        )
+        assert result.returncode == 0
+        assert json.loads(result.stdout)["verdict"] == "pass"

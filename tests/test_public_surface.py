@@ -481,7 +481,6 @@ def test_external_routing_surfaces_route_exclusively_to_github():
 
 def test_forgejo_is_a_ci_gated_fast_forward_downstream():
     workflow = (ROOT / ".github" / "workflows" / "sync-forgejo.yml").read_text(encoding="utf-8")
-    helper = (ROOT / "scripts" / "forgejo_sync.py").read_text(encoding="utf-8")
     topology = (ROOT / "docs" / "CI_RUNNER_TOPOLOGY.md").read_text(encoding="utf-8")
     human_gates = (ROOT / "docs" / "HUMAN_GATES.md").read_text(encoding="utf-8")
 
@@ -489,11 +488,13 @@ def test_forgejo_is_a_ci_gated_fast_forward_downstream():
     assert not (ROOT / ".forgejo" / "workflows" / "renovate.yml").exists()
     assert "workflow_run:" in workflow
     assert 'workflows: ["CI"]' in workflow
-    assert "environment: forgejo-mirror" in workflow
-    assert '"push", "forgejo-downstream"' in helper
-    assert 'f"{source_sha}:refs/heads/master"' in helper
-    assert "--force" not in helper
-    assert workflow.count("vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true'") == 2
+    # The fail-closed push logic lives in the shared KyaniteLabs/.github
+    # workflow, pinned by commit SHA; this repo carries only the caller.
+    assert "uses: KyaniteLabs/.github/.github/workflows/sync-forgejo.yml@" in workflow
+    assert "@main" not in workflow
+    assert "\n  pull_request" not in workflow and "pull_request:" not in workflow
+    assert "downstream-workflow: none" in workflow
+    assert workflow.count("vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true'") == 1
     for guidance in (topology, human_gates):
         normalized_guidance = " ".join(guidance.split())
         assert "KINOCUT_FORGEJO_SYNC_ACTIVE" in guidance
@@ -660,15 +661,14 @@ def test_public_site_matches_release_identity():
     assert "mcp-video is now Kinocut" in site
 
 
-def test_heavy_ai_extras_keep_python313_installable():
+def test_heavy_ai_extras_use_the_supported_opencv_backend():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     optional_deps = pyproject["project"]["optional-dependencies"]
 
     for extra in ("upscale", "ai", "all-ai"):
         dependencies = optional_deps[extra]
         assert "opencv-contrib-python>=4.10" in dependencies
-        assert "realesrgan>=0.3; python_version < '3.13'" in dependencies
-        assert "basicsr>=1.4; python_version < '3.13'" in dependencies
+        assert not any(dependency.startswith(("realesrgan", "basicsr", "torchvision")) for dependency in dependencies)
 
     for extra in ("audio-ai", "audio-all"):
         assert "numpy>=1.24" in optional_deps[extra]

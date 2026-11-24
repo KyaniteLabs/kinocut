@@ -369,6 +369,24 @@ def _import_tool_module(module: str) -> Any:
     return importlib.import_module(f".{module}", __package__)
 
 
+def _with_user_language(name: str, description: str) -> str:
+    """Append the operation's user-language line to the description the catalog indexes.
+
+    The line says what a person asks for, which the docstring does not, so
+    retrieval can match ordinary wording. It is appended after the docstring,
+    never in front of it, so every surface that shows only the first line
+    (``list_operations``, ``search_tools``, the reference index) is unchanged.
+    See ``kinocut.operation_aliases``.
+    """
+
+    from .operation_aliases import operation_alias
+
+    line = operation_alias(name)
+    if not line:
+        return description
+    return f"{description.rstrip()}\n\n{line}" if description.strip() else line
+
+
 class ToolSurface:
     """The selected MCP surface: mode, profiles, catalog and hidden registrations.
 
@@ -390,17 +408,10 @@ class ToolSurface:
         """Load and expose the surface ``KINOCUT_TOOLS`` (or ``raw``) names."""
 
         self.mode, self.profiles = parse_tool_mode(raw)
-        modules = (
-            TOOL_NAMES_BY_MODULE
-            if self.mode == "all" or self.mode.startswith("profile:")
-            else {
-                module: names
-                for module, names in TOOL_NAMES_BY_MODULE.items()
-                if any(name in CORE_TOOLS for name in names)
-            }
-        )
-        for module in modules:
-            _import_tool_module(module)
+        allowed = _allowed_names(self.mode, self.profiles)
+        for module, names in TOOL_NAMES_BY_MODULE.items():
+            if not allowed.isdisjoint(names):
+                _import_tool_module(module)
         if self.mode != "all":
             # Default and profile modes carry the compact family dispatchers;
             # the legacy ``all`` surface stays exactly the registry.
@@ -431,7 +442,7 @@ class ToolSurface:
             properties = (tool.parameters or {}).get("properties") or {}
             self.catalog[name] = {
                 "name": name,
-                "description": tool.description or "",
+                "description": _with_user_language(name, tool.description or ""),
                 "required_params": list((tool.parameters or {}).get("required", [])),
                 # Parameter help lives in the schema (tool_docstrings.fold_args);
                 # discovery still searches it.
@@ -483,12 +494,14 @@ def ensure_tool_loaded(name: str) -> Any:
     return getattr(SURFACE.load(module), name)
 
 
-def discovery_catalog() -> list[dict[str, Any]]:
-    """Load the complete registry only when an agent asks for discovery."""
+def discovery_catalog(modules: Iterable[str] = TOOL_NAMES_BY_MODULE) -> list[dict[str, Any]]:
+    """Load registration metadata only for the modules being searched."""
 
-    for module in TOOL_NAMES_BY_MODULE:
+    rows = []
+    for module in modules:
         SURFACE.load(module)
-    return [SURFACE.catalog[name] for name in TOOL_REGISTRY if name in SURFACE.catalog]
+        rows.extend(SURFACE.catalog[name] for name in TOOL_NAMES_BY_MODULE[module] if name in SURFACE.catalog)
+    return rows
 
 
 def active_mode() -> str:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from .defaults import DEFAULT_QUALITY_GATE_SCORE
@@ -303,27 +302,10 @@ def video_release_checkpoint(
     if frame_count < 1:
         return _validation_error(f"frame_count must be at least 1, got {frame_count}")
     input_path = _validate_input_path(input_path)
-    from .quality_guardrails import assert_quality
-    from .engine_thumbnail import thumbnail
-    from .engine_storyboard import storyboard
+    from .engine_release_checkpoint import release_checkpoint
 
-    report = assert_quality(
-        input_path, min_score=min_score, require_audio=require_audio, profile=profile, profile_reason=profile_reason
-    )
-    review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
-    os.makedirs(review_dir, exist_ok=True)
-    thumb = thumbnail(input_path, output_path=os.path.join(review_dir, "thumbnail.jpg"))
-    board = storyboard(input_path, output_dir=os.path.join(review_dir, "storyboard"), frame_count=frame_count)
     return _result(
-        {
-            "video": input_path,
-            "quality": report,
-            "quality_profile": profile,
-            "thumbnail": thumb.frame_path,
-            "storyboard": board.model_dump(),
-            "review_required": True,
-            "instructions": "Open the thumbnail/storyboard and inspect the final video before publishing.",
-        }
+        release_checkpoint(input_path, output_dir, min_score, frame_count, require_audio, profile, profile_reason)
     )
 
 

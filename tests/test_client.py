@@ -1,5 +1,7 @@
 """Tests for the Python client — needs FFmpeg."""
 
+from kinocut.errors import InputFileError
+from pydantic import ValidationError
 import os
 import inspect
 
@@ -225,7 +227,7 @@ class TestClientEdit:
         assert isinstance(result, EditResult)
 
     def test_edit_invalid_timeline_raises(self, editor):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             editor.edit({"width": "not_an_int"})
 
     def test_edit_rejects_invalid_image_position_before_input_validation(self, editor):
@@ -391,7 +393,7 @@ class TestClientValidators:
     def test_layout_grid_valid_layouts(self, editor):
         for layout in ("2x2", "3x1", "1x3", "2x3"):
             # Should not raise validation error (will fail at FFmpeg/input level but validation passes)
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(InputFileError) as exc_info:
                 editor.layout_grid(["/nonexistent/a.mp4"], layout, "/nonexistent/out.mp4")
             assert exc_info.value.error_type != "validation_error"
 
@@ -402,7 +404,7 @@ class TestClientValidators:
     def test_layout_pip_valid_positions(self, editor):
         for pos in ("top-left", "top-right", "bottom-left", "bottom-right"):
             # Should not raise validation error (will fail at FFmpeg/input level but validation passes)
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(InputFileError) as exc_info:
                 editor.layout_pip("/nonexistent/a.mp4", "/nonexistent/b.mp4", "/nonexistent/out.mp4", position=pos)
             assert exc_info.value.error_type != "validation_error"
 
@@ -446,7 +448,7 @@ class TestClientValidators:
         for fmt in ("mp4", "webm", "gif", "mov"):
             for q in ("low", "medium", "high", "ultra"):
                 # Should not raise ValueError (will fail at file-not-found or FFmpeg)
-                with pytest.raises(Exception) as exc_info:
+                with pytest.raises(InputFileError) as exc_info:
                     editor.convert("/nonexistent/video.mp4", format=fmt, quality=q)
                 assert not isinstance(exc_info.value, ValueError)
 
@@ -523,9 +525,12 @@ class TestClientAgentApiConsistency:
         assert public_methods == set(CLIENT_METHOD_CONTRACTS)
 
     def test_media_contracts_advertise_edit_result(self):
+        from typing import get_type_hints
+
         for name, contract in CLIENT_METHOD_CONTRACTS.items():
             if contract["category"] == "media":
                 assert contract["return_type"] == "EditResult", name
+                assert issubclass(get_type_hints(inspect.unwrap(getattr(Client, name)))["return"], EditResult), name
 
     def test_unexpected_keyword_errors_are_agent_helpful(self, editor):
         with pytest.raises(MCPVideoError, match="Valid parameters"):
@@ -649,6 +654,92 @@ class TestClientAgentApiConsistency:
         assert any("Stacked visual polish effects" in warning for warning in result.warnings)
         assert any("release checkpoint" in warning for warning in result.warnings)
 
+    @staticmethod
+    def _patch_glow(editor, monkeypatch, produced):
+        def fake_effect_glow(*, input_path, output_path=None, **kwargs):
+            target = output_path or produced
+            return editor._to_edit_result(target, operation="effect_glow")
+
+        monkeypatch.setattr(editor, "effect_glow", fake_effect_glow)
+
+    def test_pipeline_never_hands_the_final_output_to_a_trailing_quality_check(self, editor, monkeypatch):
+        seen = {}
+
+        def fake_quality_check(**kwargs):
+            seen.update(kwargs)
+            return {"all_passed": True, "checks": []}
+
+        self._patch_glow(editor, monkeypatch, "/tmp/glow.mp4")
+        monkeypatch.setattr(editor, "quality_check", fake_quality_check)
+
+        result = editor.pipeline(
+            [{"op": "effect_glow", "input_path": "/tmp/in.mp4"}, {"op": "quality_check"}],
+            output_path="/tmp/final.mp4",
+        )
+
+        assert result.output_path == "/tmp/final.mp4"
+        assert seen["input_path"] == "/tmp/final.mp4"
+        assert "output_path" not in seen
+        assert any("release checkpoint" in warning for warning in result.warnings)
+
+    def test_pipeline_reports_a_failed_quality_check(self, editor, monkeypatch):
+        self._patch_glow(editor, monkeypatch, "/tmp/final.mp4")
+        monkeypatch.setattr(
+            editor,
+            "quality_check",
+            lambda **kwargs: {
+                "all_passed": False,
+                "checks": [{"name": "black_frames", "passed": False}, {"name": "resolution", "passed": True}],
+            },
+        )
+
+        result = editor.pipeline([{"op": "effect_glow", "input_path": "/tmp/in.mp4"}, {"op": "quality_check"}])
+
+        assert any("quality_check FAILED" in warning and "black_frames" in warning for warning in result.warnings)
+        assert any("release checkpoint" in warning for warning in result.warnings)
+
+    def test_pipeline_hard_gate_counts_only_after_the_last_edit(self, editor, monkeypatch):
+        self._patch_glow(editor, monkeypatch, "/tmp/final.mp4")
+        monkeypatch.setattr(
+            editor,
+            "assert_quality",
+            lambda input_path, **kwargs: {"video": input_path, "overall_score": 95.0},
+        )
+
+        gated_before_edit = editor.pipeline(
+            [{"op": "assert_quality", "input_path": "/tmp/in.mp4"}, {"op": "effect_glow"}],
+            output_path="/tmp/final.mp4",
+        )
+        gated_after_edit = editor.pipeline(
+            [{"op": "effect_glow", "input_path": "/tmp/in.mp4"}, {"op": "assert_quality"}],
+            output_path="/tmp/final.mp4",
+        )
+
+        assert any("release checkpoint" in warning for warning in gated_before_edit.warnings)
+        assert not any("release checkpoint" in warning for warning in gated_after_edit.warnings)
+        assert gated_after_edit.output_path == "/tmp/final.mp4"
+
+    def test_to_edit_result_rejects_a_reported_failure(self, editor):
+        with pytest.raises(MCPVideoError) as failed:
+            editor._to_edit_result(
+                {
+                    "success": False,
+                    "output_path": "/tmp/half-rendered.mp4",
+                    "error": {
+                        "type": "processing_error",
+                        "code": "render_failed",
+                        "message": "decoder threw away a frame",
+                    },
+                }
+            )
+        assert failed.value.code == "render_failed"
+        assert failed.value.error_type == "processing_error"
+
+    def test_to_edit_result_keeps_dict_warnings(self, editor):
+        result = editor._to_edit_result({"output_path": "/tmp/out.mp4", "warnings": ["listen before publishing"]})
+        assert result.success is True
+        assert result.warnings == ["listen before publishing"]
+
     def test_pipeline_cleanup_failure_surfaces_warning(self, editor, monkeypatch, tmp_path):
         intermediate = tmp_path / "scene.mp4"
         final = tmp_path / "final.mp4"
@@ -686,32 +777,132 @@ class TestClientAgentApiConsistency:
         assert any("permission denied" in warning for warning in result.warnings)
 
     def test_release_checkpoint_runs_quality_then_preview_artifacts(self, editor, monkeypatch, tmp_path):
+        from kinocut.server_tools_ai import video_release_checkpoint
+
         video = tmp_path / "video.mp4"
         video.write_bytes(b"placeholder")
-        monkeypatch.setattr(
-            editor,
-            "assert_quality",
-            lambda input_path, min_score=80.0, require_audio=True, profile="default", profile_reason=None: {
-                "overall_score": 99.0
-            },
-        )
-        monkeypatch.setattr(
-            editor,
-            "thumbnail",
-            lambda input_path, output=None, **kwargs: editor._to_edit_result(
-                output or "/tmp/thumb.jpg", operation="thumbnail"
-            ),
-        )
-        monkeypatch.setattr(
-            editor,
-            "storyboard",
-            lambda input_path, output_path=None, **kwargs: editor._to_edit_result(
-                output_path or "/tmp/storyboard.jpg", operation="storyboard"
-            ),
-        )
+        calls = []
+
+        def quality(path, **kwargs):
+            calls.append("quality")
+            return {"overall_score": 99.0, **kwargs}
+
+        def thumbnail(path, output_path=None, timestamp=None):
+            calls.append("thumbnail")
+            return ThumbnailResult(frame_path=output_path, timestamp=0)
+
+        def storyboard(path, output_dir, frame_count):
+            calls.append("storyboard")
+            return StoryboardResult(frames=[output_dir], count=frame_count)
+
+        monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", quality)
+        monkeypatch.setattr("kinocut.engine_thumbnail.thumbnail", thumbnail)
+        monkeypatch.setattr("kinocut.engine_storyboard.storyboard", storyboard)
 
         result = editor.release_checkpoint(str(video), output_dir=str(tmp_path / "review"))
+        assert video_release_checkpoint(str(video), output_dir=str(tmp_path / "review")) == {**result, "success": True}
+        assert calls == ["quality", "thumbnail", "storyboard"] * 2
 
         assert result["quality"]["overall_score"] == 99.0
         assert result["thumbnail"].endswith("thumbnail.jpg")
         assert result["review_required"] is True
+
+    def test_media_result_converted_once(self, editor, monkeypatch):
+        from unittest.mock import Mock
+
+        normalize = Mock(wraps=editor._to_edit_result)
+        monkeypatch.setattr(editor, "_to_edit_result", normalize)
+        monkeypatch.setattr("kinocut.effects_engine.effect_glow", lambda **kwargs: kwargs["output"])
+        assert editor.effect_glow("in.mp4", output_path="out.mp4").output_path == "out.mp4"
+        assert normalize.call_count == 1
+
+    def test_positional_and_keyword_path_aliases_conflict(self, editor):
+        with pytest.raises(MCPVideoError) as exc:
+            editor.effect_glow("first.mp4", input_path="second.mp4", output_path="out.mp4")
+        assert exc.value.code == "ambiguous_parameter"
+
+    def test_release_checkpoint_respects_subclass_overrides(self, tmp_path):
+        from kinocut.client import Client
+
+        video = tmp_path / "video.mp4"
+        video.write_bytes(b"placeholder")
+        review_dir = tmp_path / "rejected_review"
+
+        class RejectingClient(Client):
+            def assert_quality(self, video, **kwargs):
+                raise MCPVideoError("quality rejected by subclass", error_type="quality_error", code="quality_failed")
+
+        with pytest.raises(MCPVideoError) as exc:
+            RejectingClient().release_checkpoint(str(video), output_dir=str(review_dir))
+        assert exc.value.code == "quality_failed"
+        assert not review_dir.exists()
+
+        calls = []
+
+        class CustomArtifactClient(Client):
+            def assert_quality(self, video, **kwargs):
+                calls.append("assert_quality")
+                return {"overall_score": 97.0}
+
+            def thumbnail(self, video, timestamp=None, output=None):
+                calls.append(("thumbnail", output))
+                return self._to_edit_result(output or str(tmp_path / "custom.jpg"), operation="thumbnail")
+
+            def storyboard(self, video, output_dir=None, frame_count=8):
+                calls.append(("storyboard", output_dir, frame_count))
+                return StoryboardResult(frames=[f"{output_dir}/f1.jpg"], count=frame_count)
+
+        ok_dir = tmp_path / "custom_review"
+        result = CustomArtifactClient().release_checkpoint(str(video), output_dir=str(ok_dir), frame_count=4)
+        assert calls[0] == "assert_quality"
+        assert calls[1][0] == "thumbnail" and calls[1][1].endswith("thumbnail.jpg")
+        assert calls[2] == ("storyboard", str(ok_dir / "storyboard"), 4)
+        assert result["quality"] == {"overall_score": 97.0}
+        assert result["thumbnail"].endswith("thumbnail.jpg")
+        assert result["storyboard"]["frames"] == [f"{ok_dir / 'storyboard'}/f1.jpg"]
+        assert result["storyboard"]["count"] == 4
+
+    def test_release_checkpoint_thumbnail_path_precedence_client_vs_mcp(self, monkeypatch, tmp_path):
+        from kinocut.client import Client
+        from kinocut.server_tools_ai import video_release_checkpoint
+
+        video = tmp_path / "video.mp4"
+        video.write_bytes(b"placeholder")
+        raw_frame = str(tmp_path / "raw-frame.jpg")
+        review_thumb = str(tmp_path / "review-thumbnail.jpg")
+        dual_thumb = ThumbnailResult(frame_path=raw_frame, output_path=review_thumb, timestamp=0.0)
+
+        class DualPathClient(Client):
+            def assert_quality(self, video, **kwargs):
+                return {"overall_score": 98.0}
+
+            def thumbnail(self, video, timestamp=None, output=None):
+                return dual_thumb
+
+            def storyboard(self, video, output_dir=None, frame_count=8):
+                return StoryboardResult(frames=[f"{output_dir}/f1.jpg"], count=frame_count)
+
+        client_result = DualPathClient().release_checkpoint(str(video), output_dir=str(tmp_path / "client_review"))
+        assert client_result["thumbnail"] == review_thumb
+
+        monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda *a, **kw: {"overall_score": 98.0})
+        monkeypatch.setattr("kinocut.engine_thumbnail.thumbnail", lambda *a, **kw: dual_thumb)
+        monkeypatch.setattr(
+            "kinocut.engine_storyboard.storyboard",
+            lambda *a, **kw: StoryboardResult(frames=[f"{kw['output_dir']}/f1.jpg"], count=kw["frame_count"]),
+        )
+        mcp_result = video_release_checkpoint(str(video), output_dir=str(tmp_path / "mcp_review"))
+        assert mcp_result["thumbnail"] == raw_frame
+
+    def test_validation_precedence_preserved_before_output_alias_conflict(self, editor):
+        with pytest.raises(MCPVideoError) as empty_exc:
+            editor.pipeline([], output_path="a.mp4", output="b.mp4")
+        assert empty_exc.value.code == "empty_pipeline"
+
+        with pytest.raises(MCPVideoError) as wrong_name_exc:
+            editor.create_from_images(inputs=["a.png"], output_path="a.mp4", output="b.mp4")
+        assert wrong_name_exc.value.code == "wrong_parameter_name"
+
+        with pytest.raises(MCPVideoError) as ambiguous_exc:
+            editor.create_from_images(images=["a.png"], output_path="a.mp4", output="b.mp4")
+        assert ambiguous_exc.value.code == "ambiguous_parameter"

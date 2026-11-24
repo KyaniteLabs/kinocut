@@ -55,8 +55,8 @@ def _sigmoid_minmax(logits: np.ndarray) -> np.ndarray:
     logits = _validated_logits(logits)
     mask = 1.0 / (1.0 + np.exp(-np.clip(logits, -30.0, 30.0)))
     lo, hi = float(mask.min()), float(mask.max())
-    if hi - lo < 1e-8:
-        return np.zeros_like(mask, dtype=np.float32)
+    if hi <= 0.5 or lo >= 0.5:
+        return mask
     return (mask - lo) / (hi - lo)
 
 

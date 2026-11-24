@@ -6,7 +6,6 @@ import asyncio
 import contextlib
 import functools
 import inspect
-import logging
 from collections.abc import Callable
 from importlib import metadata as _importlib_metadata
 from typing import Any
@@ -14,7 +13,8 @@ from typing import Any
 import mcp.server.fastmcp.server as _fastmcp_server
 from mcp.server.fastmcp import Context
 
-from .errors import MCPVideoError, retry_context, retry_message
+from .errors import MCPVideoError, retry_context
+from .operation_results import _error_result as _error_result, _result as _result
 from .server_tool_contracts import _ContractFastMCP
 
 # MCP 1.29 leaves Settings.lifespan as a forward reference. Rebuild it after the
@@ -64,8 +64,6 @@ mcp = _ContractFastMCP(
 _lowlevel_server = getattr(mcp, "_mcp_server", None)
 if _lowlevel_server is not None:
     _lowlevel_server.version = _product_version()
-
-logger = logging.getLogger(__name__)
 
 
 def _validation_error(message: str, code: str = "invalid_parameter") -> dict[str, Any]:
@@ -143,39 +141,3 @@ def _mcp_progress_reporter(ctx: Context | None) -> Callable[[float], None] | Non
             asyncio.run_coroutine_threadsafe(ctx.report_progress(percent, 100.0), loop)
 
     return report
-
-
-def _error_result(err: MCPVideoError | Exception) -> dict[str, Any]:
-    if isinstance(err, MCPVideoError):
-        return {"success": False, "error": err.to_dict()}
-    # Unexpected exception — log full traceback, return generic message
-    logger.exception("Unexpected error in MCP tool handler")
-    return {
-        "success": False,
-        "error": {
-            "type": "internal_error",
-            "code": "internal_error",
-            "message": retry_message(
-                "An internal error occurred. Check server logs for details.",
-                "internal_error",
-            ),
-        },
-    }
-
-
-def _result(result: Any) -> dict[str, Any]:
-    if result is None:
-        return {
-            "success": False,
-            "error": {"type": "processing_error", "code": "no_result", "message": "Operation returned no result"},
-        }
-    if hasattr(result, "model_dump"):
-        data = result.model_dump()
-        # Include thumbnail_base64 only if it was generated (keep MCP responses lean)
-        if not data.get("thumbnail_base64"):
-            data.pop("thumbnail_base64", None)
-        return data
-    if isinstance(result, dict):
-        result.setdefault("success", True)
-        return result
-    return {"success": True, "output_path": str(result)}

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from kinocut.errors import MCPVideoError
+from kinocut.errors import MCPVideoError, ProcessingError
 from kinocut.subtitles_eof import ClampedSegment
 from tests.subtitle_render_test_support import (
     _ASPECTS,
@@ -126,7 +126,10 @@ def test_render_validate_entries_accepts_mapping_records():
     from kinocut.engine_subtitle_generate import _validate_entries
 
     seg = ClampedSegment(0.0, 2.0, {"text": "hi"})
-    _validate_entries([seg])  # a Mapping record must be accepted, not just dict
+    _validate_entries([seg])
+
+    with pytest.raises(MCPVideoError, match="less than"):
+        _validate_entries([ClampedSegment(2.0, 2.0, {"text": "hi"})])
 
 
 def test_render_build_srt_content_reads_mapping_entries():
@@ -149,9 +152,13 @@ def test_render_probe_display_dimensions(aspect_video):
 
 @requires_ffmpeg
 @pytest.mark.parametrize("fmt", ["srt", "vtt"])
-def test_render_synthesized_ass_has_exactly_one_playres_equal_dims(fmt, srt_file, vtt_file):
+def test_render_synthesized_ass_has_exactly_one_playres_equal_dims(fmt, srt_file, vtt_file, tmp_path):
     sub = srt_file if fmt == "srt" else vtt_file
-    ass = _subtitles_common().synthesize_dimensioned_ass(sub, (1080, 1920))
+    with _subtitles_common().staged_burn_source(
+        sub, "unused", str(tmp_path / "out.mp4"), display_size=(1080, 1920)
+    ) as staged:
+        ass = Path(staged.path).read_text(encoding="utf-8")
+    assert not Path(staged.path).exists()
     xs = re.findall(r"(?mi)^\s*PlayResX:\s*(\d+)", ass)
     ys = re.findall(r"(?mi)^\s*PlayResY:\s*(\d+)", ass)
     assert xs == ["1080"]  # exactly one PlayResX, equal to display width
@@ -222,15 +229,26 @@ def test_render_generate_burn_does_not_clobber_sibling_srt(solid_aspect_video, t
 
 
 @requires_ffmpeg
-def test_render_generate_burn_handles_misleading_output_suffix(solid_aspect_video, tmp_path):
+def test_render_generate_burn_handles_misleading_output_suffix(solid_aspect_video, tmp_path, monkeypatch):
     from kinocut.engine_subtitle_generate import generate_subtitles
 
-    # generate_subtitles always writes SRT content; a .vtt-named output must be
-    # burned as SRT (via a temp .srt), not misread as WebVTT by the suffix.
     path, _dims = solid_aspect_video
     out = tmp_path / "cues.vtt"
+    common = _subtitles_common()
+    convert = common._run_ffmpeg
+    conversions = []
+
+    def observe(args):
+        conversions.append(args)
+        return convert(args)
+
+    monkeypatch.setattr(common, "_run_ffmpeg", observe)
     result = generate_subtitles([{"start": 0.0, "end": 1.0, "text": "hi"}], path, output_path=str(out), burn=True)
     assert Path(result.video_path).is_file()
+    (command,) = conversions
+    assert command[command.index("-f") + 1] == "srt"
+    assert command[command.index("-i") + 1] == str(out)
+    assert not Path(command[-1]).exists()
 
 
 # --- authored-ASS preservation: source bytes + pixel position -------------- #
@@ -329,6 +347,29 @@ def test_render_burn_preserves_audio_duration_resolution(solid_aspect_video, srt
     assert (int(vstream["width"]), int(vstream["height"])) == (width, height)
     assert _has_audio(dst)  # audio track preserved
     assert abs(float(dst["format"]["duration"]) - float(src["format"]["duration"])) < 0.4
+
+
+@requires_ffmpeg
+def test_render_burn_retries_rejected_audio_copy(srt_file, tmp_path, monkeypatch):
+    from kinocut import engine_subtitles
+
+    source = _make_solid_video(tmp_path / "clip.mp4", 320, 240)
+    output = str(tmp_path / "burned.mp4")
+    run = engine_subtitles._run_ffmpeg
+    attempts = []
+
+    def reject_copy(args):
+        codec = args[args.index("-c:a") + 1]
+        attempts.append(codec)
+        if codec == "copy":
+            raise ProcessingError("ffmpeg", 1, "codec not currently supported in container")
+        return run(args)
+
+    monkeypatch.setattr(engine_subtitles, "_run_ffmpeg", reject_copy)
+    result = engine_subtitles.subtitles(source, srt_file, output_path=output)
+    assert attempts == ["copy", "aac"]
+    assert result.output_path == output
+    assert _has_audio(_ffprobe_json(output))
 
 
 # --- generate(burn=True) delegates to the canonical dimension-aware engine -- #
@@ -554,15 +595,13 @@ def test_render_cli_forwards_style_and_defaults_none(monkeypatch):
 
 @pytest.mark.parametrize("subtitle_format", ["ass", "srt"])
 def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, subtitle_format):
-    from kinocut import engine_subtitles
+    from kinocut import subtitles_common
 
     source = tmp_path / "source.ass"
     source.write_text(
         "[Script Info]\n[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,Hello\n",
         encoding="utf-8",
     )
-    output = tmp_path / "burn.ass"
-    descriptor = os.open(output, os.O_CREAT | os.O_WRONLY, 0o600)
     original_fdopen = os.fdopen
     reused = []
 
@@ -574,11 +613,14 @@ def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, s
         reused.append(replacement)
         assert replacement == fd
 
-    monkeypatch.setattr(engine_subtitles.os, "fdopen", recycle_after_close)
-    monkeypatch.setattr(engine_subtitles, "probe_display_dimensions", lambda _: (320, 240))
-    monkeypatch.setattr(engine_subtitles, "synthesize_dimensioned_ass", lambda *_: "[Script Info]\n")
+    monkeypatch.setattr(subtitles_common.os, "fdopen", recycle_after_close)
+    monkeypatch.setattr(subtitles_common, "_require_filter", lambda *_: None)
+    monkeypatch.setattr(subtitles_common, "_run_ffmpeg", lambda args: Path(args[-1]).write_bytes(source.read_bytes()))
     try:
-        engine_subtitles._fill_burn_source(descriptor, subtitle_format, str(source), "unused.mp4")
+        with subtitles_common.staged_burn_source(
+            str(source), "unused", str(tmp_path / "burn.mp4"), display_size=(320, 240), format_hint=subtitle_format
+        ) as staged:
+            assert Path(staged.path).is_file()
         assert os.write(reused[0], b"still owned by another operation") > 0
     finally:
         for fd in reused:
@@ -701,16 +743,16 @@ def test_render_authored_ass_hostile_filename_is_escaped(solid_aspect_video, tmp
 def test_render_authored_ass_staging_failure_is_wrapped_and_cleaned(
     failing, monkeypatch, solid_aspect_video, authored_ass_file, tmp_path
 ):
-    import kinocut.engine_subtitles as engine_subtitles
+    from kinocut import engine_subtitles, subtitles_common
 
     def _boom(*args, **kwargs):
         raise OSError("disk full")
 
     # Every staging OSError (temp creation OR the byte copy) must be wrapped.
     if failing == "mkstemp":
-        monkeypatch.setattr(engine_subtitles.tempfile, "mkstemp", _boom)
+        monkeypatch.setattr(subtitles_common.tempfile, "mkstemp", _boom)
     else:
-        monkeypatch.setattr(engine_subtitles.shutil, "copyfileobj", _boom)
+        monkeypatch.setattr(subtitles_common.shutil, "copyfileobj", _boom)
     path, _dims = solid_aspect_video
     with pytest.raises(MCPVideoError) as excinfo:
         engine_subtitles.subtitles(path, authored_ass_file, output_path=str(tmp_path / "o.mp4"))
@@ -725,10 +767,10 @@ def test_render_authored_ass_staging_failure_is_wrapped_and_cleaned(
 
 @requires_ffmpeg
 def test_render_srt_synthesis_failure_closes_fd_and_cleans_temp(monkeypatch, aspect_video, srt_file, tmp_path):
-    import kinocut.engine_subtitles as engine_subtitles
+    from kinocut import engine_subtitles, subtitles_common
 
     created: dict = {}
-    real_mkstemp = engine_subtitles.tempfile.mkstemp
+    real_mkstemp = subtitles_common.tempfile.mkstemp
 
     def _spy_mkstemp(*args, **kwargs):
         fd, temp = real_mkstemp(*args, **kwargs)
@@ -738,26 +780,26 @@ def test_render_srt_synthesis_failure_closes_fd_and_cleans_temp(monkeypatch, asp
     def _boom_probe(_path):
         raise MCPVideoError("no video stream", error_type="validation_error", code="no_video_stream")
 
-    monkeypatch.setattr(engine_subtitles.tempfile, "mkstemp", _spy_mkstemp)
-    monkeypatch.setattr(engine_subtitles, "probe_display_dimensions", _boom_probe)
+    monkeypatch.setattr(subtitles_common.tempfile, "mkstemp", _spy_mkstemp)
+    monkeypatch.setattr(subtitles_common, "probe_display_dimensions", _boom_probe)
     path, _dims = aspect_video
     with pytest.raises(MCPVideoError) as excinfo:
         engine_subtitles.subtitles(path, srt_file, output_path=str(tmp_path / "o.mp4"))
     assert excinfo.value.code == "no_video_stream"  # custom probe error preserved (not re-wrapped)
     with pytest.raises(OSError):
-        os.close(created["fd"])  # fd was closed by _fill_burn_source
+        os.fstat(created["fd"])
     assert list(tmp_path.glob("tmp*.ass")) == []  # temp removed despite the failure
     assert not (tmp_path / "o.mp4").exists()
 
 
 @requires_ffmpeg
 def test_render_srt_write_failure_is_private_without_raw_message(monkeypatch, aspect_video, srt_file, tmp_path):
-    import kinocut.engine_subtitles as engine_subtitles
+    from kinocut import engine_subtitles, subtitles_common
 
     def _boom_fdopen(*args, **kwargs):
         raise OSError("disk full secret detail")
 
-    monkeypatch.setattr(engine_subtitles.os, "fdopen", _boom_fdopen)
+    monkeypatch.setattr(subtitles_common.os, "fdopen", _boom_fdopen)
     path, _dims = aspect_video
     with pytest.raises(MCPVideoError) as excinfo:
         engine_subtitles.subtitles(path, srt_file, output_path=str(tmp_path / "o.mp4"))

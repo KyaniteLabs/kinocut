@@ -70,6 +70,18 @@ def _hyperframes_subcommand(cmd: list[str]) -> str:
     raise AssertionError(f"hyperframes command not found in {cmd!r}")
 
 
+def _snapshot_writer(project: Path):
+    """A fake Hyperframes run that writes one new frame, as the real CLI does."""
+
+    def run(cmd, **kwargs):
+        snapshot_dir = project / "snapshots"
+        snapshot_dir.mkdir(exist_ok=True)
+        (snapshot_dir / "frame_new.png").write_bytes(b"png")
+        return _make_completed_process(stdout="captured")
+
+    return run
+
+
 def _mock_deps_ok():
     """Return a patcher that makes shutil.which find Node and Hyperframes."""
 
@@ -146,7 +158,9 @@ class TestRequireHyperframesDeps:
 
         mock_which.side_effect = _which
 
-        _require_hyperframes_deps()  # should not raise
+        _require_hyperframes_deps()
+        mock_which.assert_any_call("node")
+        mock_which.assert_any_call("hyperframes")
 
     def test_prefers_configured_hyperframes_command(self, monkeypatch):
         monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, "/opt/hyperframes/bin/hyperframes --project-root /srv/app")
@@ -814,12 +828,12 @@ class TestPreview:
 
         monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "false")
         monkeypatch.setattr(
-            "mcp_video.hyperframes_engine._run_hyperframes",
+            "mcp_video.hyperframes.runner._run_hyperframes",
             lambda *a, **kw: _make_completed_process(stdout="0.8.104"),
         )
         # These command-shape tests use a fake Popen; real HTTP readiness and
         # subprocess lifetime are exercised by test_preview_lifecycle_regression.
-        monkeypatch.setattr("mcp_video.hyperframes_engine._preview_ready", lambda *a: True)
+        monkeypatch.setattr("mcp_video.hyperframes.preview._preview_ready", lambda *a: True)
         _active_previews.clear()
         yield
         _active_previews.clear()
@@ -932,12 +946,14 @@ class TestStill:
         project = Path(sample_hyperframes_project)
         variables_file = tmp_path / "runtime.json"
         variables_file.write_text('{"headline":"Runtime"}')
-        fake_cp = _make_completed_process(stdout="Rendered frame.")
         snapshot_dir = project / "snapshots"
         snapshot_dir.mkdir()
-        (snapshot_dir / "frame.png").write_bytes(b"png")
+        (snapshot_dir / "frame.png").write_bytes(b"png")  # stale frame from an earlier run
 
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=_snapshot_writer(project)) as mock_run,
+        ):
             still(str(project), frame=42, variables={"headline": "Runtime"}, variables_file=str(variables_file))
 
         cmd = mock_run.call_args[0][0]
@@ -968,9 +984,12 @@ class TestSnapshot:
 
     def test_builds_at_timestamps(self, sample_hyperframes_project):
         project = str(sample_hyperframes_project)
-        fake_cp = _make_completed_process(stdout="captured")
-
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        with (
+            _mock_deps_ok(),
+            patch(
+                "mcp_video.hyperframes_engine.subprocess.run", side_effect=_snapshot_writer(Path(project))
+            ) as mock_run,
+        ):
             snapshot(project, at=[0.5, 1.25])
 
         cmd = mock_run.call_args[0][0]
@@ -982,9 +1001,12 @@ class TestSnapshot:
         project = str(sample_hyperframes_project)
         variables_file = tmp_path / "vars.json"
         variables_file.write_text('{"quote":"Hello"}')
-        fake_cp = _make_completed_process(stdout="captured")
-
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        with (
+            _mock_deps_ok(),
+            patch(
+                "mcp_video.hyperframes_engine.subprocess.run", side_effect=_snapshot_writer(Path(project))
+            ) as mock_run,
+        ):
             snapshot(project, frames=1, variables={"quote": "Hello"}, variables_file=str(variables_file))
 
         cmd = mock_run.call_args[0][0]
@@ -1372,7 +1394,7 @@ class TestValidate:
         with (
             _mock_deps_ok(),
             patch(
-                "mcp_video.hyperframes_engine._run_hyperframes",
+                "mcp_video.hyperframes.ops._run_hyperframes",
                 return_value=_make_completed_process(stdout='{"errors": [], "warnings": []}'),
             ),
         ):
@@ -1389,7 +1411,7 @@ class TestValidate:
         with (
             _mock_deps_ok(),
             patch(
-                "mcp_video.hyperframes_engine._run_hyperframes",
+                "mcp_video.hyperframes.ops._run_hyperframes",
                 return_value=_make_completed_process(returncode=1, stdout=lint_json),
             ),
         ):
@@ -1533,7 +1555,7 @@ class TestRenderAndPost:
 
         with (
             patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
-            patch("mcp_video.hyperframes_ops._render_output_exists", return_value=False),
+            patch("mcp_video.hyperframes.ops._render_output_exists", return_value=False),
             pytest.raises(HyperframesRenderError, match="output artifact"),
         ):
             render_and_post(project, post_process=[])
@@ -1605,6 +1627,70 @@ class TestRenderAndPost:
 
 class TestErrorHandling:
     """Tests for error handling edge cases."""
+
+    @pytest.mark.parametrize(
+        ("returncode", "diagnostic", "classification"),
+        [
+            pytest.param(1, "EACCES: permission denied, mkdir '/cache/locks'", "cache", id="posix-locks"),
+            pytest.param(1, "EACCES: permission denied, mkdir '/cache/locks/slot'", "cache", id="posix-locks-child"),
+            pytest.param(1, r"ENOENT: mkdir 'C:\cache\locks'", "cache", id="windows-locks"),
+            pytest.param(1, "EROFS: mkdir '/cache/.chrome.install.lock'", "cache", id="posix-chrome-lock"),
+            pytest.param(1, r"EACCES: mkdir 'C:\cache\.chrome.install.lock'", "cache", id="windows-chrome-lock"),
+            pytest.param(1, "EPERM: mkdir '/cache/locks'", "cache", id="eperm"),
+            pytest.param(1, "EACCES: permission denied, mkdir '/cache/locks-backup'", "composition", id="locks-backup"),
+            pytest.param(1, "ENOENT: mkdir '/cache/locks-backup'", "dependency", id="enoent-locks-backup"),
+            pytest.param(
+                1,
+                "The render slot cannot be taken because this account cannot write to the cache. "
+                "Set HYPERFRAMES_CACHE_DIR.",
+                "cache",
+                id="render-slot",
+            ),
+            pytest.param(1, "Failed to launch the browser process", "browser", id="browser-launch"),
+            pytest.param(1, "Could not find Chrome", "browser", id="missing-chrome"),
+            pytest.param(1, "browser executable not found", "browser", id="missing-browser"),
+            pytest.param(1, "ENOENT: spawn node", "dependency", id="missing-dependency"),
+            pytest.param(137, "EACCES: mkdir '/cache/.chrome.install.lock'", "oom", id="oom-before-cache"),
+            pytest.param(-9, "Process was killed", "oom", id="oom-sigkill"),
+            pytest.param(1, "FATAL ERROR: heap out of memory", "oom", id="oom-diagnostic"),
+            pytest.param(1, "Render timed out", "timeout", id="timeout-diagnostic"),
+            pytest.param(-1, "Process stopped", "timeout", id="timeout-exit-code"),
+            pytest.param(1, "Invalid composition root", "composition", id="composition-fallback"),
+        ],
+    )
+    def test_render_error_hint_keeps_stderr_private(self, returncode, diagnostic, classification):
+        sensitive_path = "/private/project/secret"
+        stderr = f"{diagnostic}\nProject: {sensitive_path}"
+        err = HyperframesRenderError("hyperframes render", returncode, stderr)
+        assert err.full_stderr == stderr
+        assert sensitive_path not in str(err)
+        assert sensitive_path not in repr(err.to_dict())
+
+        hint = err.suggested_action["description"]
+        expected = {
+            "cache": "HYPERFRAMES_CACHE_DIR",
+            "browser": "HYPERFRAMES_BROWSER_PATH",
+            "dependency": "Runtime dependency or binary is missing",
+            "oom": "out of memory",
+            "timeout": "timed out",
+            "composition": "index.html",
+        }
+        assert expected[classification] in hint
+        assert ("index.html" in hint) == (classification == "composition")
+        assert ("HYPERFRAMES_CACHE_DIR" in hint) == (classification == "cache")
+        assert ("HYPERFRAMES_BROWSER_PATH" in hint) == (classification == "browser")
+        if classification in {"browser", "dependency"}:
+            assert "`kino hyperframes-doctor`" in hint
+
+    def test_render_error_cache_matcher_stays_linear_on_long_non_matching_line(self):
+        import time
+
+        adversarial = " ".join(["EACCES mkdir /tmp/other"] * 10_000)
+        start = time.monotonic()
+        err = HyperframesRenderError("hyperframes render", 1, adversarial)
+        elapsed = time.monotonic() - start
+        assert elapsed < 0.5
+        assert "HYPERFRAMES_CACHE_DIR" not in err.suggested_action["description"]
 
     def test_render_timeout(self, sample_hyperframes_project, tmp_path):
         """render() should raise HyperframesRenderError on timeout."""
@@ -1781,7 +1867,8 @@ class TestHyperframesIntegration:
 
     def test_require_hyperframes_deps_with_real_node(self):
         """Verify deps check passes with a real Node.js install."""
-        _require_hyperframes_deps()  # should not raise
+        _require_hyperframes_deps()
+        assert _has_real_hyperframes_cli()
 
     def test_validate_real_project(self, tmp_path):
         """Validate a well-formed project structure."""

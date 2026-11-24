@@ -31,8 +31,8 @@ def get_signal_stats(video_path):
                 key = line.split('lavfi.signalstats.')[1].split('=')[0]
                 val = line.split('=')[-1].strip()
                 stats[key] = float(val) if val.replace('.', '').replace('-', '').isdigit() else val
-            except Exception:
-                pass
+            except (IndexError, ValueError):
+                continue
     return stats
 
 def get_audio_stats(video_path):

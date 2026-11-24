@@ -5,17 +5,21 @@ from __future__ import annotations
 import math
 import os
 import tempfile
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from ..errors import MCPVideoError
+from ..errors import MCPVideoError, ProcessingError
 from ..engine_edit import trim
 from ..engine_merge import merge
-from ..engine_resize import resize
+from ..engine_resize import crop_framing_filter, render_resize, resize
+from ..engine_runtime_utils import _intermediate_outputs
 from ..engine_subtitle_generate import generate_subtitles
-from ..engine_subtitles import subtitles
+from ..engine_subtitles import burn_subtitles
 from ..ffmpeg_helpers import _validate_input_path, _validate_output_path
+from ..models import ASPECT_RATIOS, QualityLevel
+from ..subtitles_common import staged_burn_source
 from ..workflow.status import StepStatus
 
 Progress = Callable[[float], None]
@@ -58,6 +62,17 @@ def _flow_error(message: str, code: str = "invalid_parameter") -> MCPVideoError:
     return MCPVideoError(message, error_type="validation_error", code=code)
 
 
+@contextmanager
+def _private_ffmpeg_diagnostics() -> Iterator[None]:
+    """Keep child argv/stderr available to engine retries, not to Shorts callers."""
+    try:
+        yield
+    except ProcessingError as exc:
+        exc.command = ""
+        exc.full_stderr = ""
+        raise
+
+
 def _segment_parts(segment: Mapping[str, Any] | Sequence[Any], index: int) -> tuple[float, float, str | None]:
     if isinstance(segment, Mapping):
         start, end, text = segment.get("start"), segment.get("end"), segment.get("text")
@@ -83,11 +98,11 @@ def _segment_parts(segment: Mapping[str, Any] | Sequence[Any], index: int) -> tu
     return start_f, end_f, text
 
 
-def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, str]:
+def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, QualityLevel, str]:
     if style is None:
-        return None, "high"
+        return None, "high", "pad"
     if isinstance(style, str):
-        return style, "high"
+        return style, "high", "pad"
     if not isinstance(style, Mapping):
         raise _flow_error("style must be a string or object")
     caption_style = style.get("caption_style") or style.get("subtitle_style")
@@ -96,7 +111,10 @@ def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, s
     quality = style.get("quality", "high")
     if quality not in {"low", "medium", "high", "ultra"}:
         raise _flow_error("style.quality must be low, medium, high, or ultra")
-    return caption_style, quality
+    fit_mode = style.get("fit_mode", "pad")
+    if fit_mode not in ("pad", "crop"):
+        raise _flow_error("style.fit_mode must be pad or crop")
+    return caption_style, cast(QualityLevel, quality), fit_mode
 
 
 def _default_output(input_path: str) -> str:
@@ -252,22 +270,20 @@ def _caption_receipt(
     return caption_step
 
 
-def _apply_captions(
+def _prepare_captions(
     parsed: list[tuple[float, float, str | None]],
     measured: list[float],
     assembled_path: str,
-    caption_style: str | None,
-    final_output: str,
     workdir: str,
     truncated_captions: int = 0,
-) -> tuple[str, dict[str, Any]]:
-    """Burn segment captions onto the assembled master, offset per segment."""
+) -> tuple[str | None, dict[str, Any]]:
+    """Create the timed sidecar and receipt shared by both render orders."""
 
     if not any(text for (_start, _end, text) in parsed):
         # No caption needs a timeline, so the render needs no measured
         # durations: a segment that cannot be timed does not block a flow
         # that never reads a timing.
-        return assembled_path, {"stage": "captions", "status": StepStatus.SKIPPED, "reason": "segments have no text"}
+        return None, {"stage": "captions", "status": StepStatus.SKIPPED, "reason": "segments have no text"}
 
     if len(measured) != len(parsed):
         # The caption timeline is timed from the media that actually rendered.
@@ -288,21 +304,32 @@ def _apply_captions(
             caption_entries.append({"start": offset, "end": offset + span, "text": text})
         offset += span
 
-    if not caption_entries:
-        return assembled_path, {"stage": "captions", "status": StepStatus.SKIPPED, "reason": "segments have no text"}
     # The SRT is a transient build input, not a durable sidecar: it lives in the
     # flow-owned workdir so a re-run with overwrite consent is never blocked by
     # a stale companion file next to the requested output.
     subtitle_path = os.path.join(workdir, "captions.srt")
     generated = generate_subtitles(caption_entries, assembled_path, output_path=subtitle_path, burn=False)
-    captioned_path = os.path.join(workdir, "captioned.mp4")
-    subtitles(
-        assembled_path,
-        generated.srt_path,
-        output_path=captioned_path,
-        style=caption_style,
-    )
-    return captioned_path, _caption_receipt(caption_entries, generated, truncated_captions)
+    return generated.srt_path, _caption_receipt(caption_entries, generated, truncated_captions)
+
+
+def _render_crop(
+    assembled: str,
+    output: str,
+    srt: str | None,
+    style: str | None,
+    quality: QualityLevel,
+    duration: float,
+    progress: Progress | None,
+) -> dict[str, Any] | None:
+    """Frame the assembled master and, when present, paint captions in output coordinates."""
+    size = ASPECT_RATIOS["9:16"]
+    framing = crop_framing_filter(*size)
+    if srt is None:
+        render_resize(assembled, output, framing, quality, duration, progress)
+        return None
+    with staged_burn_source(srt, assembled, output, style=style, display_size=size) as burn:
+        render_resize(assembled, output, f"{framing},{burn.video_filter}", quality, duration, progress)
+        return burn.advisory(assembled, profile="vertical")
 
 
 def _parse_segments(
@@ -324,20 +351,7 @@ def _parse_segments(
     return parsed, truncated_captions
 
 
-def _validate_source_duration(source: str, parsed: list[tuple[float, float, str | None]]) -> None:
-    """Refuse segments the source cannot support.
-
-    An unmeasured source cannot be checked against the requested segments, so
-    the flow refuses rather than rendering blind.
-    """
-    from ..engine_probe import probe as _probe_source
-
-    try:
-        duration = float(_probe_source(source).duration or 0.0)
-    except (OSError, ValueError, MCPVideoError) as exc:
-        raise _flow_error("could not measure the source duration") from exc
-    if duration <= 0:
-        raise _flow_error("could not measure the source duration; refusing to render segments that cannot be verified")
+def _check_segment_bounds(duration: float, parsed: list[tuple[float, float, str | None]]) -> None:
     for index, (_start, end, _text) in enumerate(parsed):
         if end > duration + _SOURCE_EOF_TOLERANCE:
             raise _flow_error(
@@ -346,22 +360,36 @@ def _validate_source_duration(source: str, parsed: list[tuple[float, float, str 
             )
 
 
-def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]]) -> bool:
-    """Whether this flow burns in captions, and whether it may be measured.
+def _validate_source_duration(
+    source: str, parsed: list[tuple[float, float, str | None]], *, require_measurable: bool = True
+) -> None:
+    """Refuse segments the source cannot support."""
+    from ..engine_probe import probe as _probe_source
 
-    Only a captioned flow needs a timeline. A render with no caption text
-    never reads a timing, so it is not blocked by a segment it cannot
-    measure — and it has no reason to measure the source either, so an
-    unmeasurable source does not fail it.
-    """
-    if not any(text for (_start, _end, text) in parsed):
-        return False
-    _validate_source_duration(source, parsed)
-    return True
+    try:
+        duration = float(_probe_source(source).duration or 0.0)
+    except (OSError, ValueError, MCPVideoError) as exc:
+        if require_measurable:
+            raise _flow_error("could not measure the source duration") from exc
+        return
+    if duration <= 0:
+        if require_measurable:
+            raise _flow_error(
+                "could not measure the source duration; refusing to render segments that cannot be verified"
+            )
+        return
+    _check_segment_bounds(duration, parsed)
+
+
+def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]]) -> bool:
+    """Whether this flow burns in captions, and validate requested segment bounds."""
+    has_captions = any(text for (_start, _end, text) in parsed)
+    _validate_source_duration(source, parsed, require_measurable=has_captions)
+    return has_captions
 
 
 def _shorts_result(
-    segment_count: int, merge_step: dict[str, Any], caption_step: dict[str, Any], output_path: str
+    segment_count: int, merge_step: dict[str, Any], caption_step: dict[str, Any], output_path: str, fit_mode: str
 ) -> dict[str, Any]:
     steps = [
         {"stage": "trim", "status": StepStatus.COMPLETED, "segment_count": segment_count},
@@ -375,6 +403,9 @@ def _shorts_result(
         },
         {"stage": "export", "status": StepStatus.COMPLETED, "output_path": output_path},
     ]
+    if fit_mode == "crop":
+        steps[3]["fit_mode"] = fit_mode
+        steps[2], steps[3] = steps[3], steps[2]
     return {
         "success": True,
         "operation": "video_shorts",
@@ -403,14 +434,14 @@ def video_shorts(
 
     from ..output_policy import output_operation
 
-    with output_operation(overwrite):
+    with output_operation(overwrite), _private_ffmpeg_diagnostics():
         # The source must be validated INSIDE the operation scope. A fresh
         # `output_operation` resets the recorded-input set, so validating the
         # source first would let a later publish target this operation's own
         # input (Gate 2 P2-1: `video_shorts` could overwrite its source when
         # `overwrite=True` and `output_path == input_path`).
         source = _validate_input_path(input_path)
-        caption_style, quality = _style_options(style)
+        caption_style, quality, fit_mode = _style_options(style)
         final_output = output_path or _default_output(source)
 
         # Fail fast on an occupied destination (same guard the final resize
@@ -421,30 +452,40 @@ def video_shorts(
         seconds = _seconds(parsed)
         progress = _StagedProgress(
             on_progress,
-            # trims, merge (several segments only), captions (when burned), vertical render
-            [seconds, seconds if len(parsed) > 1 else 0.0, seconds if has_captions else 0.0, seconds],
+            [
+                seconds,
+                seconds if len(parsed) > 1 else 0.0,
+                seconds if has_captions and fit_mode == "pad" else 0.0,
+                seconds,
+            ],
         )
-        with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
+        with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir, _intermediate_outputs(workdir):
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir, progress)
             segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
-            captioned_path, caption_step = _apply_captions(
-                parsed,
-                segment_durations,
-                assembled_path,
-                caption_style,
-                final_output,
-                workdir,
-                truncated_captions,
+            srt, caption_step = _prepare_captions(
+                parsed, segment_durations, assembled_path, workdir, truncated_captions
             )
-            if has_captions:
-                progress.finish(seconds)
-
-            vertical = resize(
-                captioned_path,
-                aspect_ratio="9:16",
-                quality=quality,
-                output_path=final_output,
-                on_progress=progress.stage(seconds),
-            )
+            caption_qa = None
+            if fit_mode == "crop":
+                caption_qa = _render_crop(
+                    assembled_path, final_output, srt, caption_style, quality, seconds, progress.stage(seconds)
+                )
+            else:
+                if srt is not None:
+                    captioned_path = os.path.join(workdir, "captioned.mp4")
+                    _, caption_qa = burn_subtitles(
+                        assembled_path, srt, output_path=captioned_path, style=caption_style, qa_profile="vertical"
+                    )
+                    assembled_path = captioned_path
+                    progress.finish(seconds)
+                final_output = resize(
+                    assembled_path,
+                    aspect_ratio="9:16",
+                    quality=quality,
+                    output_path=final_output,
+                    on_progress=progress.stage(seconds),
+                ).output_path
+            if caption_qa is not None:
+                caption_step["subtitle_qa"] = caption_qa
             progress.finish(seconds)
-            return _shorts_result(len(trimmed_paths), merge_step, caption_step, vertical.output_path)
+            return _shorts_result(len(trimmed_paths), merge_step, caption_step, final_output, fit_mode)

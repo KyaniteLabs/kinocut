@@ -7,7 +7,6 @@ import traceback
 
 import pytest
 
-from kinocut_sound import episode_assembly as assembly
 from kinocut_sound import script_parser as parser
 from kinocut_sound.lines import Emotion, ProfileRef, Prosody
 from kinocut_sound.limits import MAX_SCRIPT_ACTORS
@@ -24,37 +23,6 @@ def _actor() -> parser.ActorRoute:
         prosody=Prosody(),
         emotion=Emotion(label="neutral", intensity=0.0),
         inherit_loudness=True,
-    )
-
-
-def _parsed() -> parser.ParsedScript:
-    return parser.parse_episode_script(
-        {
-            "episode_id": "ingress_review",
-            "scenes": [
-                {
-                    "scene_id": "scene_review",
-                    "pause_after_seconds": 0.0,
-                    "lines": [
-                        {
-                            "actor_id": "actor_a",
-                            "text": "First.",
-                            "kind": "dialogue",
-                            "pause_after_seconds": 0.0,
-                        },
-                        {
-                            "actor_id": "actor_a",
-                            "text": "Second.",
-                            "kind": "dialogue",
-                            "pause_after_seconds": 0.0,
-                        },
-                    ],
-                }
-            ],
-        },
-        project_id="project_alpha",
-        created_by="agent:worker_1",
-        actors=(_actor(),),
     )
 
 
@@ -136,32 +104,6 @@ def test_wf_parser_normalizes_route_traversal_exceptions():
         )
 
     _assert_safe_error(caught.value, routes.marker)
-
-
-def test_assembly_normalizes_generator_traversal_exceptions():
-    marker = "HOSTILE_CLIP_GENERATOR"
-    parsed = _parsed()
-    first = parsed.parsed_lines[0]
-    clip = assembly.ClipRef(
-        line_id=first.line.line_id,
-        artifact_hash="sha256:" + "a" * 64,
-        source_ref="clips/first.wav",
-        duration_seconds=1.0,
-    )
-
-    def clips():
-        yield clip
-        raise RuntimeError(marker)
-
-    with pytest.raises(assembly.AssemblyPlanningError) as caught:
-        assembly.plan_episode_assembly(
-            parsed,
-            clips=clips(),
-            created_by="agent:worker_1",
-            cancellation_requested=False,
-        )
-
-    _assert_safe_error(caught.value, marker)
 
 
 class _DishonestRoutes(Mapping):

@@ -15,6 +15,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from .._install_hints import pip_install_hint
+from ..defaults import DEFAULT_LONGFORM_TRANSCRIBE_SECONDS
 from ..errors import InputFileError, MCPVideoError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _seconds_to_srt_time, _validate_output_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_TRANSCRIBE_DURATION
@@ -33,7 +35,7 @@ def _validate_whisper_model(model: str) -> None:
         )
 
 
-def _validate_transcribe_duration(video_path: str) -> None:
+def _validate_transcribe_duration(video_path: str) -> float:
     duration = _get_video_duration(video_path)
     if duration > MAX_AI_TRANSCRIBE_DURATION:
         raise MCPVideoError(
@@ -41,6 +43,7 @@ def _validate_transcribe_duration(video_path: str) -> None:
             error_type="validation_error",
             code="duration_too_long",
         )
+    return duration
 
 
 def _extract_audio_segment(
@@ -149,6 +152,8 @@ def ai_transcribe(
     output_srt: str | None = None,
     model: str = "base",
     language: str | None = None,
+    *,
+    chunk_longform: bool | None = None,
 ) -> dict[str, Any]:
     """Speech-to-text transcription using OpenAI Whisper.
 
@@ -157,6 +162,7 @@ def ai_transcribe(
         output_srt: Optional output SRT file path
         model: Whisper model size (tiny, base, small, medium, large)
         language: Language code (auto-detect if None)
+        chunk_longform: Force or disable chunking; by default chunk above 30 minutes.
 
     Returns:
         Dict with transcript, segments, language
@@ -173,13 +179,16 @@ def ai_transcribe(
     try:
         import whisper
     except ImportError:
+        # The hint must name the version that is actually running, not the
+        # release this message was written against (audit row 78).
+        hint = pip_install_hint("transcribe")
         raise MCPVideoError(
-            'Whisper not installed. Install with: pip install "kinocut[transcribe]==2.0.1"',
+            f"Whisper not installed. Install with: {hint}",
             error_type="dependency_error",
             code="missing_whisper",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[transcribe]==2.0.1" to enable transcription',
+                "description": f"Run: {hint} to enable transcription",
             },
         ) from None
 
@@ -187,38 +196,39 @@ def ai_transcribe(
     video_path = Path(video)
     if not video_path.exists():
         raise InputFileError(video)
-    _validate_transcribe_duration(str(video_path))
+    duration = _validate_transcribe_duration(str(video_path))
+    if chunk_longform is True or (chunk_longform is None and duration > DEFAULT_LONGFORM_TRANSCRIBE_SECONDS):
+        from .transcribe_longform import transcribe_longform
 
-    # Step 1: Extract audio to temp WAV file
+        raw_segments: list[dict[str, Any]] = []
+        merged = transcribe_longform(
+            str(video_path),
+            model=model,
+            language=language,
+            scene_aware=False,
+            deduplicate_segments=True,
+            _raw_segments_out=raw_segments,
+        )
+        result = {"transcript": merged.transcript, "segments": raw_segments, "language": merged.language}
+    else:
+        result = _single_pass(video_path, whisper, model, language)
+    if output_srt:
+        _validate_output_path(output_srt)
+        Path(output_srt).write_text(_format_srt(result["segments"]), encoding="utf-8")
+    return result
+
+
+def _single_pass(video_path: Path, whisper: Any, model: str, language: str | None) -> dict[str, Any]:
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        audio_path = tmp.name
     try:
-        # Extract audio using ffmpeg: 16kHz mono 16-bit PCM (Whisper optimal format)
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            audio_path = tmp.name
-
         _extract_transcription_audio(video_path, audio_path)
-
-        # Step 2: Load whisper model
         whisper_model = whisper.load_model(model)
-
-        # Step 3: Transcribe with timestamps
-        transcribe_options: dict[str, Any] = {}
-        if language:
-            transcribe_options["language"] = language
-
-        result_data = whisper_model.transcribe(audio_path, **transcribe_options)
-
-        # Step 4: Format as SRT if output_srt provided
-        if output_srt:
-            _validate_output_path(output_srt)
-            srt_content = _format_srt(result_data.get("segments", []))
-            Path(output_srt).write_text(srt_content, encoding="utf-8")
-
-        return _build_transcription_result(result_data)
-
+        return _build_transcription_result(
+            whisper_model.transcribe(audio_path, **({"language": language} if language else {}))
+        )
     finally:
-        # Clean up temp audio file
-        if "audio_path" in locals():
-            Path(audio_path).unlink(missing_ok=True)
+        Path(audio_path).unlink(missing_ok=True)
 
 
 def _format_srt(segments: list[dict[str, Any]]) -> str:
@@ -294,6 +304,11 @@ def _format_json_transcript(
         "segment_count": len(segments),
         "segments": [
             {
+                **{
+                    key: value
+                    for key, value in seg.items()
+                    if key not in {"id", "start", "end", "text", "tokens", "avg_logprob", "no_speech_prob"}
+                },
                 "id": seg.get("id", i),
                 "start": seg.get("start", 0.0),
                 "end": seg.get("end", 0.0),

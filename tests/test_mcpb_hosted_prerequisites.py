@@ -84,19 +84,55 @@ def test_windows_job_api_declarations_match_distinct_real_signatures(
     ]
 
 
-def test_all_hosted_rows_provision_and_validate_native_ffmpeg_pair() -> None:
+def test_all_hosted_rows_provision_and_validate_native_ffmpeg_pair(tmp_path: Path) -> None:
     workflow = (ROOT / ".github" / "workflows" / "mcpb.yml").read_text(encoding="utf-8")
     clean, remainder = workflow.split("  optional-present:", 1)
     optional = remainder.split("  aggregate:", 1)[0]
 
-    installer = (ROOT / ".github" / "scripts" / "install-ffmpeg-ubuntu.sh").read_text(encoding="utf-8")
+    install_script = ROOT / ".github" / "scripts" / "install-ffmpeg-ubuntu.sh"
     install_command = "bash .github/scripts/install-ffmpeg-ubuntu.sh"
     assert "matrix.os == 'linux'" in clean and install_command in clean
     assert "matrix.os == 'macos'" in clean and "brew install ffmpeg" in clean
     assert "matrix.os == 'windows'" in clean and "choco install" in clean
     assert install_command in optional
-    assert 'apt-get "${apt_options[@]}" install' in installer
-    assert "--yes --no-install-recommends ffmpeg" in installer
+
+    # Behavioral check: a cold run of the Ubuntu installer provisions ffmpeg and ffprobe.
+    bash = shutil.which("bash")
+    if os.name != "nt" and bash is not None:
+        fake_bin = tmp_path / "bin"
+        fake_bin.mkdir()
+        for tool in ("chmod", "mkdir", "sleep"):
+            real = shutil.which(tool)
+            if real:
+                (fake_bin / tool).symlink_to(real)
+        log_file = tmp_path / "apt.log"
+        sudo_stub = fake_bin / "sudo"
+        sudo_stub.write_text(
+            f"#!{bash}\n"
+            f"printf '%s\\n' \"$*\" >> {str(log_file)!r}\n"
+            f'if [[ "$*" == *"install"* && "$*" == *"ffmpeg"* ]]; then\n'
+            f"  printf '#!{bash}\\necho ffmpeg 7.1\\n' > {str(fake_bin / 'ffmpeg')!r}\n"
+            f"  printf '#!{bash}\\necho ffprobe 7.1\\n' > {str(fake_bin / 'ffprobe')!r}\n"
+            f"  chmod +x {str(fake_bin / 'ffmpeg')!r} {str(fake_bin / 'ffprobe')!r}\n"
+            f"fi\n"
+            f"exit 0\n",
+            encoding="utf-8",
+        )
+        sudo_stub.chmod(0o755)
+        home_dir = tmp_path / "home"
+        home_dir.mkdir()
+        env = {
+            "PATH": str(fake_bin),
+            "HOME": str(home_dir),
+            "RUNNER_TEMP": str(tmp_path),
+        }
+        proc = subprocess.run([bash, str(install_script)], env=env, capture_output=True, text=True, check=False)
+        assert proc.returncode == 0, proc.stderr
+        assert (fake_bin / "ffmpeg").is_file() and (fake_bin / "ffprobe").is_file()
+        apt_lines = [line.split() for line in log_file.read_text(encoding="utf-8").splitlines()]
+        assert any(
+            {"apt-get", "install", "ffmpeg", "--yes", "--no-install-recommends"} <= set(tokens) for tokens in apt_lines
+        )
 
     for section in (clean, optional):
         assert 'shutil.which("ffmpeg")' in section

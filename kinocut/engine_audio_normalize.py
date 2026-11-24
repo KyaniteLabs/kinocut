@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import math
 import re
+from collections.abc import Iterator
 from pathlib import Path
 
 from .defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP, DEFAULT_AUDIO_NORMALIZE_BITRATE
-from .engine_runtime_utils import _build_edit_result, _has_audio, _require_filter, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _get_audio_stream, _has_audio, _require_filter, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import (
     _atomic_output,
@@ -45,22 +46,33 @@ from .validation import (
 )
 
 
-def _measurement(stderr: str) -> dict[str, float]:
-    for text in reversed(re.findall(r"\{.*?\}", stderr, re.DOTALL)):
+def _loudnorm_summaries(stderr: str) -> Iterator[dict]:
+    parsed_blocks = re.findall(r"\[Parsed_loudnorm_[^\]]*\]\s*(\{.*?\})", stderr, re.DOTALL)
+    candidates = parsed_blocks if parsed_blocks else re.findall(r"\{.*?\}", stderr, re.DOTALL)
+    for text in reversed(candidates):
         try:
             data = json.loads(text)
-            names = {
-                "input_i": "measured_I",
-                "input_lra": "measured_LRA",
-                "input_tp": "measured_TP",
-                "input_thresh": "measured_thresh",
-                "target_offset": "offset",
-            }
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            yield data
+
+
+def _measurement(stderr: str) -> dict[str, float]:
+    names = {
+        "input_i": "measured_I",
+        "input_lra": "measured_LRA",
+        "input_tp": "measured_TP",
+        "input_thresh": "measured_thresh",
+        "target_offset": "offset",
+    }
+    for data in _loudnorm_summaries(stderr):
+        try:
             result = {dst: float(data[src]) for src, dst in names.items()}
             if all(math.isfinite(value) for value in result.values()):
                 return result
-        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-            pass
+        except (KeyError, TypeError, ValueError):
+            continue
     raise MCPVideoError(
         "FFmpeg loudnorm analysis did not return valid measurements",
         error_type="processing_error",
@@ -70,28 +82,14 @@ def _measurement(stderr: str) -> dict[str, float]:
 
 def _compute_loudnorm_fade_filter(probe: dict, fade: float) -> str:
     """Compute boundary fade filter string for the loudnorm pass."""
-    duration_value = next(
-        (
-            stream.get("duration")
-            for stream in probe.get("streams", [])
-            if stream.get("codec_type") == "audio" and stream.get("duration") is not None
-        ),
-        None,
-    )
-    if duration_value is None:
-        format_data = probe.get("format")
-        duration_value = format_data.get("duration") if isinstance(format_data, dict) else None
-    try:
-        duration = float(duration_value)
-    except (TypeError, ValueError):
-        duration = 0.0
-    if not math.isfinite(duration) or duration <= 0:
+    audio = _get_audio_stream(probe) or {}
+    duration = _timestamp(audio.get("duration"))
+    if duration is None or duration <= 0:
         raise MCPVideoError(
             "Could not determine a finite positive media duration for boundary fades",
             error_type="processing_error",
             code="invalid_media_duration",
         )
-    audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
     start = _timestamp(audio.get("start_time")) or 0.0
     origin = _timestamp(probe.get("format", {}).get("start_time")) or 0.0
     start -= origin
@@ -116,14 +114,28 @@ def _output_reading(stderr: str | None) -> MeasuredOutputLoudness | None:
     """Read achieved I and TP from the second-pass loudnorm JSON summary."""
     if not isinstance(stderr, str):
         return None
-    for text in reversed(re.findall(r"\{.*?\}", stderr, re.DOTALL)):
+    for data in _loudnorm_summaries(stderr):
         try:
-            data = json.loads(text)
             integrated, peak = float(data["output_i"]), float(data["output_tp"])
-        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError):
             continue
         if math.isfinite(integrated) and math.isfinite(peak):
             return MeasuredOutputLoudness(I=integrated, TP=peak)
+    return None
+
+
+def _unmeasurable_input_warnings(stderr: str) -> list[str] | None:
+    """Non-finite integrated loudness can mean gated audio, not silence."""
+    for data in _loudnorm_summaries(stderr):
+        try:
+            integrated, peak = float(data["input_i"]), float(data["input_tp"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if integrated == -math.inf:
+            if peak == -math.inf:
+                return ["input_is_silent: the first audio track has no measurable signal."]
+            if math.isfinite(peak):
+                return []
     return None
 
 
@@ -144,11 +156,14 @@ def _build_loudnorm_render_filter(
     try:
         measured = _measurement(analysis_stderr)
     except MCPVideoError:
-        if "input_i" not in analysis_stderr or "-inf" not in analysis_stderr:
+        warnings = _unmeasurable_input_warnings(analysis_stderr)
+        if warnings is None:
             raise
+        if warnings:
+            return f"{fade_filter}anull{resample}", warnings, None
         return (
             f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:print_format=json{resample}",
-            [],
+            warnings,
             None,
         )
     measured_filter = ":".join(
@@ -187,12 +202,9 @@ def _resample_filter(probe: dict) -> str:
 
 def _render_extra(probe: dict, video_container: bool) -> list[str]:
     extra = ["-xerror", "-map", "0:v:0?", "-map", "0:a:0"] if video_container else ["-xerror", "-vn", "-map", "0:a:0"]
-    audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
-    try:
-        duration = float(audio.get("duration") or probe.get("format", {}).get("duration") or 0)
-    except (TypeError, ValueError):
-        duration = 0
-    if math.isfinite(duration) and duration > 0 and not video_container:
+    audio = _get_audio_stream(probe) or {}
+    duration = _timestamp(audio.get("duration"))
+    if duration is not None and duration > 0 and not video_container:
         extra += ["-t", str(duration)]
     return extra
 
@@ -234,6 +246,7 @@ def _normalized_result(
             "warnings": [*result.warnings, *warnings],
             "measured_input": measured_input,
             "measured_output": measured_output,
+            "measured_output_source": "second_pass_loudnorm_filter" if measured_output is not None else None,
         }
     )
 
@@ -282,7 +295,8 @@ def _apply_loudnorm(
         ),
         runner=_run_ffmpeg,
     )
-    return warnings, _input_reading(measured), _output_reading(rendered.stderr)
+    output_reading = _output_reading(rendered.stderr) if "loudnorm=" in render_filter else None
+    return warnings, _input_reading(measured), output_reading
 
 
 def normalize_audio(
@@ -328,6 +342,8 @@ def normalize_audio(
                     audio_codec="copy",
                 )
             )
+            # Nothing was normalized; the caller must not read this as a loudness result.
+            warnings = ["input_has_no_audio_stream: nothing was normalized; the output is a stream copy of the input."]
         else:
             warnings, measured_input, measured_output = _apply_loudnorm(
                 input_path, probe, staged, fade, target_s, lra_s, peak_s, codec, video_container

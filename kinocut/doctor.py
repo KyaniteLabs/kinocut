@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import importlib.metadata
 import importlib.util
 import logging
@@ -18,9 +17,15 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
+from ._install_hints import pip_install_hint, pinned_requirement
 from .data_dirs import crush_home
 from .doctor_report import without_machine_paths
-from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
+from .doctor_offline import (
+    cached_sha256_file,
+    check_sphere_director,
+    offline_probe_environment,
+    report_resolved_hyperframes,
+)
 from .type_names import exception_kind
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
@@ -42,11 +47,16 @@ FindSpecFn = Callable[[str], Any]
 PackageVersionFn = Callable[[str], str | None]
 ImportModuleFn = Callable[[str], Any]
 
-PYTHON_313_UPSCALE_BACKEND_HINT = (
-    "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
-    'The OpenCV fallback is still installed by: pip install "kinocut[upscale]==2.0.1". '
-    "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
+LEGACY_UPSCALE_BACKEND_HINT = (
+    "Real-ESRGAN/BasicSR require a separately validated, compatible environment. "
+    "BasicSR 1.4.2 imports a module removed by modern TorchVision. "
+    f"Use the OpenCV fallback installed by: {pip_install_hint('upscale')}."
 )
+_UPSCALE_IMPORTS = {
+    "realesrgan": "from realesrgan import RealESRGANer",
+    "basicsr": "from basicsr.archs.rrdbnet_arch import RRDBNet",
+    "opencv-contrib-python": "import cv2; assert callable(cv2.dnn_superres.DnnSuperResImpl_create)",
+}
 
 BASIC_PITCH_MANUAL_HINT = (
     "BasicPitch is a manual optional integration because its TensorFlow dependency chain is not safely "
@@ -103,55 +113,49 @@ COMMAND_CHECKS = (
 )
 
 PACKAGE_CHECKS = (
-    ("mcp", "mcp", "core", True, "Install the base package: pip install kinocut==2.0.1"),
-    ("pydantic", "pydantic", "core", True, "Install the base package: pip install kinocut==2.0.1"),
-    ("rich", "rich", "core", True, "Install the base package: pip install kinocut==2.0.1"),
-    ("pillow", "PIL", "image", False, 'Install image extras: pip install "kinocut[image]==2.0.1"'),
-    ("scikit-learn", "sklearn", "image", False, 'Install image extras: pip install "kinocut[image]==2.0.1"'),
-    ("webcolors", "webcolors", "image", False, 'Install image extras: pip install "kinocut[image]==2.0.1"'),
-    ("anthropic", "anthropic", "image-ai", False, 'Install image AI extras: pip install "kinocut[image-ai]==2.0.1"'),
+    ("mcp", "mcp", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
+    ("pydantic", "pydantic", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
+    ("rich", "rich", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
+    ("pillow", "PIL", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("scikit-learn", "sklearn", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("webcolors", "webcolors", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("anthropic", "anthropic", "image-ai", False, f"Install image AI extras: {pip_install_hint('image-ai')}"),
     (
         "openai-whisper",
         "whisper",
         "ai",
         False,
-        'Install transcription extras: pip install "kinocut[transcribe]==2.0.1"',
+        f"Install transcription extras: {pip_install_hint('transcribe')}",
     ),
-    ("demucs", "demucs", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==2.0.1"'),
-    ("realesrgan", "realesrgan", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==2.0.1"'),
-    ("basicsr", "basicsr", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==2.0.1"'),
-    ("numpy", "numpy", "audio", False, 'Install audio extras: pip install "kinocut[audio]==2.0.1"'),
-    ("opencv-contrib-python", "cv2", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==2.0.1"'),
-    (
-        "torch",
-        "torch",
-        "ai",
-        False,
-        'Install stem/upscale extras: pip install "kinocut[stems]==2.0.1" or "kinocut[upscale]==2.0.1"',
-    ),
-    ("torchaudio", "torchaudio", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==2.0.1"'),
-    ("torchcodec", "torchcodec", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==2.0.1"'),
-    ("imagehash", "imagehash", "ai", False, 'Install AI scene extras: pip install "kinocut[ai-scene]==2.0.1"'),
+    ("demucs", "demucs", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("realesrgan", "realesrgan", "ai", False, LEGACY_UPSCALE_BACKEND_HINT),
+    ("basicsr", "basicsr", "ai", False, LEGACY_UPSCALE_BACKEND_HINT),
+    ("numpy", "numpy", "audio", False, f"Install audio extras: {pip_install_hint('audio')}"),
+    ("opencv-contrib-python", "cv2", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
+    ("torch", "torch", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("torchaudio", "torchaudio", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("torchcodec", "torchcodec", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("imagehash", "imagehash", "ai", False, f"Install AI scene extras: {pip_install_hint('ai-scene')}"),
     (
         "scipy",
         "scipy",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     (
         "soundfile",
         "soundfile",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     (
         "librosa",
         "librosa",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
     (
@@ -195,13 +199,7 @@ def _doctor_probe_environment() -> dict[str, str]:
 
 
 def _command_version(command: list[str]) -> str | None:
-    """Run a version probe offline.
-
-    The probe inherits the caller's environment, which can carry provider
-    credentials and can point a shim at an updater that reaches the network.
-    Doctor's own comment says it must stay offline, so the probe runs with the
-    same sanitized, update-disabled environment the Hyperframes engine uses.
-    """
+    """Run a bounded probe in a sanitized, update-disabled environment."""
     try:
         result = subprocess.run(  # noqa: S603
             command,
@@ -304,9 +302,13 @@ def _check_package(
     found = find_spec(import_name) is not None
     version = package_version(distribution_name) if found else None
     ok = found and version is not None
-    if not ok and distribution_name in {"realesrgan", "basicsr"} and sys.version_info >= (3, 13):
-        install_hint = PYTHON_313_UPSCALE_BACKEND_HINT
-    elif not ok and distribution_name == "basic-pitch" and sys.version_info >= (3, 13):
+    probe = _UPSCALE_IMPORTS.get(distribution_name)
+    if ok and probe and find_spec is importlib.util.find_spec and package_version is _package_version:
+        marker = _command_version([sys.executable, "-P", "-c", f"{probe}; print('import ok')"])
+        ok = marker is not None
+        if not ok:
+            install_hint = f"Installed, but the backend import failed or timed out. {install_hint}"
+    if not ok and distribution_name == "basic-pitch" and sys.version_info >= (3, 13):
         install_hint = BASIC_PITCH_MANUAL_HINT
     return {
         "name": distribution_name,
@@ -380,7 +382,7 @@ def _check_audio_engine() -> dict[str, Any]:
         "ok": has_numpy,
         "path": None,
         "version": status,
-        "install_hint": None if has_numpy else 'pip install "kinocut[audio]==2.0.1" for professional audio synthesis',
+        "install_hint": None if has_numpy else f"{pip_install_hint('audio')} for professional audio synthesis",
         "details": {
             "numpy": has_numpy,
             "scipy": has_scipy,
@@ -404,7 +406,7 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
         "ok": found,
         "path": path,
         "version": package_version("kinocut") if found else None,
-        "install_hint": None if found else "Install the local package: pip install kinocut==2.0.1",
+        "install_hint": None if found else f"Install the local package: {pip_install_hint(quoted=False)}",
     }
 
 
@@ -465,7 +467,7 @@ def _check_alias_identity() -> dict[str, Any]:
             "category": "migration",
             "ok": False,
             "detail": "unable to import kinocut/mcp_video",
-            "remediation": "Reinstall the package: pip install --force-reinstall kinocut==2.0.1",
+            "remediation": f"Reinstall the package: pip install --force-reinstall {pinned_requirement()}",
         }
     ok = getattr(kinocut, "Client", None) is getattr(mcp_video, "Client", None)
     return {
@@ -522,7 +524,7 @@ def _check_workspace() -> dict[str, Any]:
     return {
         "name": "workspace",
         "category": "core",
-        "required": True,
+        "required": False,
         "ok": readable and writable and free_bytes is not None,
         "path": str(workspace),
         "version": None,
@@ -629,7 +631,7 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
             "detail": exception_kind(exc),
             "install_hint": (
                 "Run 'kino --mcp' to see the full error; usually a broken install "
-                "(pip install --force-reinstall kinocut==2.0.1) or a platform-specific dependency issue."
+                f"(pip install --force-reinstall {pinned_requirement()}) or a platform-specific dependency issue."
             ),
         }
     return {
@@ -673,9 +675,7 @@ def run_diagnostics(
     checks.append(_check_audio_engine())
     checks.append(_check_still_plates(find_spec, package_version))
     checks.append(_check_object_matte(find_spec))
-    from .te.sphere_director import doctor_check
-
-    checks.append(doctor_check())
+    checks.append(check_sphere_director())
     checks.extend([_check_workspace(), _check_runtime_policy()])
     report = {
         "success": True,
@@ -699,11 +699,7 @@ def _object_matte_cache_path() -> Path:
 
 
 def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return cached_sha256_file(path)
 
 
 def _object_matte_runtime() -> tuple[bool, list[str]]:
@@ -733,7 +729,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     hint = None
     if not ok:
         hint = (
-            'Product/object cutouts need pip install "kinocut[object-matte]==2.0.1" '
+            f"Product/object cutouts need {pip_install_hint('object-matte')} "
             "and the pinned BiRefNet-general weights. "
             "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
         )
@@ -772,7 +768,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
     if not ok:
         hint = (
             "Still/plate tools need the image stack (Pillow + NumPy). "
-            'Install: pip install "kinocut[image]==2.0.1". '
+            f"Install: {pip_install_hint('image')}. "
             "Free establish-locked edit uses local match; no paid still-generation adapter exists."
         )
     return {

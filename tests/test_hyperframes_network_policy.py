@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kinocut import hyperframes_engine as engine
+from kinocut.hyperframes import preview, runner as engine
 from kinocut.errors import MCPVideoError
 
 
@@ -75,19 +75,19 @@ def test_preview_uses_same_privacy_policy(monkeypatch, tmp_path):
     monkeypatch.setenv("HYPERFRAMES_NO_TELEMETRY", "0")
     monkeypatch.setenv("GEMINI_API_KEY", "fixture-credential")
     monkeypatch.setenv("HYPERFRAMES_PREVIEW_HOST", "0.0.0.0")  # noqa: S104  -- refused ambient bind value
-    monkeypatch.setattr(engine, "_require_node", lambda: None)
-    monkeypatch.setattr(engine, "_require_hyperframes_deps", lambda **kw: None)
-    monkeypatch.setattr(engine, "_validate_project", lambda path: (tmp_path, tmp_path / "index.html"))
-    monkeypatch.setattr(engine, "_hyperframes_command_prefix", lambda **kw: ["hyperframes"])
-    monkeypatch.setattr(engine, "stop_preview", lambda port: None)
-    monkeypatch.setattr(engine, "_register_preview", lambda *a: None)
-    monkeypatch.setattr(engine, "_preview_ready", lambda *a: True)
-    monkeypatch.setattr(engine.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(preview, "_require_node", lambda: None)
+    monkeypatch.setattr(preview, "_require_hyperframes_deps", lambda **kw: None)
+    monkeypatch.setattr(preview, "_validate_project", lambda path: (tmp_path, tmp_path / "index.html"))
+    monkeypatch.setattr(preview, "_hyperframes_command_prefix", lambda **kw: ["hyperframes"])
+    monkeypatch.setattr(preview, "stop_preview", lambda port: None)
+    monkeypatch.setattr(preview, "_register_preview", lambda *a: None)
+    monkeypatch.setattr(preview, "_preview_ready", lambda *a: True)
+    monkeypatch.setattr(preview.time, "sleep", lambda seconds: None)
     process = MagicMock()
     process.poll.return_value = None
     calls = []
     monkeypatch.setattr(engine.subprocess, "Popen", lambda *a, **kw: calls.append(kw) or process)
-    engine.preview(str(tmp_path))
+    preview.preview(str(tmp_path))
     assert calls[0]["env"]["HYPERFRAMES_NO_TELEMETRY"] == "1"
     assert calls[0]["env"]["HYPERFRAMES_SKIP_SKILLS"] == "1"
     assert calls[0]["env"]["HYPERFRAMES_PREVIEW_HOST"] == "127.0.0.1"
@@ -96,24 +96,27 @@ def test_preview_uses_same_privacy_policy(monkeypatch, tmp_path):
 
 @pytest.mark.parametrize("version", ["0.8.30", "0.8.141", "", "Hyperframes 0.8.104"])
 def test_unverified_preview_cannot_stop_existing_preview(monkeypatch, tmp_path, version):
-    monkeypatch.setattr(engine, "_require_node", lambda: None)
-    monkeypatch.setattr(engine, "_require_hyperframes_deps", lambda **kw: None)
-    monkeypatch.setattr(engine, "_validate_project", lambda path: (tmp_path, tmp_path / "index.html"))
+    monkeypatch.setattr(preview, "_require_node", lambda: None)
+    monkeypatch.setattr(preview, "_require_hyperframes_deps", lambda **kw: None)
+    monkeypatch.setattr(preview, "_validate_project", lambda path: (tmp_path, tmp_path / "index.html"))
     monkeypatch.setattr(engine, "_run_hyperframes", lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=version))
     stop = MagicMock()
     launch = MagicMock()
-    monkeypatch.setattr(engine, "stop_preview", stop)
+    monkeypatch.setattr(preview, "stop_preview", stop)
     monkeypatch.setattr(engine.subprocess, "Popen", launch)
     with pytest.raises(MCPVideoError, match="telemetry opt-out"):
-        engine.preview(str(tmp_path))
+        preview.preview(str(tmp_path))
     stop.assert_not_called()
     launch.assert_not_called()
 
 
 @pytest.mark.parametrize("version", ["0.8.104", "0.8.140"])
 def test_verified_preview_versions_pass(monkeypatch, tmp_path, version):
-    monkeypatch.setattr(engine, "_run_hyperframes", lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=version))
+    probe = MagicMock(return_value=subprocess.CompletedProcess(["--version"], 0, stdout=version))
+    monkeypatch.setattr(engine, "_run_hyperframes", probe)
     engine._require_private_preview(tmp_path)
+    assert probe.call_args.args == (["--version"],)
+    assert probe.call_args.kwargs["cwd"] == tmp_path
 
 
 def test_docker_refused_before_any_command(monkeypatch):

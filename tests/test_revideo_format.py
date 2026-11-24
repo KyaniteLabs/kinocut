@@ -173,10 +173,10 @@ def test_uppercase_job_suffix_rejects_before_dependencies_install_or_npm(tmp_pat
             render_job(job, str(tmp_path / "final.MP4"), work_dir=tmp_path / "work")
 
 
-def _stub_bridge(tmp_path: Path, private_name: str) -> subprocess.CompletedProcess[str]:
+def _stub_bridge(tmp_path: Path, private_name: str, *, job: dict | None = None) -> subprocess.CompletedProcess[str]:
     shutil.copyfile(revideo_engine.TEMPLATE_DIR / "render.mjs", tmp_path / "render.mjs")
     (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "job.json").write_text(json.dumps(_job("mp4")), encoding="utf-8")
+    (tmp_path / "src" / "job.json").write_text(json.dumps(_job("mp4") if job is None else job), encoding="utf-8")
     renderer = tmp_path / "node_modules" / "@revideo" / "renderer"
     renderer.mkdir(parents=True)
     (renderer / "package.json").write_text('{"main":"index.cjs"}\n', encoding="utf-8")

@@ -128,6 +128,7 @@ ${effectGLSL.replace(/uniform sampler2D u_texture;/, 'uniform sampler2D u_textur
     let pastWriteIdx = 0;
 
     // Process frames
+    let failedFrames = 0;
     for (let i = 0; i < frameCount; i++) {
         const frameNum = String(i + 1).padStart(6, '0');
         const framePath = join(inputDir, `frame_${frameNum}.png`);
@@ -202,10 +203,16 @@ ${effectGLSL.replace(/uniform sampler2D u_texture;/, 'uniform sampler2D u_textur
                 console.log(`Processed ${i + 1}/${frameCount} frames`);
             }
         } catch (err) {
+            failedFrames += 1;
             console.error(`Error processing frame ${frameNum}: ${err.message}`);
         }
     }
 
+    if (failedFrames > 0) {
+        // A partial frame sequence must not be assembled as if it were complete.
+        console.error(`Failed to render ${failedFrames}/${frameCount} frames`);
+        process.exit(1);
+    }
     console.log(`Done: ${frameCount} frames rendered`);
 }
 

@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-import argparse
 import re
-import contextlib
-from contextvars import ContextVar
-from functools import lru_cache
 from typing import Any
 
-from .type_names import _register_exception_kinds, builtin_type_name, type_label
+from .tool_routing import (
+    _argument_type as _argument_type,
+    cli_route_for_operation as cli_route_for_operation,
+    _cli_command_set as _cli_command_set,
+    retry_context as retry_context,
+    retry_message as retry_message,
+)
+from .type_names import _register_exception_kinds, type_label
+
+_cli_tool_name = cli_route_for_operation
 
 # Caller-supplied values echoed into error messages are capped so a hostile
 # or accidental 100 KB parameter cannot amplify into a ~200 KB error reply
@@ -20,10 +25,6 @@ _MAX_MESSAGE_CHARS = 2000
 # bound, but a generous one: truncating it would drop the words that tell the
 # operator what to change.
 _MAX_ACTION_CHARS = 1000
-
-_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any], str | None] | None] = ContextVar(
-    "kinocut_retry_context", default=None
-)
 
 
 def _without_value(text: str, value: str) -> str:
@@ -37,112 +38,6 @@ def _without_value(text: str, value: str) -> str:
         return text
     cleaned = text.replace(value, "").strip()
     return cleaned or "the submitted value was rejected"
-
-
-@contextlib.contextmanager
-def retry_context(tool_name: str, arguments: dict[str, Any] | None = None, invocation: str | None = None):
-    """Bind a user-facing error to the operation that can be retried.
-
-    ``invocation``, when provided, replaces the derived MCP/CLI retry hint
-    wholesale. The compact family dispatchers use it so a rejection names the
-    family tool with the selected operation (and only a CLI route that has
-    been verified to exist) instead of deriving a route from a tool name that
-    has no CLI counterpart.
-    """
-
-    token = _RETRY_CONTEXT.set((tool_name, dict(arguments or {}), invocation))
-    try:
-        yield
-    finally:
-        _RETRY_CONTEXT.reset(token)
-
-
-# Explicit MCP→CLI command-name map for tools whose flat CLI command is not the
-# mechanical ``video_``-stripped form. Every value is verified against the
-# ``kino --help`` parser choices; extend only with a name that parses.
-_CLI_TOOL_OVERRIDES: dict[str, str] = {
-    "video_quality_check": "video-quality-check",
-    "video_review_package": "video-review-package",
-}
-
-# Tools with no single-command CLI equivalent. The retry message must say so
-# instead of inventing a ``kino <name>`` command that does not exist.
-_NO_CLI_EQUIVALENT: frozenset[str] = frozenset(
-    {
-        "search_tools",
-        "video_add_texts",
-        "video_project_create",
-        "video_shorts",
-        "video_validate_text_layout",
-    }
-)
-
-
-def _cli_tool_name(tool_name: str) -> str | None:
-    """Map an MCP tool name to its flat CLI command, or None when none exists."""
-    if tool_name in _NO_CLI_EQUIVALENT:
-        return None
-    if tool_name in _CLI_TOOL_OVERRIDES:
-        return _CLI_TOOL_OVERRIDES[tool_name]
-    commands = _cli_command_set()
-    candidates: list[str] = []
-    if tool_name.startswith("video_"):
-        candidates.append(tool_name.removeprefix("video_").replace("_", "-"))
-    candidates.append(tool_name.replace("_", "-"))
-    for candidate in candidates:
-        if candidate in commands:
-            return candidate
-    return None
-
-
-def _argument_names(arguments: dict[str, Any]) -> str:
-    """Name the arguments a failed call carried, without echoing their values.
-
-    The retry context exists to make a refusal addressable — which tool, with
-    which inputs — and the stored arguments are what make it so: the operator
-    learns exactly which parameters the call carried, and therefore which one
-    to correct. Each name carries its value's type as a replayable
-    placeholder, so the invocation can be re-issued by substituting a value
-    for the type. The values are the caller's own input and can be hostile (a
-    validation error must not echo the value it just rejected), so only the
-    names and types are named.
-    """
-    if not arguments:
-        return ""
-    parts = [f"{_argument_name(key)}={_argument_type(value)}" for key, value in arguments.items()]
-    return " (arguments: " + ", ".join(sorted(parts)) + ")"
-
-
-#: The type names a retry placeholder may publish. A class's ``__name__``
-#: is mutable, caller-controlled data, so only shipped builtin categories
-#: are named; anything else gets the fixed ``<object>`` placeholder.
-
-
-def _argument_type(value: Any) -> str:
-    """A replayable placeholder for one argument: its type, never its value.
-
-    The category is read off the type object by identity against the
-    shipped map (:func:`builtin_type_name`) — a caller's subclass that
-    renames itself to a shipped category is still a subclass, so it gets
-    the fixed ``<object>`` placeholder.
-    """
-    name = builtin_type_name(value)
-    return f"<{name}>" if name is not None else "<object>"
-
-
-def _argument_name(key: Any) -> str:
-    """A bounded, package-authored name for one argument of a refused call.
-
-    JSON and ``vars()`` give string keys; a string key is echoed (bounded,
-    printable) because the operator must know which parameter to correct.
-    A non-string key's text is not ours to publish — its ``str()`` is
-    caller data, however the key's class renders itself — so it is named
-    by a fixed placeholder instead.
-    """
-    if not isinstance(key, str):
-        return "<non-string-key>"
-    text = "".join(char if char.isprintable() else "_" for char in key)
-    return text[:64] or "argument"
 
 
 def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
@@ -160,99 +55,6 @@ def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
         else:
             clean[key] = type_label(value)
     return clean
-
-
-@lru_cache(maxsize=1)
-def _cli_command_set() -> frozenset[str]:
-    """The real ``kino`` subcommands — the only CLI routes hints may name.
-
-    Enumerated from the actual argparse parser (built lazily, once). If the
-    parser cannot be built, returns an empty set so hint derivation omits CLI
-    routes instead of inventing one.
-    """
-
-    try:
-        from .cli.parser import build_parser
-
-        subparsers = [a for a in build_parser()._actions if isinstance(a, argparse._SubParsersAction)]
-        return frozenset(subparsers[0].choices) if subparsers else frozenset()
-    except Exception:  # conservative fallback: omit the CLI route, never invent one
-        return frozenset()
-
-
-def cli_route_for_operation(operation: str) -> str | None:
-    """Return the verified ``kino`` subcommand for an operation, else None.
-
-    Candidates: the full name hyphenated (``video_ai_remove_silence`` →
-    ``video-ai-remove-silence``) and the legacy prefix-stripped derivation
-    (``video_trim`` → ``trim``). A route is returned only when the real CLI
-    registers it.
-    """
-
-    commands = _cli_command_set()
-    for candidate in (operation.replace("_", "-"), _cli_tool_name(operation)):
-        if candidate in commands:
-            return candidate
-    return None
-
-
-def retry_message(message: str, code: str) -> str:
-    """Append an eyes-free MCP and CLI retry invocation to an error message.
-
-    Every refusal carries the same shape: the MCP call to make, the CLI
-    command to run, and the action that fixes it. When the retry context binds
-    a tool and its arguments, both halves name them — the tool, the CLI
-    command, and which arguments the call carried — so the refusal is
-    actionable rather than advisory. Without a context the generic tokens
-    stand on their own.
-    """
-
-    context = _RETRY_CONTEXT.get()
-    if context is not None and len(context) > 2 and context[2] is not None:
-        # Caller supplied a complete, verified invocation (family dispatch).
-        return f"{message}; retry with {context[2]}"
-    tool_name = context[0] if context else "the same tool"
-    cli_name = _cli_tool_name(tool_name) if context else None
-    submitted = _argument_names(context[1]) if context else ""
-    consent = code in {"hyperframes_telemetry_consent_required", "network_consent_required"}
-    missing_tool = code in {"ffmpeg_not_found", "ffprobe_not_found"}
-    if code in {"output_exists", "overwrite_refused"}:
-        mcp_action, cli_action = f"overwrite=true{submitted}", f"--overwrite{submitted}"
-    elif code in {"unsafe_path", "invalid_output_path"}:
-        mcp_action, cli_action = f"a new output_path{submitted}", f"--output <new-media-path>{submitted}"
-    elif consent:
-        # NOTE (t_e3775201 F-INFO): no shipped code path raises
-        # ``network_consent_required`` yet. Before any network-consent feature
-        # lands, re-bind its hint to the actual consent env var of that feature;
-        # ``KINOCUT_HYPERFRAMES_TELEMETRY`` only gates Hyperframes telemetry.
-        mcp_action = f"KINOCUT_HYPERFRAMES_TELEMETRY=true{submitted}"
-        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino"
-    elif missing_tool:
-        mcp_action = "install FFmpeg, then call " + tool_name + submitted
-        cli_action = "install FFmpeg, then run kino"
-    else:
-        mcp_action, cli_action = f"corrected parameters{submitted}", f"corrected flags{submitted}"
-
-    if context is None:
-        # No tool bound: the tokens have to carry the refusal by themselves.
-        invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
-    elif cli_name is None and tool_name not in _NO_CLI_EQUIVALENT:
-        # No verified ``kino`` route: name only the MCP half (#685).
-        invocation = f"{'' if consent or missing_tool else 'call ' + tool_name + ' with '}{mcp_action} (MCP)"
-    elif cli_name is None:
-        # The tool is known to have no single-command CLI equivalent. The
-        # special-code actions are already tool-shaped, so they are not
-        # prefixed again.
-        invocation = (
-            f"{'' if consent or missing_tool else 'call ' + tool_name + ' with '}{mcp_action} (MCP) / "
-            "no single-command CLI equivalent "
-            "(run kino --help to browse related commands) (CLI)"
-        )
-    elif consent or missing_tool:
-        invocation = f"{mcp_action} (MCP) / {cli_action} {cli_name}{submitted} (CLI)"
-    else:
-        invocation = f"call {tool_name} with {mcp_action} (MCP) / run kino {cli_name} with {cli_action} (CLI)"
-    return f"{message}; retry with {invocation}"
 
 
 def truncate_echo(value: str, limit: int = _MAX_ECHO_CHARS) -> str:
@@ -463,6 +265,31 @@ class HyperframesProjectError(MCPVideoError):
         )
 
 
+_HYPERFRAMES_CACHE_ERRNO_RE = re.compile(r"\b(?:enoent|eacces|eperm|erofs)\b")
+_HYPERFRAMES_MKDIR_RE = re.compile(r"\bmkdir\b")
+_HYPERFRAMES_LOCK_PATH_RE = re.compile(r"/(?:locks|\.chrome\.install\.lock)(?=$|[\s'\"/,):;])")
+
+
+def _is_hyperframes_cache_write_error(diagnostic: str) -> bool:
+    """Detect Hyperframes cache/lock mkdir failures in linear time per line."""
+    if (
+        "the render slot cannot be taken" in diagnostic
+        and "this account cannot write to " in diagnostic
+        and "hyperframes_cache_dir" in diagnostic
+    ):
+        return True
+    for line in diagnostic.splitlines():
+        errno_match = _HYPERFRAMES_CACHE_ERRNO_RE.search(line)
+        if errno_match is None:
+            continue
+        mkdir_match = _HYPERFRAMES_MKDIR_RE.search(line, errno_match.end())
+        if mkdir_match is None:
+            continue
+        if _HYPERFRAMES_LOCK_PATH_RE.search(line, mkdir_match.end()) is not None:
+            return True
+    return False
+
+
 class HyperframesRenderError(MCPVideoError):
     """Hyperframes render failure."""
 
@@ -473,16 +300,34 @@ class HyperframesRenderError(MCPVideoError):
         message = f"Hyperframes render failed (exit code {returncode})"
         if reason:
             message = f"{message}: {reason}"
+        diagnostic = (stderr or "").lower().replace("\\", "/")
+        if returncode in (137, -9) or "out of memory" in diagnostic or "heap out of memory" in diagnostic:
+            description = "Hyperframes ran out of memory; reduce resolution/fps or free host memory, then retry."
+        elif _is_hyperframes_cache_write_error(diagnostic):
+            description = "Hyperframes could not write to its cache. Set HYPERFRAMES_CACHE_DIR to a writable directory."
+        elif any(tok in diagnostic for tok in ("chromium", "chrome", "browser", "playwright", "puppeteer", "sandbox")):
+            description = (
+                "Hyperframes could not start its browser. Check the browser install and HYPERFRAMES_BROWSER_PATH, "
+                "or run `kino hyperframes-doctor`."
+            )
+        elif any(tok in diagnostic for tok in ("enoent", "command not found", "cannot find module", "node")):
+            description = (
+                "Runtime dependency or binary is missing; run `kino hyperframes-doctor` to verify Node and Hyperframes."
+            )
+        elif "timed out" in diagnostic or returncode == -1:
+            description = "Render timed out; verify host load or simplify the composition, then retry."
+        else:
+            description = (
+                "Check the project's index.html and its composition root, or run `kino hyperframes-doctor` "
+                "to inspect environment diagnostics."
+            )
         super().__init__(
             message,
             error_type="render_error",
             code=f"hyperframes_exit_{returncode}",
             suggested_action={
                 "auto_fix": False,
-                "description": (
-                    "Check the project's index.html and its composition root, then "
-                    "render again to read Hyperframes' own diagnostic."
-                ),
+                "description": description,
             },
         )
         self.command = command

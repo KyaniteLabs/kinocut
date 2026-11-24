@@ -144,6 +144,9 @@ def _apply_review_decisions(
         elif decision.action == "preview":
             continue
         elif decision.action == "trim":
+            # A material edit after an approve changes what would ship: the
+            # earlier approval no longer covers it and a new one is required.
+            approved = False
             if decision.start is None or decision.end is None:
                 raise _review_error(
                     "A trim decision is missing bounds.",
@@ -154,20 +157,19 @@ def _apply_review_decisions(
             updates["start"] = decision.start
             updates["end"] = decision.end
         elif decision.action == "title_hook_edit":
+            approved = False
             if decision.title is not None:
                 updates["suggested_title"] = decision.title
             if decision.hook is not None:
                 updates["suggested_hook"] = decision.hook
         elif decision.action == "sensitive_unsuitable":
-            if decision.unsuitable is True:
-                updates["unsuitable"] = True
-                updates["sensitivity"] = "unsafe"
-            if decision.sensitive is True and "sensitivity" not in updates:
-                updates["sensitivity"] = "sensitive"
-            if decision.unsuitable is False:
-                updates["unsuitable"] = False
-                if updates.get("sensitivity") == "unsafe":
-                    updates["sensitivity"] = "none"
+            approved = False
+            if decision.unsuitable is not None:
+                updates["unsuitable"] = decision.unsuitable
+            if decision.sensitive is not None:
+                updates["sensitivity"] = "sensitive" if decision.sensitive else "none"
+    if updates.get("unsuitable"):
+        updates["sensitivity"] = "unsafe"
     return updates, approved
 
 
@@ -213,18 +215,18 @@ def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> Candidate
 
     effective = candidate.model_copy(update=updates) if updates else candidate
 
-    if not approved:
-        raise _review_error(
-            "The candidate is not approved for rendering.",
-            code="shorts_review_required",
-            cause=own_reason("No current human approval exists."),
-            recovery="Record an approve decision after reviewing the candidate.",
-        )
     if effective.unsuitable:
         raise _review_error(
             "The candidate is marked unsuitable.",
             code="shorts_candidate_unsuitable",
             cause=own_reason("Human review flagged sensitive material."),
             recovery="Choose another candidate or record a deliberate revised review decision.",
+        )
+    if not approved:
+        raise _review_error(
+            "The candidate is not approved for rendering.",
+            code="shorts_review_required",
+            cause=own_reason("No current human approval covers the candidate in its current form."),
+            recovery="Record an approve decision after reviewing the candidate.",
         )
     return effective

@@ -9,15 +9,17 @@ from .paths import _auto_output
 from .errors import MCPVideoError
 from .output_policy import read_only
 from .server_app import _result, _safe_tool, _validation_error, mcp
-from .validation import VALID_MOGRAPH_STYLES
+from .validation import (
+    VALID_TEXT_ANIMATIONS,
+    VALID_GRID_LAYOUTS,
+    VALID_PIP_POSITIONS,
+    VALID_TEXT_POSITIONS,
+    VALID_MOGRAPH_STYLES,
+)
 from .ffmpeg_helpers import _validate_input_path
 from .limits import MAX_MOGRAPH_FRAMES
 from .validation_errors import rejected_value
 
-VALID_TEXT_ANIMATIONS = {"fade", "glitch", "slide-up", "typewriter"}
-VALID_GRID_LAYOUTS = {"2x2", "3x1", "1x3", "2x3"}
-VALID_PIP_POSITIONS = {"top-left", "top-right", "bottom-left", "bottom-right"}
-VALID_TEXT_POSITIONS = {"center", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"}
 
 # ---------------------------------------------------------------------------
 # Visual Effects Tools (P1 Features)

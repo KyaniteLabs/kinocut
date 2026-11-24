@@ -328,6 +328,27 @@ def _convert_hevc(
     )
 
 
+_SVT_AV1_PRESET_MAP = {
+    "ultrafast": "12",
+    "superfast": "11",
+    "veryfast": "10",
+    "faster": "9",
+    "fast": "8",
+    "medium": "6",
+    "slow": "5",
+    "slower": "4",
+    "veryslow": "3",
+}
+
+
+def _svt_av1_preset(preset_value: str) -> str:
+    """Map x264 string preset names to valid numeric libsvtav1 presets (0-13)."""
+    text = str(preset_value).strip().lower()
+    if text.isdigit():
+        return text
+    return _SVT_AV1_PRESET_MAP.get(text, "6")
+
+
 def _convert_av1(
     input_path: str,
     output: str,
@@ -344,7 +365,7 @@ def _convert_av1(
             "libsvtav1",
             *_rate_control_args(preset, target_bitrate),
             "-preset",
-            preset["preset"],
+            _svt_av1_preset(preset["preset"]),
             "-c:a",
             "libopus",
             output,

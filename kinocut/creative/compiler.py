@@ -41,6 +41,12 @@ def compile_composition_plan(
             "compile_feature_unsupported",
             f"{valid_plan.compile_target} does not support planned audio or captions; no fallback is permitted.",
         )
+    unsupported_layouts = sorted({layout.kind for layout in valid_plan.layouts if layout.kind != "full_frame"})
+    if unsupported_layouts:
+        raise CreativeContractError(
+            "compile_feature_unsupported",
+            f"{valid_plan.compile_target} does not support layouts: {', '.join(unsupported_layouts)}.",
+        )
     asset_paths = {asset.id: asset.path for asset in valid_manifest.assets}
     operations: list[CompileOperation] = []
     for segment in valid_plan.timeline:

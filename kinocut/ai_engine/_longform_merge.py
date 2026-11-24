@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import unicodedata
 from typing import Any
 
 from ..errors import MCPVideoError
@@ -74,8 +75,17 @@ def _extract_segment_words(
     return extracted
 
 
+def _normalize_dedup_token(text: str) -> str:
+    """Case-fold and drop punctuation/whitespace while preserving Unicode combining marks."""
+    folded = unicodedata.normalize("NFC", text.strip().casefold())
+    cleaned = "".join(
+        ch for ch in folded if not ch.isspace() and not unicodedata.category(ch).startswith(("P", "S", "Z"))
+    )
+    return cleaned or folded
+
+
 def _build_dedup_tail(words: list[LongformWord], overlap_start: float) -> set[str]:
-    return {word.word.strip().casefold() for word in words if word.end > overlap_start}
+    return {_normalize_dedup_token(word.word) for word in words if word.end > overlap_start}
 
 
 def _validate_chunk_result_shape(chunk_result: Any) -> None:
@@ -143,7 +153,7 @@ def _consume_duplicate_event(
         index
         for index, word in enumerate(prior_events)
         if index not in consumed
-        and word.word.strip().casefold() == text
+        and _normalize_dedup_token(word.word) == text
         and min(word.end, end) > max(word.start, start)
         and abs(word.start - start) <= DEFAULT_LONGFORM_DUPLICATE_TIME_TOLERANCE_SECONDS
         and abs(word.end - end) <= DEFAULT_LONGFORM_DUPLICATE_TIME_TOLERANCE_SECONDS
@@ -161,6 +171,66 @@ def _consume_duplicate_event(
     return True
 
 
+def _build_raw_segment(
+    raw_segment: dict[str, Any],
+    *,
+    start: float,
+    end: float,
+    text: str,
+    retained_words: list[LongformWord],
+    had_words: bool,
+) -> dict[str, Any]:
+    """Preserve Whisper segment metadata while updating remapped spans and retained words."""
+    merged = dict(raw_segment)
+    merged["start"] = start
+    merged["end"] = end
+    merged["text"] = text
+    if had_words:
+        merged["words"] = [
+            {
+                "word": word.word,
+                "start": word.start,
+                "end": word.end,
+                **({"probability": word.probability} if word.probability is not None else {}),
+            }
+            for word in retained_words
+        ]
+    return merged
+
+
+def _dedup_segment_words(
+    segment_words: list[tuple[str, float, float, float | None]],
+    *,
+    chunk: LongformChunk,
+    overlap_end: float,
+    prior_tail: set[str],
+    prior_events: list[LongformWord],
+    consumed: set[int],
+) -> list[LongformWord]:
+    """Remap word timings to global source time and drop one-to-one overlap duplicates."""
+    offset = chunk.start
+    retained: list[LongformWord] = []
+    for word_text, word_start, word_end, probability in segment_words:
+        global_start = word_start + offset
+        normalized = _normalize_dedup_token(word_text)
+        if (
+            offset <= global_start < overlap_end
+            and normalized in prior_tail
+            and _consume_duplicate_event(prior_events, consumed, normalized, global_start, word_end + offset)
+        ):
+            continue
+        retained.append(
+            LongformWord(
+                word=word_text,
+                start=global_start,
+                end=word_end + offset,
+                chunk_index=chunk.index,
+                probability=probability,
+            )
+        )
+    return retained
+
+
 def _merge_chunk(
     accumulated_words: list[LongformWord],
     accumulated_segments: list[LongformSegment],
@@ -168,6 +238,10 @@ def _merge_chunk(
     chunk: LongformChunk,
     overlap_seconds: int,
     prev_chunk_end: float | None,
+    *,
+    deduplicate_segments: bool = False,
+    transcript_pieces: list[tuple[float, float, int, int, str]] | None = None,
+    raw_segments_out: list[tuple[float, float, int, dict[str, Any]]] | None = None,
 ) -> None:
     """Append source-bound spans; deduplicate one-to-one overlapping word events."""
     _validate_chunk_timings(chunk_result, chunk)
@@ -188,34 +262,46 @@ def _merge_chunk(
         text = str(raw_segment.get("text", "")).strip()
         if not text or local_start < 0.0 or local_end <= local_start:
             continue
-        for word_text, word_start, word_end, probability in _extract_segment_words(raw_segment):
-            global_start = word_start + offset
-            normalized = word_text.casefold()
-            if (
-                offset <= global_start < overlap_end
-                and normalized in prior_tail
-                and _consume_duplicate_event(
-                    prior_events,
-                    consumed,
-                    normalized,
-                    global_start,
-                    word_end + offset,
-                )
-            ):
+        segment_words = _extract_segment_words(raw_segment)
+        retained = _dedup_segment_words(
+            segment_words,
+            chunk=chunk,
+            overlap_end=overlap_end,
+            prior_tail=prior_tail,
+            prior_events=prior_events,
+            consumed=consumed,
+        )
+        new_words.extend(retained)
+        start, end = local_start + offset, local_end + offset
+        if deduplicate_segments and len(retained) < len(segment_words):
+            if not retained:
                 continue
-            new_words.append(
-                LongformWord(
-                    word=word_text,
-                    start=global_start,
-                    end=word_end + offset,
-                    chunk_index=chunk.index,
-                    probability=probability,
+            text = " ".join(word.word for word in retained)
+            start, end = min(word.start for word in retained), max(word.end for word in retained)
+        if transcript_pieces is not None:
+            entries = [(w.start, w.end, w.word) for w in retained] if segment_words else [(start, end, text)]
+            for item_start, item_end, item_text in entries:
+                transcript_pieces.append((item_start, item_end, chunk.index, len(transcript_pieces), item_text))
+        if raw_segments_out is not None:
+            raw_segments_out.append(
+                (
+                    start,
+                    end,
+                    chunk.index,
+                    _build_raw_segment(
+                        raw_segment,
+                        start=start,
+                        end=end,
+                        text=text,
+                        retained_words=retained,
+                        had_words=bool(segment_words),
+                    ),
                 )
             )
         accumulated_segments.append(
             LongformSegment(
-                start=local_start + offset,
-                end=local_end + offset,
+                start=start,
+                end=end,
                 text=text,
                 chunk_index=chunk.index,
                 avg_logprob=_segment_avg_logprob(raw_segment),

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import _escape_ffmpeg_filter_value, _run_ffmpeg
+from ..ffmpeg_helpers import _atomic_output, _escape_ffmpeg_filter_value, _run_ffmpeg, _validate_output_path
 from .io import (
     ReceiptStatus,
     ensure_output_dir,
@@ -19,15 +19,12 @@ from .io import (
     write_receipt,
 )
 from .stats import apply_rgb_gains, mean_rgb, shared_gains_to_hero
+from .match import _package_mean_rgb
 from ..validation_errors import exception_kind
 
 
-def _package_mean_rgb(arrs: list) -> tuple[float, float, float]:
-    return tuple(float(sum(mean_rgb(a)[i] for a in arrs) / len(arrs)) for i in range(3))
-
-
-def _pipeline_arrays(arrs: list, hero: str | Path | None):
-    package_rgb = _package_mean_rgb(arrs)
+def _pipeline_gains(paths: list[Path], hero: str | Path | None):
+    package_rgb = _package_mean_rgb(load_rgb_array(path) for path in paths)
     gray = sum(package_rgb) / 3.0
     neutralize_gains = shared_gains_to_hero(
         (gray, gray, gray),
@@ -35,59 +32,94 @@ def _pipeline_arrays(arrs: list, hero: str | Path | None):
         max_gain=STILL_MATCH_MAX_GAIN,
         min_gain=STILL_MATCH_MIN_GAIN,
     )
-    neutralized = [apply_rgb_gains(a, neutralize_gains) for a in arrs]
     match_gains = (1.0, 1.0, 1.0)
-    matched = neutralized
     hero_path: Path | None = None
     if hero is not None:
         hero_path = validate_still_path(hero)
         hero_rgb = mean_rgb(load_rgb_array(hero_path))
         match_gains = shared_gains_to_hero(
             hero_rgb,
-            _package_mean_rgb(neutralized),  # type: ignore[arg-type]
+            _package_mean_rgb(apply_rgb_gains(load_rgb_array(path), neutralize_gains) for path in paths),
             max_gain=STILL_MATCH_MAX_GAIN,
             min_gain=STILL_MATCH_MIN_GAIN,
         )
-        matched = [apply_rgb_gains(a, match_gains) for a in neutralized]
-    return matched, neutralize_gains, match_gains, hero_path
+    return neutralize_gains, match_gains, hero_path
+
+
+def _preflight_grade_targets(
+    input_paths: list[Path],
+    out_dir: Path,
+    lut_path: str | Path | None,
+) -> tuple[list[tuple[Path, Path]], Path | None]:
+    input_set = {path.resolve() for path in input_paths}
+    planned: list[tuple[Path, Path]] = []
+    seen_targets: set[Path] = set()
+    for src in input_paths:
+        final_path = out_dir / f"{src.stem}_graded.png"
+        resolved_target = final_path.resolve()
+        if resolved_target in input_set:
+            raise MCPVideoError(
+                "Still grade output path aliases an input file",
+                error_type="validation_error",
+                code="unsafe_path",
+            )
+        if resolved_target in seen_targets:
+            raise MCPVideoError(
+                "Still grade inputs share the same output filename stem",
+                error_type="validation_error",
+                code="duplicate_output_stem",
+            )
+        seen_targets.add(resolved_target)
+        planned.append((src, final_path))
+    lut: Path | None = None
+    if lut_path is not None:
+        lut = Path(lut_path).expanduser()
+        if not lut.is_file():
+            raise MCPVideoError(
+                "LUT file not found",
+                error_type="input_error",
+                code="lut_not_found",
+            )
+    return planned, lut
 
 
 def _export_graded(
     input_paths: list[Path],
-    matched: list,
+    neutralize_gains: tuple,
+    match_gains: tuple | None,
     out_dir: Path,
     lut_path: str | Path | None,
     signal_mode: bool,
 ) -> list[dict[str, Any]]:
+    planned, lut = _preflight_grade_targets(input_paths, out_dir, lut_path)
     outputs: list[dict[str, Any]] = []
-    for src, arr in zip(input_paths, matched, strict=True):
-        intermediate = out_dir / f"{src.stem}_graded_pre_lut.png"
-        save_rgb_array(arr, intermediate)
-        final_path = out_dir / f"{src.stem}_graded.png"
-        if lut_path is not None:
-            lut = Path(lut_path).expanduser()
-            if not lut.is_file():
-                raise MCPVideoError(
-                    "LUT file not found",
-                    error_type="input_error",
-                    code="lut_not_found",
-                )
-            _apply_lut3d(intermediate, final_path, lut)
-            intermediate.unlink(missing_ok=True)
-        else:
-            shutil.move(str(intermediate), str(final_path))
-        preservation = None
-        if signal_mode:
-            preservation = _near_extrema_preservation(load_rgb_array(src), load_rgb_array(final_path))
-        outputs.append(
-            {
-                "source": str(src),
-                "output": str(final_path),
-                "source_sha256": file_sha256(src),
-                "output_sha256": file_sha256(final_path),
-                "near_extrema_preservation": preservation,
-            }
-        )
+    with tempfile.TemporaryDirectory(prefix=".kinocut_grade_", dir=out_dir) as stage_dir:
+        for src, final_path in planned:
+            original = load_rgb_array(src)
+            arr = apply_rgb_gains(original, neutralize_gains)
+            if match_gains is not None:
+                arr = apply_rgb_gains(arr, match_gains)
+            if lut is not None:
+                intermediate = Path(stage_dir) / f"{src.stem}_graded_pre_lut.png"
+                save_rgb_array(arr, intermediate)
+                target = _validate_output_path(str(final_path))
+                with _atomic_output(target) as staged:
+                    _apply_lut3d(intermediate, Path(staged), lut)
+                intermediate.unlink(missing_ok=True)
+            else:
+                save_rgb_array(arr, final_path)
+            preservation = None
+            if signal_mode:
+                preservation = _near_extrema_preservation(original, load_rgb_array(final_path))
+            outputs.append(
+                {
+                    "source": str(src),
+                    "output": str(final_path),
+                    "source_sha256": file_sha256(src),
+                    "output_sha256": file_sha256(final_path),
+                    "near_extrema_preservation": preservation,
+                }
+            )
     return outputs
 
 
@@ -110,9 +142,10 @@ def still_grade(
     input_paths = [validate_still_path(p) for p in inputs]
     out_dir = ensure_output_dir(output_dir)
     stages = ["neutralize", "match"] + (["look_lut"] if lut_path is not None else [])
-    arrs = [load_rgb_array(p) for p in input_paths]
-    matched, neutralize_gains, match_gains, hero_path = _pipeline_arrays(arrs, hero)
-    outputs = _export_graded(input_paths, matched, out_dir, lut_path, signal_mode)
+    neutralize_gains, match_gains, hero_path = _pipeline_gains(input_paths, hero)
+    outputs = _export_graded(
+        input_paths, neutralize_gains, match_gains if hero_path else None, out_dir, lut_path, signal_mode
+    )
     receipt = {
         "tool": "still_grade",
         "stages": stages,
@@ -143,7 +176,7 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
         raise
     except Exception as exc:
         raise ProcessingError("ffmpeg-lut3d", 1, "", reason=exception_kind(exc)) from exc
-    if not dest.is_file():
+    if not dest.is_file() or dest.stat().st_size == 0:
         raise ProcessingError("ffmpeg-lut3d", 1, "", reason="the LUT pass produced no output")
 
 

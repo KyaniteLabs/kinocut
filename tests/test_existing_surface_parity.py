@@ -76,8 +76,8 @@ def test_mcp_trim_accepts_numeric_seconds_and_rejects_booleans(field):
 def test_cli_trim_and_conversion_forward_new_controls(monkeypatch, capsys):
     trim = Mock(return_value=EditResult(output_path="trimmed.mp4"))
     convert = Mock(return_value=EditResult(output_path="converted.mp4"))
-    monkeypatch.setattr("kinocut.engine.trim", trim)
-    monkeypatch.setattr("kinocut.engine.convert", convert)
+    monkeypatch.setattr("kinocut.engine_edit.trim", trim)
+    monkeypatch.setattr("kinocut.engine_convert.convert", convert)
     parser = build_parser()
     args = parser.parse_args(["trim", "source.mp4", "--start", "0.25", "--duration", "0.5", "--accurate"])
     assert handle_initial_command(args, use_json=True)
@@ -374,7 +374,9 @@ def test_mcp_frame_sampling_matches_client_engine_and_preserves_explicit_zero(ti
 def test_real_mcp_frame_extraction_shares_automatic_sampling_with_client(parity_source, tmp_path, monkeypatch):
     from kinocut.server_tools_guardrails import video_extract_frame
 
-    monkeypatch.setattr("kinocut.aesthetic.smart_thumbnail.find_best_thumbnail_timestamp", lambda _: 0.25)
+    from contextlib import nullcontext
+
+    monkeypatch.setattr("kinocut.aesthetic.smart_thumbnail.selected_frame", lambda *a, **kw: nullcontext((0.25, None)))
     automatic = video_extract_frame(str(parity_source), output_path=str(tmp_path / "mcp.jpg"))
     client = Client().extract_frame(str(parity_source), output=str(tmp_path / "client.jpg"))
     first = video_extract_frame(str(parity_source), timestamp=0.0, output_path=str(tmp_path / "first.jpg"))

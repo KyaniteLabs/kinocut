@@ -207,6 +207,21 @@ class TestVisualQualityGuardrails:
         assert 0 <= report.score <= 100
         assert isinstance(report.message, str)
 
+    @pytest.mark.parametrize(
+        ("stats", "metric_name", "expected"),
+        [
+            ({"YHIGH": 32, "YLOW": 16}, "ffmpeg.signalstats.YHIGH-YLOW", 6.25),
+            ({"YMAX": 192, "YMIN": 64}, "ffmpeg.signalstats.YMAX-YMIN", 50.0),
+        ],
+    )
+    def test_contrast_describes_measured_luma_spread(self, guardrails, stats, metric_name, expected):
+        with patch.object(guardrails, "_mean_signalstat", side_effect=lambda _path, key: stats.get(key)):
+            report = guardrails.check_contrast("video.mp4")
+
+        assert f"luma spread: {expected:.1f}%" in report.message
+        assert report.details["metric"]["name"] == metric_name
+        assert report.details["metric"]["value"] == pytest.approx(expected)
+
     def test_check_saturation(self, guardrails, tmp_path):
         """Test saturation check."""
         video_path = str(tmp_path / "test.mp4")
@@ -316,6 +331,17 @@ class TestVisualQualityGuardrails:
         """
         source = guardrails._movie_source("C:\\Users\\me\\clip.mp4", "signalstats")
         assert source == "movie='C\\:\\\\Users\\\\me\\\\clip.mp4',signalstats"
+
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX filenames can include colons and backslashes")
+    def test_lavfi_probes_read_paths_with_quotes_colons_and_backslashes(self, guardrails, tmp_path):
+        path = create_test_video(str(tmp_path / "editor's:take\\one.mp4"), color="blue")
+        tag = "lavfi.signalstats.YAVG"
+        batch = guardrails._get_all_signalstats(path)
+        single = guardrails._run_ffprobe(path, tag)
+        motion = guardrails._measure_temporal_motion(path)
+        assert batch[tag] > 0
+        assert single["mean"] == pytest.approx(batch[tag])
+        assert motion["frames"] > 0 and motion["mean"] < 1
 
     def test_run_ffprobe_logs_nonzero_exit(self, guardrails):
         from kinocut.errors import ProcessingError

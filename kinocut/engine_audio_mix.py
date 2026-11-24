@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 
 from .defaults import DEFAULT_AUDIO_MIX_BITRATE, DEFAULT_AUDIO_MIX_SAMPLE_RATE, DEFAULT_AUDIO_MIX_TRACK_VOLUME
-from .engine_media_timeline import _packet_extent, _primary_audio_timeline
+from .engine_media_timeline import _picture_extent, _primary_audio_timeline
 from .engine_audio_validation import _audio_number, _run_audio_ffmpeg
 from .engine_audio_normalize_output import _validate_normalized_output
 from .engine_runtime_utils import _build_edit_result, _get_video_stream, _has_audio, _movflags_args, _timed_operation
@@ -22,7 +22,6 @@ from .errors import MCPVideoError
 from .ffmpeg_helpers import (
     _atomic_output,
     _escape_ffmpeg_filter_value,
-    _run_command,
     _run_ffmpeg,
     _run_ffprobe_json,
     _validate_input_path,
@@ -34,8 +33,6 @@ from .limits import (
     MIN_AUDIO_MIX_BITRATE_KBPS,
     MAX_AUDIO_MIX_BITRATE_KBPS,
     MAX_VIDEO_DURATION,
-    MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES,
-    MAX_AUDIO_MIX_TIMELINE_PACKETS,
 )
 from .models import EditResult
 from .paths import _auto_output
@@ -50,22 +47,11 @@ def _invalid(message: str, code: str = "invalid_parameter") -> MCPVideoError:
     return MCPVideoError(message, error_type="validation_error", code=code)
 
 
-def _packet_timeline(path: str) -> tuple[float, float]:
-    """Measure primary-picture presentation extent, including VFR B frames."""
-    return _packet_extent(
-        path,
-        "v:0",
-        runner=_run_command,
-        packet_limit=MAX_AUDIO_MIX_TIMELINE_PACKETS,
-        metadata_limit=MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES,
-    )
-
-
 def _picture_timeline(path: str, raw: dict) -> tuple[float, float]:
-    """Use packet presentation ends: stream.duration may describe decode extent."""
+    """Check the measured picture extent against the mix limits."""
     if _get_video_stream(raw) is None:
         raise _invalid("mix_audio requires a video stream", "missing_video_stream")
-    start, duration = _packet_timeline(path)
+    start, duration = _picture_extent(path, raw)
     if not math.isfinite(start) or not math.isfinite(duration) or not 0 < duration <= MAX_VIDEO_DURATION:
         raise _invalid("video has no supported measurable duration", "invalid_media_duration")
     return start, duration

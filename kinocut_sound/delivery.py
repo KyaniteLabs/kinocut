@@ -146,6 +146,24 @@ class DeliveryPolicy(FrozenModel):
     metadata_codes: tuple[str, ...] = ()
     master_only_limiting_enabled: bool = False
 
+    @model_validator(mode="before")
+    @classmethod
+    def _preset_drives_the_unspecified_targets(cls, data: Any) -> Any:
+        """An explicit ``preset`` fills in whatever loudness fields the caller left out.
+
+        Before this, ``DeliveryPolicy(preset=BROADCAST_EBU_R128_MINUS_23)`` kept
+        the streaming targets (-14 LUFS), so loudness QA gated against the wrong
+        standard. Values the caller passes explicitly always win.
+        """
+        if not isinstance(data, dict) or "preset" not in data:
+            return data
+        preset = DeliveryPreset(data["preset"])
+        if data.get("loudness") is None:
+            data["loudness"] = LoudnessTarget.for_preset(preset)
+        if data.get("true_peak_ceiling_dbtp") is None:
+            data["true_peak_ceiling_dbtp"] = _PRESET_TRUE_PEAK_DBTP[preset]
+        return data
+
     @field_validator("metadata_codes")
     @classmethod
     def _metadata_codes_are_bounded_and_unique(cls, value: tuple[str, ...]) -> tuple[str, ...]:

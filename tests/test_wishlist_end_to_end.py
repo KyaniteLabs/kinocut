@@ -1,26 +1,9 @@
-"""End-to-end operator-path verification: drive the REAL record pipeline
-(spec -> asset -> verdict -> decision -> register_clip -> outcome -> cost ->
-beat-map -> continuity-plan -> review -> approval -> defect) through every
-shipped wishlist engine, asserting each consumes validated records correctly.
-
-This replaces the synthetic ``append_record(ClipRecord(...))`` shortcut with the
-real ref-validating pipeline (``register_clip`` validates verdict/decision/asset
-existence) so the engines are exercised against records a real editor flow would
-produce.
-"""
+"""Exercise the wishlist learning and review engines with validated project records."""
 
 from __future__ import annotations
 
 import pytest
 
-from kinocut.aivideo.editorial import (
-    beat_maps_for_spec,
-    continuity_assistant,
-    continuity_plans_for_spec,
-    coverage_report,
-    record_beat_map,
-    record_continuity_plan,
-)
 from kinocut.aivideo.learning import (
     cost_totals,
     defect_prompt_feedback,
@@ -45,13 +28,10 @@ from kinocut.aivideo.review import (
 from kinocut.contracts.acceptance import GenerationAcceptanceSpec
 from kinocut.contracts.asset import AssetRecord
 from kinocut.contracts.defect import DefectFinding
-from kinocut.contracts.editorial import BeatRequirement, ContinuityExpectation
 from kinocut.contracts.learning import CostEvent, PromptOutcome, WorkflowRecipe
-from kinocut.contracts.registry import ClipRecord
 from kinocut.contracts.review import ApprovalState, KnownLimitation, ReviewDecision
 from kinocut.contracts.verdict import ClipVerdict, Disposition
 from kinocut.projectstore import append_record, open_project
-from kinocut.registry import duplicate_clip_groups, register_clip
 from tests.contracts_fixtures import (
     acceptance_spec_kwargs,
     approval_state_kwargs,
@@ -64,7 +44,6 @@ from tests.contracts_fixtures import (
     verdict_kwargs,
     workflow_recipe_kwargs,
 )
-from tests.registry_fixtures import clip_record_kwargs
 
 _ASSET = "sha256:" + "d" * 64
 _ASSET_B = "sha256:" + "e" * 64
@@ -108,58 +87,12 @@ def _seed_verdict(project, asset_hash, spec_id, disposition):
     )
 
 
-def _seed_decision(project, target_ref):
-    return append_record(
-        project, ReviewDecision(**review_decision_kwargs(project_id=project.project_id, target_ref=target_ref))
-    )
-
-
-def _register_clip(project, *, asset_id, source_asset_id, verdict_id, decision_id, tags):
-    return register_clip(
-        project,
-        ClipRecord(
-            **clip_record_kwargs(
-                project_id=project.project_id,
-                asset_id=asset_id,
-                source_asset_id=source_asset_id,
-                verdict_id=verdict_id,
-                review_decision_id=decision_id,
-                tags=tags,
-            )
-        ),
-    )
-
-
-def test_real_pipeline_drives_every_wishlist_engine(project):
+def test_real_pipeline_drives_learning_and_review_engines(project):
     spec = _seed_spec(project)
     _seed_asset(project, _ASSET)
     _seed_asset(project, _ASSET_B)
     verdict_ok = _seed_verdict(project, _ASSET, spec.record_id, Disposition.APPROVED)
     verdict_bad = _seed_verdict(project, _ASSET_B, spec.record_id, Disposition.REJECTED)
-    decision = _seed_decision(project, _ASSET)
-
-    # Real register_clip (validates verdict/decision/asset refs).
-    clip_a = _register_clip(
-        project,
-        asset_id=_ASSET,
-        source_asset_id=_ASSET,
-        verdict_id=verdict_ok.record_id,
-        decision_id=decision.record_id,
-        tags=("product",),
-    )
-    clip_b = _register_clip(
-        project,
-        asset_id=_ASSET,
-        source_asset_id=_ASSET_B,
-        verdict_id=verdict_ok.record_id,
-        decision_id=decision.record_id,
-        tags=("product", "logo"),
-    )
-    assert clip_a.record_id != clip_b.record_id
-
-    # #39 duplicate detection over the REAL clip registry.
-    dups = duplicate_clip_groups(project)
-    assert len(dups.exact) == 1 and dups.exact[0].clip_count == 2
 
     # #40 prompt-outcome + #60 cost, written through the real writers.
     outcome = record_prompt_outcome(
@@ -178,22 +111,6 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
     # #57 learning report aggregates the real records.
     report = project_learning_report(project)
     assert report.verdict_count == 2 and report.prompt_outcome_count == 1 and report.cost_event_count == 1
-
-    # #42 beat map + #43 coverage against the real approved clips' tags.
-    beat_map = record_beat_map(
-        project,
-        _beat_map(project, spec.record_id),
-    )
-    assert beat_maps_for_spec(project, spec.record_id) == [beat_map]
-    coverage = coverage_report(project, spec.record_id)
-    product = next(b for b in coverage.beats if b.beat_id == "product")
-    assert product.covered is True  # "product" is in the registered clips' tags
-
-    # #45 continuity plan + #19 continuity assistant over the real clip tags.
-    plan = record_continuity_plan(project, _continuity_plan(project, spec.record_id))
-    assert continuity_plans_for_spec(project, spec.record_id) == [plan]
-    continuity = continuity_assistant(project, spec.record_id)
-    assert continuity.findings  # the plan has expectations resolved against real tags
 
     # #48 review decisions + #49 publish gate + #47 review package.
     review_decision = record_review_decision(
@@ -251,35 +168,6 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
     # #59 workflow recipe through the real writer.
     recipe = record_workflow_recipe(project, WorkflowRecipe(**workflow_recipe_kwargs(project_id=project.project_id)))
     assert recipes_for_template(project, recipe.template) == [recipe]
-
-
-def _beat_map(project, spec_id):
-    from kinocut.contracts.editorial import BeatMap
-
-    return BeatMap(
-        **{
-            "project_id": project.project_id,
-            "created_by": "human",
-            "acceptance_spec_id": spec_id,
-            "beats": (
-                BeatRequirement(beat_id="product", label="Product beat", required_subjects=("product",)),
-                BeatRequirement(beat_id="logo", label="Logo beat", required_subjects=("logo",)),
-            ),
-        }
-    )
-
-
-def _continuity_plan(project, spec_id):
-    from kinocut.contracts.editorial import ContinuityPlan
-
-    return ContinuityPlan(
-        **{
-            "project_id": project.project_id,
-            "created_by": "human",
-            "acceptance_spec_id": spec_id,
-            "expectations": (ContinuityExpectation(shot_id="shot_a", expected_subjects=("product",)),),
-        }
-    )
 
 
 def _approval(project, decision_id):

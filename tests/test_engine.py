@@ -647,7 +647,7 @@ class TestBuildAddAudioArgs:
         args = _build_add_audio_args("vid.mp4", "aud.wav", [], False, 1.5, True, "out.mp4")
         assert "-filter_complex" in args
         fc_idx = args.index("-filter_complex")
-        assert "adelay=1500|1500" in args[fc_idx + 1]
+        assert "adelay=1500:all=1" in args[fc_idx + 1]
 
     def test_replace_with_filters(self):
         from mcp_video.engine_audio_ops import _build_add_audio_args

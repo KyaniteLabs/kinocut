@@ -221,6 +221,7 @@ def _build_package_assets(
 def package_approved_clip(
     *,
     package_dir: str,
+    logical_output_root: str | None = None,
     vertical_video_path: str,
     expected_video_sha256: str | None = None,
     caption_artifact: CaptionArtifact,
@@ -232,6 +233,7 @@ def package_approved_clip(
     config: PackageConfig | None = None,
     generated_at: str | None = None,
 ) -> PackagedClipResult:
+    """Write to package_dir; a staged tree may name its final root in the manifest."""
     cfg = _validate_package_inputs(config, candidate, caption_artifact, thumbnail, lineage, performance)
     (safe_dir, safe_video, safe_thumbnail, package_id, manifest_filename, output_paths) = _resolve_output_paths(
         package_dir, vertical_video_path, thumbnail.image_path, candidate, cfg
@@ -239,6 +241,7 @@ def package_approved_clip(
     _assert_safe_output(output_paths, cfg)
     os.makedirs(safe_dir, exist_ok=True)
     video_path, srt_path, thumbnail_path, metadata_path, manifest_path = output_paths
+    manifest_root = safe_dir if logical_output_root is None else logical_output_root
     with _staging_area(safe_dir) as stage_dir:
         staged_video, video_sha256 = _stage_copy(safe_video, stage_dir)
         _verify_video_checksum(expected_video_sha256, video_sha256)
@@ -252,14 +255,16 @@ def package_approved_clip(
         )
         manifest = ShortsPackageManifest(
             package_id=package_id,
-            package_root=safe_dir,
+            package_root=manifest_root,
             generated_at=generated_at,
             candidate=candidate,
             caption_artifact=caption_artifact,
             suggested_title=candidate.suggested_title,
             short_description=candidate.suggested_hook,
             source_timestamps=(candidate.start, candidate.end),
-            thumbnail=thumbnail.model_copy(update={"image_path": thumbnail_path}),
+            thumbnail=thumbnail.model_copy(
+                update={"image_path": os.path.join(manifest_root, os.path.basename(thumbnail_path))}
+            ),
             lineage=package_lineage,
             assets=assets,
             review_warnings=warnings,

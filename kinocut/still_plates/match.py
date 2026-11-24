@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +11,7 @@ from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
     ReceiptStatus,
+    confined_leaf,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -45,14 +48,17 @@ def _validate_match_args(
         )
 
 
-def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, float], float]:
+def _package_mean_rgb(arrays) -> tuple[float, float, float]:
+    means = [mean_rgb(array) for array in arrays]
+    return tuple(sum(channel) / len(means) for channel in zip(*means, strict=True))
+
+
+def _compute_shared_gains(hero_rgb, package_rgb) -> tuple[tuple[float, float, float], float]:
     """One shared gain triple mapping package mean RGB toward hero mean RGB.
 
     RGB-target gains already include exposure; do **not** multiply by a second
     luma scale (that over-corrected and clipped highlights).
     """
-    hero_rgb = mean_rgb(hero_arr)
-    package_rgb = tuple(float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3))
     gains = shared_gains_to_hero(
         hero_rgb,
         package_rgb,  # type: ignore[arg-type]
@@ -65,23 +71,46 @@ def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, flo
     return gains, exposure_scale
 
 
+def _matched_destinations(input_paths: list[Path], out_dir: Path) -> list[Path]:
+    """One output per input.
+
+    Two inputs with the same stem from different folders used to share one
+    destination, so the second silently replaced the first while the receipt
+    listed both. Colliding stems are disambiguated with a short source hash.
+    """
+    stem_counts = Counter(src.stem for src in input_paths)
+    destinations: list[Path] = []
+    for src in input_paths:
+        name = (
+            f"{src.stem}_matched.png"
+            if stem_counts[src.stem] == 1
+            else f"{src.stem}_{file_sha256(src)[:10]}_matched.png"
+        )
+        dest = out_dir / name
+        suffix = 2
+        while dest in destinations:
+            dest = out_dir / f"{dest.stem}_{suffix}.png"
+            suffix += 1
+        destinations.append(dest)
+    return destinations
+
+
 def _write_matched_outputs(
     input_paths: list[Path],
-    input_arrs: list,
     final_gains: tuple[float, float, float],
     out_dir: Path,
 ) -> list[dict[str, Any]]:
     outputs: list[dict[str, Any]] = []
-    for src, arr in zip(input_paths, input_arrs, strict=True):
-        matched = apply_rgb_gains(arr, final_gains)
-        dest = out_dir / f"{src.stem}_matched.png"
-        save_rgb_array(matched, dest)
+    destinations = _matched_destinations(input_paths, out_dir)
+    for src, dest in zip(input_paths, destinations, strict=True):
+        matched = apply_rgb_gains(load_rgb_array(src), final_gains)
+        written = save_rgb_array(matched, dest)
         outputs.append(
             {
                 "source": str(src),
-                "output": str(dest),
+                "output": str(written),
                 "source_sha256": file_sha256(src),
-                "output_sha256": file_sha256(dest),
+                "output_sha256": file_sha256(written),
             }
         )
     return outputs
@@ -105,25 +134,26 @@ def still_match(
     hero_path = validate_still_path(hero)
     input_paths = [validate_still_path(p) for p in inputs]
     out_dir = ensure_output_dir(output_dir)
+    receipt_dest = confined_leaf(out_dir, receipt_name)
 
-    hero_arr = load_rgb_array(hero_path)
-    input_arrs = [load_rgb_array(p) for p in input_paths]
-    final_gains, exposure_scale = _compute_shared_gains(hero_arr, input_arrs)
-    outputs = _write_matched_outputs(input_paths, input_arrs, final_gains, out_dir)
+    hero_rgb = mean_rgb(load_rgb_array(hero_path))
+    package_rgb = _package_mean_rgb(load_rgb_array(path) for path in input_paths)
+    final_gains, exposure_scale = _compute_shared_gains(hero_rgb, package_rgb)
+    outputs = _write_matched_outputs(input_paths, final_gains, out_dir)
 
     receipt = {
         "tool": "still_match",
         "hero": str(hero_path),
         "hero_sha256": file_sha256(hero_path),
-        "hero_mean_rgb": list(mean_rgb(hero_arr)),
-        "package_mean_rgb": [float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)],
+        "hero_mean_rgb": list(hero_rgb),
+        "package_mean_rgb": list(package_rgb),
         "shared_gains": list(final_gains),
         "exposure_scale": exposure_scale,
         "per_frame_auto_wb": False,
         "delta_ev": (__import__("math").log2(exposure_scale) if exposure_scale > 0 else 0.0),
         "outputs": outputs,
     }
-    receipt_path = write_receipt(out_dir / receipt_name, receipt)
+    receipt_path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
     receipt["status"] = ReceiptStatus.OK

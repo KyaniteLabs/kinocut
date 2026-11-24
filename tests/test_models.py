@@ -1,5 +1,6 @@
 """Tests for Pydantic models — no FFmpeg needed."""
 
+from pydantic import ValidationError
 import pytest
 
 from mcp_video.models import (
@@ -156,7 +157,7 @@ class TestTimelineModels:
         at = TimelineTrack(type="audio", clips=[TimelineClip(source="a.mp3")])
         assert len(at.clips) == 1
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             TimelineTrack(type="invalid")
 
     def test_timeline_export(self):
@@ -228,7 +229,7 @@ class TestValidation:
         ],
     )
     def test_invalid_enum_rejected(self, cls, kwargs):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             cls(**kwargs)
 
     def test_position_helpers_reject_unknown_named_position(self):

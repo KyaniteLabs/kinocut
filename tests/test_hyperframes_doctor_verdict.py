@@ -15,7 +15,7 @@ def _doctor_stdout(checks: list[dict]) -> str:
 
 def _patch_doctor(monkeypatch, checks: list[dict]) -> None:
     completed = subprocess.CompletedProcess(args=["hyperframes", "doctor"], returncode=0, stdout=_doctor_stdout(checks))
-    monkeypatch.setattr("kinocut.hyperframes_ops._hyperframes_op", lambda *_a, **_k: (completed, "/tmp"))
+    monkeypatch.setattr("kinocut.hyperframes.ops._hyperframes_op", lambda *_a, **_k: (completed, "/tmp"))
     monkeypatch.setattr(
         "kinocut.cli.handlers_hyperframes._with_spinner",
         lambda _label, fn, *args, **kwargs: fn(*args, **kwargs),

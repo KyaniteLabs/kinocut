@@ -82,23 +82,6 @@ def speed(*args: Any, **kwargs: Any) -> Any:
     return run_speed(*args, **kwargs)
 
 
-def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> dict[str, Any]:
-    """Record the chosen duration_policy (and any preservation warning) in the receipt.
-
-    Additive only: an ``ai_video`` section is attached without touching any legacy
-    result field. ``shortest`` records the ``outro_may_be_trimmed`` warning code.
-    """
-
-    if not isinstance(result, dict) or not result.get("success"):
-        return result
-    from .contracts.receipt_ai_video import AiVideoReceiptSection
-    from .receipts_ai_video import attach_ai_video_section
-
-    warnings = ("outro_may_be_trimmed",) if duration_policy == "shortest" else ()
-    section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
-    return attach_ai_video_section(result, section)
-
-
 ExistingVideoPath = Annotated[
     str,
     Field(description="Absolute path to an existing local video file. The input file is read only."),
@@ -465,7 +448,9 @@ def video_add_audio(
             duration_policy=duration_policy,
         )
     )
-    return _attach_add_audio_receipt(result, duration_policy)
+    from .receipts_ai_video import attach_add_audio_receipt
+
+    return attach_add_audio_receipt(result, duration_policy)
 
 
 @mcp.tool()

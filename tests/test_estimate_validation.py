@@ -9,7 +9,7 @@ import pytest
 
 from kinocut.cli.handlers_intent import handle_intent_commands
 from kinocut.cli.parser.intent import add_parsers
-from kinocut.client.estimates import ClientEstimatesMixin
+from kinocut import Client
 from kinocut.errors import MCPVideoError
 from kinocut.limits import MAX_ESTIMATE_OPERATION_CHARS
 from kinocut.server_tool_contracts import _ContractFastMCP
@@ -21,7 +21,7 @@ def _invoke(route, arguments, capsys):
     if route == "engine":
         return estimate_operation(**arguments)
     if route == "client":
-        return ClientEstimatesMixin().estimate_operation(**arguments)
+        return Client().estimate_operation(**arguments)
     if route == "mcp":
         app = _ContractFastMCP("estimate-validation")
         app.add_tool(video_estimate_operation)

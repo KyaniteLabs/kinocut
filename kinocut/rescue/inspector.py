@@ -61,7 +61,7 @@ def _inspect_artifacts(
             {
                 "path": record["path"],
                 "present": present,
-                "matching": present and (expected is None or actual == expected),
+                "matching": present and expected is not None and actual == expected,
                 "expected_sha256": expected,
                 "actual_sha256": actual,
             }
@@ -129,8 +129,8 @@ def inspect_rescue(path: str) -> dict[str, Any]:
         "cleanup": payload.get("cleanup", {}),
         "resume": payload.get("resume", {}),
         "integrity": {
-            "all_present": all(item["present"] for item in artifacts),
-            "all_matching": all(item["matching"] for item in artifacts),
+            "all_present": bool(artifacts) and all(item["present"] for item in artifacts),
+            "all_matching": bool(artifacts) and all(item["matching"] for item in artifacts),
             "artifacts": artifacts,
         },
     }

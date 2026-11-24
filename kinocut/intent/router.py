@@ -40,6 +40,8 @@ def list_intent_verbs() -> list[dict[str, Any]]:
                 "async_preferred": bool(meta.get("async_preferred")),
                 "mutates_media": bool(meta.get("mutates_media")),
                 "compat_tools": list(meta.get("compat_tools") or ()),
+                "next_action": meta.get("next_action", "call_compat_tool"),
+                "blocked_reason": meta.get("blocked_reason"),
             }
         )
     return out
@@ -59,14 +61,13 @@ def route_intent(verb: str, params: dict[str, Any] | None = None) -> IntentPlan:
     merged = dict(meta.get("params") or {})
     if params:
         merged.update(params)
+    next_action = str(meta.get("next_action") or "call_compat_tool")
+    blocked = meta.get("blocked_reason")
+    notes = meta.get("notes")
     # inject_broll never auto-applies; force proposal path.
-    next_action = "call_compat_tool"
-    blocked = None
     if name == "inject_broll":
         next_action = "propose_only"
         notes = "Returns proposals only; human must accept before any insert."
-    else:
-        notes = meta.get("notes")
     return IntentPlan(
         verb=name,
         summary=str(meta["summary"]),

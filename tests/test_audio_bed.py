@@ -9,6 +9,7 @@ module size constraints.
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import json
 import shutil
 import subprocess
@@ -615,7 +616,7 @@ def test_audio_bed_display_name_pattern_is_exact_and_bounded():
 
 def test_audio_bed_receipt_contract_validates():
     """AudioBedReceipt rejects extra fields and invalid display names."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         AudioBedReceipt(
             schema_version=1,
             receipt_kind="edit",

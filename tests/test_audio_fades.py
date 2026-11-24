@@ -120,7 +120,7 @@ def test_invalid_audio_duration_is_actionable(duration, tmp_path, monkeypatch) -
 
 def test_short_audio_one_pass_fallback_retains_clamped_fades(tmp_path, monkeypatch) -> None:
     stderr = json.dumps(
-        {"input_i": "-inf", "input_lra": "0", "input_tp": "-inf", "input_thresh": "-70", "target_offset": "0"}
+        {"input_i": "-inf", "input_lra": "0", "input_tp": "-18.06", "input_thresh": "-70", "target_offset": "inf"}
     )
     source, output, calls = _mock_normalize(monkeypatch, tmp_path, duration="0.006", stderr=stderr)
     normalize_audio(str(source), output_path=str(output))
@@ -128,6 +128,18 @@ def test_short_audio_one_pass_fallback_retains_clamped_fades(tmp_path, monkeypat
     render_filter = _filters(calls)[1]
     assert render_filter.startswith("afade=t=in:st=0:d=0.003,afade=t=out:st=0.003:d=0.003,loudnorm=")
     assert "measured_I" not in render_filter
+
+
+def test_silent_audio_retains_clamped_fades_and_skips_loudnorm(tmp_path, monkeypatch) -> None:
+    stderr = json.dumps(
+        {"input_i": "-inf", "input_lra": "0", "input_tp": "-inf", "input_thresh": "-70", "target_offset": "inf"}
+    )
+    source, output, calls = _mock_normalize(monkeypatch, tmp_path, duration="0.006", stderr=stderr)
+    result = normalize_audio(str(source), output_path=str(output))
+
+    render_filter = _filters(calls)[1]
+    assert render_filter.startswith("afade=t=in:st=0:d=0.003,afade=t=out:st=0.003:d=0.003,anull")
+    assert any("input_is_silent" in warning for warning in result.warnings)
 
 
 def _window_rms(samples: list[int], start: int, stop: int) -> float:
