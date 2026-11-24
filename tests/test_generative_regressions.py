@@ -19,10 +19,10 @@ from types import SimpleNamespace
 
 import pytest
 
-import kinocut.hyperframes_ops as ops
 import kinocut.hyperframes_ops_helpers as helpers
 from kinocut.ai_engine.stem import _run_demucs_separation
 from kinocut.errors import MCPVideoError, ProcessingError
+from kinocut.hyperframes import ops, pipeline
 from kinocut.hyperframes_engine import HyperframesRenderError
 from kinocut.object_matte.media import decode_video_argv
 
@@ -109,7 +109,7 @@ def test_default_render_output_lives_inside_the_project(tmp_path, monkeypatch):
 
 
 def test_doctor_reports_a_failing_environment(tmp_path, monkeypatch):
-    import kinocut.hyperframes_engine as engine
+    from kinocut.hyperframes import runner as engine
 
     monkeypatch.setattr(engine, "_require_node", lambda: None)
     monkeypatch.setattr(engine, "_require_hyperframes_deps", lambda **kwargs: None)
@@ -134,9 +134,9 @@ def test_render_and_post_passes_output_path_to_render(tmp_path, monkeypatch):
         seen["output_path"] = output_path
         return SimpleNamespace(success=True, output_path=output_path or str(tmp_path / "default.mp4"))
 
-    monkeypatch.setattr(ops, "render", fake_render)
+    monkeypatch.setattr(pipeline, "render", fake_render)
     target = str(tmp_path / "requested.mp4")
-    result = ops.render_and_post(str(tmp_path / "proj"), [], output_path=target)
+    result = pipeline.render_and_post(str(tmp_path / "proj"), [], output_path=target)
     assert seen["output_path"] == target
     assert result.hyperframes_output == target
     assert result.final_output == target
@@ -153,11 +153,11 @@ def test_render_and_post_keeps_the_intermediate_off_the_final_path(tmp_path, mon
         calls.append(("post", current_input, output_path))
         return SimpleNamespace(output_path=output_path)
 
-    monkeypatch.setattr(ops, "render", fake_render)
-    monkeypatch.setattr(ops, "_post_process_ops", lambda: {"resize": fake_op})
+    monkeypatch.setattr(pipeline, "render", fake_render)
+    monkeypatch.setattr(pipeline, "_post_process_ops", lambda: {"resize": fake_op})
     target = str(tmp_path / "requested.mp4")
 
-    result = ops.render_and_post(
+    result = pipeline.render_and_post(
         str(tmp_path / "proj"), [{"op": "resize", "params": {"width": 100}}], output_path=target
     )
 
@@ -182,14 +182,14 @@ def _stdout_print_calls(path: Path) -> list[int]:
     "relative",
     [
         "ai_engine/upscale.py",
-        "hyperframes_ops.py",
-        "hyperframes_engine.py",
+        "hyperframes/ops.py",
+        "hyperframes/runner.py",
         "server_tools_hyperframes.py",
         "server_app.py",
     ],
 )
 def test_mcp_reachable_modules_never_print_to_stdout(relative):
-    package = Path(ops.__file__).parent
+    package = Path(ops.__file__).parents[1]
     assert _stdout_print_calls(package / relative) == []
 
 
@@ -310,7 +310,7 @@ def test_shader_render_reports_the_frames_it_actually_produced(tmp_path, monkeyp
 
 def test_shader_renderer_exits_nonzero_on_a_failed_frame():
     # The Node renderer used to log each failed frame and still print "Done".
-    script = Path(ops.__file__).parent / "_crush_shader" / "render_frames.mjs"
+    script = Path(ops.__file__).parents[1] / "_crush_shader" / "render_frames.mjs"
     text = script.read_text(encoding="utf-8")
     assert "failedFrames += 1" in text
     assert "process.exit(1)" in text.split("failedFrames > 0")[1]

@@ -104,8 +104,8 @@ def test_birefnet_never_calls_hyperframes_and_is_unavailable(monkeypatch):
 
     monkeypatch.setattr("mcp_video.object_matte.api.require_object_matte_deps", _missing_extra)
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
-        patch("mcp_video.hyperframes_ops._require_node") as mock_node,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._require_node") as mock_node,
         patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
         pytest.raises(MCPVideoError) as excinfo,
     ):
@@ -126,7 +126,7 @@ def test_birefnet_never_calls_hyperframes_and_is_unavailable(monkeypatch):
 
 def test_unknown_model_is_validation_error_with_no_inference():
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
         pytest.raises(MCPVideoError) as excinfo,
     ):
@@ -147,8 +147,8 @@ def test_unknown_model_is_validation_error_with_no_inference():
 
 def test_info_is_kinocut_owned_and_never_calls_hyperframes():
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
-        patch("mcp_video.hyperframes_ops._require_node") as mock_node,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._require_node") as mock_node,
         patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
     ):
         result = remove_background(info=True)
@@ -184,7 +184,7 @@ def test_info_works_without_input_path_and_ignores_model():
 
 def test_missing_input_path_without_info_is_validation_error():
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         pytest.raises(MCPVideoError) as excinfo,
     ):
         remove_background(info=False)
@@ -195,7 +195,7 @@ def test_missing_input_path_without_info_is_validation_error():
 
 def test_object_only_mask_interval_on_hf_path_errors():
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         pytest.raises(MCPVideoError) as excinfo,
     ):
         remove_background("/tmp/input.mp4", mask_interval=3)
@@ -207,7 +207,7 @@ def test_object_only_mask_interval_on_hf_path_errors():
 
 def test_equipment_flags_on_hf_path_error():
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         pytest.raises(MCPVideoError) as excinfo,
     ):
         remove_background("/tmp/input.mp4", equipment_overlay="/tmp/overlay.png")
@@ -216,7 +216,7 @@ def test_equipment_flags_on_hf_path_error():
     assert excinfo.value.error_type == "validation_error"
 
     with (
-        patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
+        patch("mcp_video.hyperframes.ops._hyperframes_op") as mock_op,
         pytest.raises(MCPVideoError) as excinfo,
     ):
         remove_background("/tmp/input.mp4", fail_if_equipment_on_subject=True)

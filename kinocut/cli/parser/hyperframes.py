@@ -37,8 +37,23 @@ def _add_render_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     hyperframes_render_p.add_argument("--workers", help="Parallel render workers (number or 'auto')")
     hyperframes_render_p.add_argument("--crf", type=int, help="Override encoder CRF")
+    hyperframes_render_p.add_argument("--video-bitrate", help="Override encoder video bitrate")
     hyperframes_render_p.add_argument("--variables", help="Inline JSON runtime data for the composition")
     hyperframes_render_p.add_argument("--variables-file", help="Path to JSON runtime data for the composition")
+    hyperframes_render_p.add_argument("--max-concurrent-renders", type=int, help="Limit concurrent renders")
+    for flag in (
+        "docker",
+        "hdr",
+        "sdr",
+        "gpu",
+        "browser-gpu",
+        "no-browser-gpu",
+        "quiet",
+        "strict",
+        "strict-all",
+        "strict-variables",
+    ):
+        hyperframes_render_p.add_argument(f"--{flag}", action="store_true")
 
     # hyperframes-compositions
     hyperframes_comps_p = subparsers.add_parser(
@@ -76,6 +91,10 @@ def _add_still_and_inspection_parsers(subparsers: argparse._SubParsersAction) ->
     inspect_p = subparsers.add_parser("hyperframes-inspect", help="Inspect Hyperframes layout overflow")
     inspect_p.add_argument("project_path", help="Path to Hyperframes project")
     inspect_p.add_argument("--samples", type=int, default=9)
+    inspect_p.add_argument("--at", nargs="+", type=float, help="Specific timestamps in seconds")
+    inspect_p.add_argument("--tolerance", type=int, default=2)
+    inspect_p.add_argument("--timeout-ms", type=int)
+    inspect_p.add_argument("--max-issues", type=int, default=80)
     inspect_p.add_argument("--strict", action="store_true")
 
     # hyperframes-catalog
@@ -98,10 +117,14 @@ def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Register the TTS, transcribe, remove-background, doctor, and benchmark subcommands."""
     # hyperframes-tts
     tts_p = subparsers.add_parser("hyperframes-tts", help="Generate speech audio with Hyperframes TTS")
-    tts_p.add_argument("text_or_file", help="Text to speak or path to .txt")
+    tts_p.add_argument("text_or_file", nargs="?", help="Text to speak or path to .txt")
     tts_p.add_argument("-o", "--output", help="Output audio file")
     tts_p.add_argument("--voice")
     tts_p.add_argument("--speed", type=float)
+    tts_p.add_argument("--language", "--lang")
+    tts_p.add_argument(
+        "--list-voices", "--list", action="store_true", help="List local voices without generating speech"
+    )
 
     # hyperframes-transcribe
     transcribe_p = subparsers.add_parser("hyperframes-transcribe", help="Transcribe media with Hyperframes")

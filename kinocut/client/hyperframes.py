@@ -6,6 +6,16 @@ from typing import Any
 
 from ..defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from ..errors import MCPVideoError
+from ..hyperframes.models import (
+    CompositionsResult,
+    HyperframesBlockResult,
+    HyperframesJsonResult,
+    HyperframesPreviewResult,
+    HyperframesProjectResult,
+    HyperframesSnapshotResult,
+    HyperframesValidationResult,
+)
+from ..models import EditResult
 
 
 class ClientHyperframesMixin:
@@ -26,11 +36,23 @@ class ClientHyperframesMixin:
         crf: int | None = None,
         variables: Any | None = None,
         variables_file: str | None = None,
-    ) -> dict:
+        docker: bool = False,
+        hdr: bool = False,
+        sdr: bool = False,
+        gpu: bool = False,
+        browser_gpu: bool = False,
+        no_browser_gpu: bool = False,
+        quiet: bool = False,
+        strict: bool = False,
+        strict_all: bool = False,
+        max_concurrent_renders: int | None = None,
+        strict_variables: bool = False,
+        video_bitrate: str | None = None,
+    ) -> EditResult:
         """Render a Hyperframes composition to video."""
         from ..hyperframes_engine import render
 
-        return render(
+        result = render(
             project_path,
             output_path=output,
             fps=fps,
@@ -44,15 +66,28 @@ class ClientHyperframesMixin:
             crf=crf,
             variables=variables,
             variables_file=variables_file,
+            docker=docker,
+            hdr=hdr,
+            sdr=sdr,
+            gpu=gpu,
+            browser_gpu=browser_gpu,
+            no_browser_gpu=no_browser_gpu,
+            quiet=quiet,
+            strict=strict,
+            strict_all=strict_all,
+            max_concurrent_renders=max_concurrent_renders,
+            strict_variables=strict_variables,
+            video_bitrate=video_bitrate,
         )
+        return EditResult(success=result.success, output_path=result.output_path)
 
-    def hyperframes_compositions(self, project_path: str) -> dict:
+    def hyperframes_compositions(self, project_path: str) -> CompositionsResult:
         """List compositions in a Hyperframes project."""
         from ..hyperframes_engine import compositions
 
         return compositions(project_path)
 
-    def hyperframes_preview(self, project_path: str, port: int = 3002) -> dict:
+    def hyperframes_preview(self, project_path: str, port: int = 3002) -> HyperframesPreviewResult:
         """Launch Hyperframes preview studio for live preview."""
         from ..hyperframes_engine import preview
 
@@ -65,11 +100,13 @@ class ClientHyperframesMixin:
         frame: int = 0,
         variables: Any | None = None,
         variables_file: str | None = None,
-    ) -> dict:
+    ) -> EditResult:
         """Render a single frame as image."""
         from ..hyperframes_engine import still
 
-        return still(project_path, output_path=output, frame=frame, variables=variables, variables_file=variables_file)
+        return self._to_edit_result(
+            still(project_path, output_path=output, frame=frame, variables=variables, variables_file=variables_file)
+        )
 
     def hyperframes_snapshot(
         self,
@@ -79,7 +116,7 @@ class ClientHyperframesMixin:
         timeout_ms: int | None = None,
         variables: Any | None = None,
         variables_file: str | None = None,
-    ) -> dict:
+    ) -> HyperframesSnapshotResult:
         """Capture key frames as PNG screenshots for visual verification."""
         from ..hyperframes_engine import snapshot
 
@@ -101,7 +138,7 @@ class ClientHyperframesMixin:
         timeout_ms: int | None = None,
         max_issues: int = 80,
         strict: bool = False,
-    ) -> dict:
+    ) -> HyperframesJsonResult:
         """Inspect rendered layout for text/container overflow."""
         from ..hyperframes_engine import inspect
 
@@ -115,13 +152,13 @@ class ClientHyperframesMixin:
             strict=strict,
         )
 
-    def hyperframes_info(self, project_path: str) -> dict:
+    def hyperframes_info(self, project_path: str) -> HyperframesJsonResult:
         """Return Hyperframes project metadata."""
         from ..hyperframes_engine import info
 
         return info(project_path)
 
-    def hyperframes_catalog(self, item_type: str | None = None, tag: str | None = None) -> dict:
+    def hyperframes_catalog(self, item_type: str | None = None, tag: str | None = None) -> HyperframesJsonResult:
         """Browse Hyperframes catalog blocks/components."""
         from ..hyperframes_engine import catalog
 
@@ -134,7 +171,7 @@ class ClientHyperframesMixin:
         skip_assets: bool = False,
         max_screenshots: int | None = None,
         timeout_ms: int | None = None,
-    ) -> dict:
+    ) -> HyperframesJsonResult:
         """Capture a website as editable Hyperframes components."""
         from ..hyperframes_engine import capture
 
@@ -154,7 +191,7 @@ class ClientHyperframesMixin:
         speed: float | None = None,
         language: str | None = None,
         list_voices: bool = False,
-    ) -> dict:
+    ) -> HyperframesJsonResult:
         """Generate local speech audio or list available Hyperframes TTS voices."""
         from ..hyperframes_engine import tts
 
@@ -173,7 +210,7 @@ class ClientHyperframesMixin:
         project_path: str | None = None,
         model: str | None = None,
         language: str | None = None,
-    ) -> dict:
+    ) -> HyperframesJsonResult:
         """Transcribe media to word-level timestamps or import transcripts."""
         from ..hyperframes_engine import transcribe
 
@@ -191,7 +228,7 @@ class ClientHyperframesMixin:
         mask_interval: int = DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL,
         equipment_overlay: str | None = None,
         fail_if_equipment_on_subject: bool = False,
-    ) -> dict:
+    ) -> HyperframesJsonResult:
         """Cut a person or a product out of a still or video.
 
         Default model is people (``u2net_human_seg``). Products and other
@@ -214,7 +251,7 @@ class ClientHyperframesMixin:
             fail_if_equipment_on_subject=fail_if_equipment_on_subject,
         )
 
-    def hyperframes_doctor(self) -> dict:
+    def hyperframes_doctor(self) -> HyperframesJsonResult:
         """Run Hyperframes environment diagnostics."""
         from ..hyperframes_engine import doctor
 
@@ -226,7 +263,7 @@ class ClientHyperframesMixin:
         output: str | None = None,
         runs: int | None = None,
         json_output: bool = True,
-    ) -> dict:
+    ) -> HyperframesJsonResult:
         """Benchmark Hyperframes render speed and file size."""
         from ..hyperframes_engine import benchmark
 
@@ -244,7 +281,7 @@ class ClientHyperframesMixin:
         language: str | None = None,
         tailwind: bool = False,
         resolution: str | None = None,
-    ) -> dict:
+    ) -> HyperframesProjectResult:
         """Scaffold a new Hyperframes project.
 
         Args:
@@ -253,7 +290,7 @@ class ClientHyperframesMixin:
             template: Project template (blank, warm-grain, swiss-grid)
 
         Returns:
-            dict with key "project_path" (str): absolute path to the new project
+            HyperframesProjectResult with the absolute path to the new project
         """
         if not name:
             raise MCPVideoError("name cannot be empty", error_type="validation_error", code="empty_name")
@@ -277,13 +314,13 @@ class ClientHyperframesMixin:
         project_path: str,
         block_name: str,
         no_clipboard: bool = False,
-    ) -> dict:
+    ) -> HyperframesBlockResult:
         """Install a block from the Hyperframes catalog."""
         from ..hyperframes_engine import add_block
 
         return add_block(project_path, block_name, no_clipboard=no_clipboard)
 
-    def hyperframes_validate(self, project_path: str) -> dict:
+    def hyperframes_validate(self, project_path: str) -> HyperframesValidationResult:
         """Validate project for rendering readiness.
 
         Args:
@@ -301,7 +338,7 @@ class ClientHyperframesMixin:
         project_path: str,
         post_process: list[dict],
         output: str | None = None,
-    ) -> dict:
+    ) -> EditResult:
         """Render a Hyperframes composition then post-process with Kinocut tools.
 
         Args:
@@ -312,8 +349,8 @@ class ClientHyperframesMixin:
             output: Output file path (auto-generated if omitted)
 
         Returns:
-            HyperframesPipelineResult with output path and applied operations
+            EditResult with the final output path
         """
         from ..hyperframes_engine import render_and_post
 
-        return render_and_post(project_path, post_process, output_path=output)
+        return self._to_edit_result(render_and_post(project_path, post_process, output_path=output))

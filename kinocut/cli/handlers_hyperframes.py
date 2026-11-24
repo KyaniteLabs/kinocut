@@ -27,32 +27,45 @@ def _variables(a: Any, json_mode: bool) -> Any | None:
     return _parse_json_arg(value, "variables", json_mode)
 
 
+def _render(a, j):
+    from ..hyperframes_engine import render
+
+    r = _with_spinner(
+        f"Rendering {a.project_path}...",
+        render,
+        a.project_path,
+        output_path=a.output,
+        fps=a.fps,
+        width=a.width,
+        height=a.height,
+        composition=getattr(a, "composition", None),
+        quality=a.quality,
+        format=a.output_format,
+        resolution=getattr(a, "resolution", None),
+        workers=a.workers,
+        crf=a.crf,
+        video_bitrate=a.video_bitrate,
+        variables=_variables(a, j),
+        variables_file=getattr(a, "variables_file", None),
+        docker=a.docker,
+        hdr=a.hdr,
+        sdr=a.sdr,
+        gpu=a.gpu,
+        browser_gpu=a.browser_gpu,
+        no_browser_gpu=a.no_browser_gpu,
+        quiet=a.quiet,
+        strict=a.strict,
+        strict_all=a.strict_all,
+        max_concurrent_renders=a.max_concurrent_renders,
+        strict_variables=a.strict_variables,
+    )
+    _out(r, j, lambda res: _format_hyperframes_render(res, a.project_path))
+    if not (r.get("success", True) if isinstance(r, dict) else r.success):
+        raise SystemExit(1)
+
+
 def _register_render_commands(runner: CommandRunner) -> None:
     """Register render-output producing commands."""
-
-    def _render(a, j):
-        from ..hyperframes_engine import render
-
-        r = _with_spinner(
-            f"Rendering {a.project_path}...",
-            render,
-            a.project_path,
-            output_path=a.output,
-            fps=a.fps,
-            width=a.width,
-            height=a.height,
-            composition=getattr(a, "composition", None),
-            quality=a.quality,
-            format=a.output_format,
-            resolution=getattr(a, "resolution", None),
-            workers=a.workers,
-            crf=a.crf,
-            variables=_variables(a, j),
-            variables_file=getattr(a, "variables_file", None),
-        )
-        _out(r, j, lambda res: _format_hyperframes_render(res, a.project_path))
-        if not (r.get("success", True) if isinstance(r, dict) else r.success):
-            raise SystemExit(1)
 
     runner.register("hyperframes-render", _render)
 
@@ -138,7 +151,15 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import inspect
 
         r = _with_spinner(
-            "Inspecting Hyperframes layout...", inspect, a.project_path, samples=a.samples, strict=a.strict
+            "Inspecting Hyperframes layout...",
+            inspect,
+            a.project_path,
+            samples=a.samples,
+            at=a.at,
+            tolerance=a.tolerance,
+            timeout_ms=a.timeout_ms,
+            max_issues=a.max_issues,
+            strict=a.strict,
         )
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
@@ -161,6 +182,22 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
     runner.register("hyperframes-catalog", _catalog)
 
 
+def _tts(a, j):
+    from ..hyperframes_engine import tts
+
+    r = _with_spinner(
+        "Listing voices..." if a.list_voices else "Generating speech...",
+        tts,
+        a.text_or_file,
+        output_path=a.output,
+        voice=a.voice,
+        speed=a.speed,
+        language=a.language,
+        list_voices=a.list_voices,
+    )
+    _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+
 def _register_media_commands(runner: CommandRunner) -> None:
     """Register media capture and processing commands."""
 
@@ -171,14 +208,6 @@ def _register_media_commands(runner: CommandRunner) -> None:
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-capture", _capture)
-
-    def _tts(a, j):
-        from ..hyperframes_engine import tts
-
-        r = _with_spinner(
-            "Generating speech...", tts, a.text_or_file, output_path=a.output, voice=a.voice, speed=a.speed
-        )
-        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-tts", _tts)
 
