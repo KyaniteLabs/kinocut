@@ -680,12 +680,9 @@ else:
         elif sample_width == 1:
             dtype = np.uint8
         elif sample_width == 3:
-            # 24-bit: pad to 32-bit
-            n = len(pcm_bytes) // 3
-            arr = np.zeros(n, dtype=np.int32)
-            for i in range(n):
-                arr[i] = int.from_bytes(pcm_bytes[i * 3 : i * 3 + 3], "little", signed=True)
-            raw = arr.astype(np.float64)
+            octets = np.frombuffer(pcm_bytes, dtype=np.uint8, count=len(pcm_bytes) // 3 * 3).reshape(-1, 3)
+            high = octets[:, 2].view(np.int8).astype(np.int32)
+            raw = ((high << 16) | (octets[:, 1].astype(np.int32) << 8) | octets[:, 0]).astype(np.float64)
             raw = raw.reshape(-1, channels) if channels > 1 else raw
             mono = raw.mean(axis=1) if channels > 1 else raw
             return mono / 8388607.0

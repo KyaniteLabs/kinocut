@@ -49,6 +49,13 @@ def validate_script_relationships(
                 raise ValueError("event kind must match its referenced target type")
 
     line_by_id = {item.line.line_id: item for item in parsed_lines}
+    beats_by_scene: dict[str, list[Any]] = {}
+    for beat in beats:
+        if beat.after_line_id is not None:
+            anchor = line_by_id.get(beat.after_line_id)
+            if anchor is None or anchor.scene_id != beat.scene_id:
+                raise ValueError("beat after_line_id must reference a line in the same scene")
+        beats_by_scene.setdefault(beat.scene_id, []).append(beat)
     for scene in scenes:
         line_events = tuple(event_id for event_id in scene.event_ids if targets[event_id][0] == "line")
         if line_events != scene.line_ids:
@@ -58,14 +65,15 @@ def validate_script_relationships(
                 raise ValueError("line indices must match per-scene line order")
 
         event_positions = {event_id: index for index, event_id in enumerate(scene.event_ids)}
-        for beat in (item for item in beats if item.scene_id == scene.scene_id):
+        line_positions = {line_id: index for index, line_id in enumerate(scene.line_ids)}
+        for beat in beats_by_scene.get(scene.scene_id, ()):
             beat_position = event_positions[beat.beat_id]
             if beat.after_line_id is None:
                 first_line_position = event_positions[scene.line_ids[0]] if scene.line_ids else len(scene.event_ids)
                 if beat_position >= first_line_position:
                     raise ValueError("unanchored beat must precede the first line")
                 continue
-            anchor_index = scene.line_ids.index(beat.after_line_id)
+            anchor_index = line_positions[beat.after_line_id]
             next_line_position = (
                 event_positions[scene.line_ids[anchor_index + 1]]
                 if anchor_index + 1 < len(scene.line_ids)
@@ -73,8 +81,3 @@ def validate_script_relationships(
             )
             if not (event_positions[beat.after_line_id] < beat_position < next_line_position):
                 raise ValueError("beat event must follow its declared line anchor")
-
-    line_scene_by_id = {line_id: item.scene_id for line_id, item in line_by_id.items()}
-    for beat in beats:
-        if beat.after_line_id is not None and line_scene_by_id.get(beat.after_line_id) != beat.scene_id:
-            raise ValueError("beat after_line_id must reference a line in the same scene")
