@@ -326,7 +326,7 @@ def test_doctor_reports_offline_readiness(monkeypatch, tmp_path):
 @pytest.mark.parametrize(
     "operation", ["probe", "full_audio", "chunk_audio", "signalstats_ffprobe", "signalstats_ffmpeg", "thumbnail"]
 )
-def test_offline_media_subprocess_refuses_playlist_http(tmp_path, operation):
+def test_offline_media_subprocess_refuses_playlist_http(tmp_path, monkeypatch, operation):
     from kinocut import engine_runtime_utils, quality_signal_reader
 
     hits: list[str] = []
@@ -350,7 +350,18 @@ def test_offline_media_subprocess_refuses_playlist_http(tmp_path, operation):
                 f"http://127.0.0.1:{server.server_port}/sample.ts\n#EXT-X-ENDLIST\n"
             )
             if operation == "thumbnail":
+                captured_stderr: list[str] = []
+                real_run_bounded = engine_runtime_utils.run_bounded
+
+                def spy_run_bounded(*args, **kwargs):
+                    proc = real_run_bounded(*args, **kwargs)
+                    captured_stderr.append(proc.stderr or "")
+                    return proc
+
+                monkeypatch.setattr(engine_runtime_utils, "run_bounded", spy_run_bounded)
                 assert engine_runtime_utils._generate_thumbnail_base64(str(playlist)) is None
+                assert len(captured_stderr) == 1
+                assert "Protocol 'http' not on whitelist 'file,pipe'" in captured_stderr[0]
                 assert hits == []
                 return
             with pytest.raises(ProcessingError) as caught:
