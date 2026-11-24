@@ -161,3 +161,21 @@ def test_crop_failure_private_and_clean(source, tmp_path, monkeypatch, failure):
         assert output.read_bytes() == b"concurrent owner"
         output.unlink()
     assert not list(tmp_path.iterdir())
+
+
+def test_captioned_crop_succeeds_when_tmpdir_has_apostrophe(source, tmp_path, monkeypatch):
+    scratch = tmp_path / "operator's scratch"
+    scratch.mkdir()
+    out_dir = tmp_path / "plain_out"
+    out_dir.mkdir()
+    output = out_dir / "short.mp4"
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    result = shorts_flow.video_shorts(
+        source,
+        [(0, 0.2, "Apostrophe safe")],
+        {"fit_mode": "crop", "quality": "low"},
+        str(output),
+    )
+    assert result["output_path"] == str(output) and output.is_file()
+    assert list(out_dir.iterdir()) == [output]
+    assert not list(scratch.iterdir())

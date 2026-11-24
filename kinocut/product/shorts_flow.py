@@ -6,7 +6,7 @@ import math
 import os
 import tempfile
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any
 
@@ -343,30 +343,39 @@ def _render_crop(
         f"crop={width}:{height}",
         "setsar=1",
     ]
-    if srt is not None:
-        _require_filter("subtitles", "Subtitle burn-in")
-        force_style = parse_force_style(DEFAULT_SUBTITLE_STYLE if style is None else style)
-        ass = Path(srt).with_suffix(".ass")
-        try:
-            ass.write_text(synthesize_dimensioned_ass(srt, (width, height)), encoding="utf-8")
-        except OSError as exc:
-            raise MCPVideoError(
-                "Could not prepare Shorts captions", error_type="processing_error", code="subtitle_prepare_failed"
-            ) from exc
-        filters.append(f"subtitles={_escape_ffmpeg_filter_path(str(ass))}:force_style='{force_style}'")
+    temp_ass: str | None = None
+    try:
+        if srt is not None:
+            _require_filter("subtitles", "Subtitle burn-in")
+            force_style = parse_force_style(DEFAULT_SUBTITLE_STYLE if style is None else style)
+            try:
+                fd, temp_ass = tempfile.mkstemp(
+                    suffix=".ass", prefix="kc_shorts_", dir=os.path.dirname(os.path.abspath(output))
+                )
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    handle.write(synthesize_dimensioned_ass(srt, (width, height)))
+            except OSError as exc:
+                raise MCPVideoError(
+                    "Could not prepare Shorts captions", error_type="processing_error", code="subtitle_prepare_failed"
+                ) from exc
+            filters.append(f"subtitles={_escape_ffmpeg_filter_path(temp_ass)}:force_style='{force_style}'")
 
-    preset = QUALITY_PRESETS[quality]
-    with _atomic_output(output) as staged:
-        args = _build_ffmpeg_cmd(
-            assembled,
-            output_path=staged,
-            video_filter=",".join(filters),
-            audio_codec="copy",
-            crf=preset["crf"],
-            preset=preset["preset"],
-        )
-        _run_video_only(_run_ffmpeg_with_progress, args, duration, progress)
-        probe(staged)
+        preset = QUALITY_PRESETS[quality]
+        with _atomic_output(output) as staged:
+            args = _build_ffmpeg_cmd(
+                assembled,
+                output_path=staged,
+                video_filter=",".join(filters),
+                audio_codec="copy",
+                crf=preset["crf"],
+                preset=preset["preset"],
+            )
+            _run_video_only(_run_ffmpeg_with_progress, args, duration, progress)
+            probe(staged)
+    finally:
+        if temp_ass is not None:
+            with suppress(OSError):
+                os.unlink(temp_ass)
 
 
 def _parse_segments(

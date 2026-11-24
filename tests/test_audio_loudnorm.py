@@ -401,3 +401,31 @@ def test_measured_loudness_snapshot_reaches_cli_and_mcp(tmp_path, monkeypatch, c
     plain_text = plain.export_text()
     assert "Input loudness" not in plain_text
     assert "Output loudness" not in plain_text
+
+
+def test_silent_wav_with_loudnorm_shaped_comment_reports_no_output_measurement(tmp_path) -> None:
+    from kinocut.ffmpeg_helpers import _run_ffmpeg
+
+    source = tmp_path / "silent_comment.wav"
+    comment = json.dumps({"output_i": "-17.0", "output_tp": "-3.1"})
+    _run_ffmpeg(
+        [
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=48000:cl=stereo",
+            "-t",
+            "0.5",
+            "-metadata",
+            f"comment={comment}",
+            "-c:a",
+            "pcm_s16le",
+            str(source),
+        ]
+    )
+    output = tmp_path / "silent_out.wav"
+    result = normalize_audio(str(source), output_path=str(output))
+    assert any("input_is_silent" in warning for warning in result.warnings)
+    assert result.measured_output is None
+    assert result.measured_output_source is None

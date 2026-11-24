@@ -507,9 +507,15 @@ class TestEscapingConsistency:
         assert result == "/tmp/test.mp4"
 
     def test_lavfi_path_escaping_in_guardrails(self) -> None:
-        """quality_guardrails uses escaped paths for movie= filter."""
-        import inspect
-        from mcp_video import quality_guardrails
+        """quality_guardrails generates a properly escaped movie= FFprobe command for special-char paths."""
+        from kinocut.quality_guardrails import VisualQualityGuardrails
+        from kinocut.quality_lavfi import frame_tags_command
 
-        source = inspect.getsource(quality_guardrails)
-        assert "_escape_lavfi_path" in source
+        special_path = "/tmp/clip's:name[1],k=v.mp4"
+        guardrails = VisualQualityGuardrails()
+        source = guardrails._movie_source(special_path, "signalstats")
+        cmd = frame_tags_command(source, "lavfi.signalstats.YAVG")
+        assert cmd[cmd.index("-i") + 1] == source
+        assert source.startswith("movie='")
+        assert "\\:" in source and "\\[" in source and "\\]" in source and "\\," in source and "\\=" in source
+        assert "'\\''" in source

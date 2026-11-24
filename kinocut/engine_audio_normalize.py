@@ -47,7 +47,9 @@ from .validation import (
 
 
 def _loudnorm_summaries(stderr: str) -> Iterator[dict]:
-    for text in reversed(re.findall(r"\{.*?\}", stderr, re.DOTALL)):
+    parsed_blocks = re.findall(r"\[Parsed_loudnorm_[^\]]*\]\s*(\{.*?\})", stderr, re.DOTALL)
+    candidates = parsed_blocks if parsed_blocks else re.findall(r"\{.*?\}", stderr, re.DOTALL)
+    for text in reversed(candidates):
         try:
             data = json.loads(text)
         except json.JSONDecodeError:
@@ -310,7 +312,8 @@ def _apply_loudnorm(
         ),
         runner=_run_ffmpeg,
     )
-    return warnings, _input_reading(measured), _output_reading(rendered.stderr)
+    output_reading = _output_reading(rendered.stderr) if "loudnorm=" in render_filter else None
+    return warnings, _input_reading(measured), output_reading
 
 
 def normalize_audio(

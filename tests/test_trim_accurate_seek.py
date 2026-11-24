@@ -131,3 +131,39 @@ def test_stream_copy_refuses_incompatible_container_without_publishing(numbered,
     assert "stream_copy=False" in str(exc.value)
     assert "«redacted-sk-path»" not in json.dumps(exc.value.to_dict(), ensure_ascii=False)
     assert not output.exists()
+
+
+def test_stream_copy_preserves_multiple_audio_tracks(numbered, tmp_path):
+    from kinocut.ffmpeg_helpers import _run_ffprobe_json
+
+    dual = str(tmp_path / "dual_audio.mp4")
+    _ffmpeg(
+        "-i",
+        numbered,
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=8",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=880:duration=8",
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-map",
+        "2:a:0",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-shortest",
+        dual,
+    )
+    output = str(tmp_path / "dual_copy.mp4")
+    result = trim(dual, 1.0, 2.0, output_path=output, stream_copy=True)
+    assert result.output_path == output
+    probed = _run_ffprobe_json(output)
+    audio_streams = [s for s in probed.get("streams", []) if s.get("codec_type") == "audio"]
+    assert len(audio_streams) == 2

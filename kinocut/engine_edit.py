@@ -158,7 +158,9 @@ def trim(
     with _atomic_output(output) as staged:
         _validate_output_path(staged)
         encode = (
-            ["-c", "copy", *_movflags_args(staged), staged] if stream_copy else _build_ffmpeg_cmd(output_path=staged)
+            ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", *_movflags_args(staged), staged]
+            if stream_copy
+            else _build_ffmpeg_cmd(output_path=staged)
         )
         with _timed_operation() as timing:
             try:

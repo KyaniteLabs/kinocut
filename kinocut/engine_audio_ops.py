@@ -39,7 +39,7 @@ from .engine_audio_validation import _audio_number, _run_audio_ffmpeg
 from .engine_audio_normalize_output import _validate_normalized_output
 from .engine_media_timeline import _packet_extent, _primary_audio_timeline, _timestamp
 from .limits import MAX_VIDEO_DURATION
-from .validation_errors import rejected_value
+from .validation_errors import exception_kind, rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +241,7 @@ def _add_audio_guardrail_warnings(video_info, audio_path, audio_probe, volume, s
             for message in validate_audio_mix(video_info, audio_info, volume=volume, start_time=start_time or 0.0)
         ]
     except Exception as exc:
-        logger.warning("[AUDIO GUARDRAIL] Could not validate audio mix: %s", type(exc).__name__)
+        logger.warning("[AUDIO GUARDRAIL] Could not validate audio mix: %s", exception_kind(exc))
         return ["[AUDIO GUARDRAIL] Could not validate audio mix; listen before publishing."]
 
 
