@@ -19,21 +19,14 @@ These tools are registered in default and profile modes only; the legacy
 ``KINOCUT_TOOLS=all`` surface stays exactly the 206-name registry.
 """
 
-import re
 from typing import Annotated, Any, Literal
 
 from mcp.server.fastmcp import Context
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from .errors import (
-    MCPVideoError,
-    _argument_name,
-    _argument_type,
-    _cli_command_set,
-    cli_route_for_operation,
-    retry_context,
-)
+from .errors import MCPVideoError
+from .tool_routing import cli_route_for_operation, retry_context
 from .output_policy import read_only
 from .server_app import _safe_tool, _validation_error, mcp
 from .server_tool_contracts import call_shape, parameter_names_hint, validate_tool_arguments
@@ -70,92 +63,6 @@ _PARAMS_ANNOTATION = Annotated[
 ]
 
 
-def _family_invocation(family: str, operation: str) -> str:
-    """A retry hint the caller can actually execute on this surface."""
-
-    mcp_hint = f'call {family}(operation="{operation}", params={{...}}) with corrected parameters (MCP)'
-    route = cli_route_for_operation(operation)
-    if route:
-        return f"{mcp_hint} / run kino {route} with corrected flags (CLI)"
-    return mcp_hint
-
-
-_KINO_ROUTE = re.compile(r"\bkino ([a-z0-9][a-z0-9-]*)")
-
-# The discovery tools are MCP-only: their retry hints must not derive a
-# ``kino`` route from the tool name (there is no ``kino list-operations``).
-_DISCOVERY_INVOCATIONS = {
-    tool: f"call {tool} with corrected parameters (MCP)" for tool in (DISCOVERY_TOOL_NAME, DESCRIBE_TOOL_NAME)
-}
-
-
-def _family_retry_message(message: str, family: str, operation: str) -> str:
-    """Retarget a baked-in direct-tool retry hint at the family surface.
-
-    Keeps tool-independent hints (``overwrite=true``, ``a new output_path``)
-    untouched; rewrites hints that name the direct operation — which is not on
-    the default wire — or an unverified ``kino`` route.
-    """
-
-    head, sep, invocation = message.partition("; retry with ")
-    if not sep:
-        return message
-    names_direct = f"call {operation} " in invocation or f"call {operation}(" in invocation
-    route = _KINO_ROUTE.search(invocation)
-    unverified = route is not None and route.group(1) not in _cli_command_set()
-    if not (names_direct or unverified):
-        return message
-    direct_call = re.compile(rf"\bcall {re.escape(operation)}(?=[ )])")
-    if not unverified and direct_call.search(invocation):
-        # Keep the hint's own action (overwrite=true, a new output_path, the
-        # argument names) and only swap the direct tool for the family call.
-        family_call = f'call {family}(operation="{operation}", params={{...}})'
-        return f"{head}; retry with {direct_call.sub(lambda _: family_call, invocation)}"
-    return f"{head}; retry with {_family_invocation(family, operation)}"
-
-
-def _retarget_retry_hint(result: Any, family: str, operation: str) -> Any:
-    """Rewrite the retry hint of an inner error payload for family dispatch."""
-
-    if not isinstance(result, dict) or result.get("success") is not False:
-        return result
-    error = result.get("error")
-    if not isinstance(error, dict) or not isinstance(error.get("message"), str):
-        return result
-    message = _family_retry_message(error["message"], family, operation)
-    if message == error["message"]:
-        return result
-    return {**result, "error": {**error, "message": message}}
-
-
-def _retarget_cleanup_refusal(result: Any, family: str, params: dict[str, Any]) -> Any:
-    """Retarget per-file cleanup refusals, which are nested inside the result."""
-
-    if not isinstance(result, dict) or result.get("success") is not False:
-        return result
-    rows = result.get("results")
-    if not isinstance(rows, list):
-        return result
-    placeholders = {key: params[key] for key in ("files", "keep") if key in params and params[key] is not None}
-    params_hint = ", ".join(
-        f"{_argument_name(key)}={_argument_type(value)}" for key, value in sorted(placeholders.items())
-    )
-    invocation = f'call {family}(operation="video_cleanup", params={{{params_hint}}}) (MCP)'
-    changed = False
-    retargeted = []
-    for row in rows:
-        if not isinstance(row, dict) or not isinstance(row.get("error"), str):
-            retargeted.append(row)
-            continue
-        head, sep, _ = row["error"].partition("; retry with ")
-        if not sep:
-            retargeted.append(row)
-            continue
-        retargeted.append({**row, "error": f"{head}; retry with {invocation}"})
-        changed = True
-    return {**result, "results": retargeted} if changed else result
-
-
 async def _dispatch_family_operation(
     operation: str,
     params: dict[str, Any] | None,
@@ -174,8 +81,7 @@ async def _dispatch_family_operation(
         # family-level consent explicitly. An explicit ``params.overwrite``
         # still wins (strict boolean, validated by the inner contract).
         arguments["overwrite"] = overwrite
-    invocation = _family_invocation(family, operation)
-    with retry_context(operation, arguments, invocation=invocation):
+    with retry_context(operation, params, family=family):
         try:
             validate_tool_arguments(operation, tool, arguments)
         except MCPVideoError:
@@ -185,11 +91,7 @@ async def _dispatch_family_operation(
                 + parameter_names_hint(tool)
                 + call_shape(family, tool, operation=operation)
             )
-        result = await tool.run(arguments, context=ctx, convert_result=False)
-    result = _retarget_retry_hint(result, family, operation)
-    if operation == "video_cleanup":
-        result = _retarget_cleanup_refusal(result, family, params or {})
-    return result
+        return await tool.run(arguments, context=ctx, convert_result=False)
 
 
 def _register_family_tool(name: str) -> None:
@@ -278,9 +180,7 @@ def list_operations(
     ``describe_operation`` for one operation's complete inputSchema.
     """
 
-    with retry_context(
-        DISCOVERY_TOOL_NAME, {"family": family, "query": query}, invocation=_DISCOVERY_INVOCATIONS[DISCOVERY_TOOL_NAME]
-    ):
+    with retry_context(DISCOVERY_TOOL_NAME):
         if family is not None and family not in FAMILY_MODULES:
             return _validation_error(
                 f"Unknown family '{family}'. Available families: {', '.join(FAMILY_MODULES)}",
@@ -350,9 +250,7 @@ def describe_operation(
     annotations and the verified ``kino`` CLI route when one exists.
     """
 
-    with retry_context(
-        DESCRIBE_TOOL_NAME, {"operation": operation}, invocation=_DISCOVERY_INVOCATIONS[DESCRIBE_TOOL_NAME]
-    ):
+    with retry_context(DESCRIBE_TOOL_NAME):
         family = FAMILY_OF_OPERATION.get(operation)
         if family is None:
             return _validation_error(

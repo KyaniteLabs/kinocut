@@ -120,7 +120,7 @@ def format_cli_error(
 
     if isinstance(e, MCPVideoError):
         try:
-            with retry_context(command or "kino", arguments or {}):
+            with retry_context(command or "kino", arguments or {}, cli=True):
                 data = e.to_dict()
         except Exception as exc:
             logger.debug("MCPVideoError.to_dict() failed in CLI formatting: %s", exc)
