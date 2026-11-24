@@ -22,6 +22,7 @@ _LEDGER_NAME = "outputs.jsonl"
 _COMPACT_BYTES = 1024 * 1024
 # Windows has no O_NOFOLLOW; there the realpath() resolution is the guard.
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_POSIX_CTIME_TRUSTED = os.name == "posix"
 _Snapshot = frozenset[tuple[str, tuple[int, ...]]]
 _cached: tuple[tuple[int, ...], _Snapshot] | None = None
 
@@ -42,6 +43,13 @@ def _identity(st: os.stat_result) -> list[int]:
     return [st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns]
 
 
+def _cache_key(st: os.stat_result) -> tuple[int, ...] | None:
+    """Return a cache key only when POSIX ctime/inode semantics are reliable."""
+    if not _POSIX_CTIME_TRUSTED or st.st_ino == 0 or st.st_ctime_ns <= 0:
+        return None
+    return (*_identity(st), st.st_ctime_ns)
+
+
 def _open_ledger(flags: int) -> int:
     directory = _state_dir()
     os.makedirs(directory, mode=0o700, exist_ok=True)
@@ -50,6 +58,7 @@ def _open_ledger(flags: int) -> int:
 
 def record_output(path: str) -> None:
     """Remember that Kinocut wrote ``path`` with its current identity."""
+    global _cached
     with contextlib.suppress(OSError, ValueError):
         resolved = os.path.realpath(path)
         current = os.stat(resolved, follow_symlinks=False)
@@ -60,6 +69,7 @@ def record_output(path: str) -> None:
             size = os.fstat(fd).st_size
         finally:
             os.close(fd)
+        _cached = None
         if size > _COMPACT_BYTES:
             _compact()
 
@@ -72,9 +82,9 @@ def _entries() -> _Snapshot:
         return frozenset()
     with os.fdopen(fd, "r", encoding="utf-8", errors="replace") as stream:
         info = os.fstat(fd)
-        key = (*_identity(info), info.st_ctime_ns)
+        key = _cache_key(info)
         cached = _cached
-        if cached is not None and cached[0] == key:
+        if key is not None and cached is not None and cached[0] == key:
             return cached[1]
         rows = set()
         for raw in stream:
@@ -82,9 +92,10 @@ def _entries() -> _Snapshot:
                 row = json.loads(raw)
                 rows.add((str(row["path"]), tuple(int(v) for v in row["id"])))
         snapshot = frozenset(rows)
-        after = os.fstat(fd)
-        if key == (*_identity(after), after.st_ctime_ns):
-            _cached = key, snapshot
+        if key is not None:
+            after = os.fstat(fd)
+            if key == _cache_key(after):
+                _cached = key, snapshot
         return snapshot
 
 

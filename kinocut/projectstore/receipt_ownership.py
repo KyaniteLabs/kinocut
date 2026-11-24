@@ -19,17 +19,22 @@ def _proof(directory: Path, info: os.stat_result) -> Path:
 
 
 def _prune_replaced(path: Path, directory: Path, witnesses: set[Path]) -> None:
-    """Prune this writer's superseded witnesses only after observing the published inode."""
-    if directory.is_symlink():
-        return
-    with contextlib.suppress(FileNotFoundError):
+    """Best-effort cleanup of this writer's superseded witnesses after observing the published inode."""
+    try:
+        if directory.is_symlink():
+            return
         current = _proof(directory, path.stat(follow_symlinks=False))
         if current not in witnesses or not os.path.samefile(path, current):
             return
-        for obsolete in witnesses - {current}:
+    except OSError:
+        return
+    for obsolete in tuple(witnesses - {current}):
+        try:
             if obsolete == _proof(directory, obsolete.stat(follow_symlinks=False)):
                 obsolete.unlink(missing_ok=True)
                 witnesses.discard(obsolete)
+        except OSError:
+            continue
 
 
 @contextlib.contextmanager

@@ -16,12 +16,20 @@ from kinocut.projectstore.cas_lifecycle import cleanup_backups, restore_blob, un
 from kinocut.projectstore.ingest import _best_effort_unlink, _hash_copy_to_temp
 
 _CHUNK = 1 << 20
+_POSIX_CTIME_TRUSTED = os.name == "posix"
 _VERIFIED: dict[tuple[int, ...], str] = {}
 _CACHE_LOCK = Lock()
 
 
 def _identity(info: os.stat_result) -> tuple[int, ...]:
     return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
+def _cacheable_identity(info: os.stat_result) -> tuple[int, ...] | None:
+    """Return a cache key only when POSIX ctime/inode semantics are reliable."""
+    if not _POSIX_CTIME_TRUSTED or info.st_ino == 0 or info.st_ctime_ns <= 0:
+        return None
+    return _identity(info)
 
 
 def _manifest(project: store.Project, digest: str) -> CASManifestRecord | None:
@@ -102,19 +110,22 @@ def _blob_matches(target: Path, manifest: CASManifestRecord, *, verify_content: 
             if before.st_size != manifest.byte_size:
                 return False
             key = _identity(before)
-            with _CACHE_LOCK:
-                if not verify_content and key in _VERIFIED:
-                    return _VERIFIED[key] == manifest.digest
+            cache_key = _cacheable_identity(before)
+            if not verify_content and cache_key is not None:
+                with _CACHE_LOCK:
+                    if cache_key in _VERIFIED:
+                        return _VERIFIED[cache_key] == manifest.digest
             actual = hashlib.sha256()
             while chunk := reader.read(_CHUNK):
                 actual.update(chunk)
             if key != _identity(os.fstat(fd)):
                 return False
             digest = "sha256:" + actual.hexdigest()
-            with _CACHE_LOCK:
-                if len(_VERIFIED) >= 1024:
-                    _VERIFIED.pop(next(iter(_VERIFIED)))
-                _VERIFIED[key] = digest
+            if cache_key is not None:
+                with _CACHE_LOCK:
+                    if len(_VERIFIED) >= 1024:
+                        _VERIFIED.pop(next(iter(_VERIFIED)))
+                    _VERIFIED[cache_key] = digest
             return digest == manifest.digest
     except OSError:
         return False

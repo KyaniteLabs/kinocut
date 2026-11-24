@@ -471,7 +471,7 @@ paths:
     tool: video_info
     arguments:
       input_path: '{{qa_work}}/fixtures/input.mp4'
-- id: mcp-search_tools
+- id: mcp-list_operations
   category: operator
   required: true
   surface: mcp
@@ -484,14 +484,14 @@ paths:
     quote: 'Published 1.16.5 serves **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`, while
       the default MCP registration is a curated **20-tool core** for video editing, inspection, receipts,
       diagnostics, and one-call Shorts. Set `KINOCUT_TOOLS=all` for the full catalog or `KINOCUT_TOOLS=profile:editor`
-      for the editor profile. `search_tools` discovers hidden tools on demand without changing the selected
+      for the editor profile. `list_operations` discovers hidden tools on demand without changing the selected
       surface. All return structured JSON with `success` and operation metadata. On failure, they return
       `{"success": false, "error": {...}}` with an eyes-free retry invocation for MCP and CLI.'
   argv:
   - kino
   - --mcp
   request:
-    tool: search_tools
+    tool: list_operations
     arguments:
       query: subtitle
 - id: brand-render

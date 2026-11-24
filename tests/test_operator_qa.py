@@ -50,7 +50,7 @@ def test_catalog_keeps_original_required_operator_ids_and_provenance():
         "source-alias-guard",
         "mcp-video_doctor",
         "mcp-video_info",
-        "mcp-search_tools",
+        "mcp-list_operations",
         "mcp-protocol",
         "static-review-ui",
         "hyperframes-preview",

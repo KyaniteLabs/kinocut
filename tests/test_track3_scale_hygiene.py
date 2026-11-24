@@ -155,3 +155,67 @@ def test_still_packages_do_not_retain_a_batch_of_decoded_sources(tmp_path, monke
     options = {"hero": source_paths[0]} if operation != "gate" else {}
     result = getattr(module, f"still_{operation}")(inputs=source_paths, output_dir=tmp_path / "out", **options)
     assert Path(result["receipt_path"]).is_file()
+
+
+def test_still_grade_preflights_destination_input_alias_without_overwriting(tmp_path):
+    image = pytest.importorskip("PIL.Image")
+    pytest.importorskip("numpy")
+    from kinocut.still_plates.grade import still_grade
+
+    first = tmp_path / "plate.png"
+    second = tmp_path / "plate_graded.png"
+    image.new("RGB", (8, 8), color=(10, 20, 30)).save(first)
+    image.new("RGB", (12, 12), color=(40, 50, 60)).save(second)
+    before = second.read_bytes()
+    with pytest.raises(MCPVideoError):
+        still_grade(inputs=[first, second], output_dir=tmp_path)
+    assert second.read_bytes() == before
+
+
+def test_cas_and_ledger_bypass_cache_without_posix_ctime(tmp_path, monkeypatch):
+    from kinocut import output_ledger as ledger
+
+    project = open_project(tmp_path / "project")
+    source = tmp_path / "source"
+    source.write_bytes(b"abc")
+    record = cas.ingest_blob(project, source)
+    blob = cas.resolve_blob(project, record.digest)
+    # Emulate non-POSIX platform where st_ctime_ns is creation time (unchanged on rewrite).
+    monkeypatch.setattr(cas, "_POSIX_CTIME_TRUSTED", False)
+    old_stat = blob.stat()
+    blob.write_bytes(b"xyz")
+    os.utime(blob, ns=(old_stat.st_atime_ns, old_stat.st_mtime_ns))
+    with pytest.raises(MCPVideoError):
+        cas.resolve_blob(project, record.digest)
+
+    monkeypatch.setenv("KINOCUT_STATE_DIR", str(tmp_path / "state"))
+    out = tmp_path / "out.mp4"
+    out.write_bytes(b"123")
+    ledger.record_output(str(out))
+    assert ledger.owns(str(out))
+    lpath = Path(ledger._ledger_path())
+    monkeypatch.setattr(ledger, "_POSIX_CTIME_TRUSTED", False)
+    old_lstat = lpath.stat()
+    lpath.write_text(lpath.read_text().replace("out.mp4", "alt.mp4"))
+    os.utime(lpath, ns=(old_lstat.st_atime_ns, old_lstat.st_mtime_ns))
+    assert not ledger.owns(str(out))
+
+
+def test_receipt_witness_prune_eio_is_best_effort(tmp_path, monkeypatch):
+    from kinocut.output_policy import output_operation
+    from kinocut.projectstore.receipt_ownership import durable_receipt_ownership
+    from kinocut.workflow.receipt import _write_receipt
+
+    target = tmp_path / "receipt.json"
+    real_unlink = Path.unlink
+
+    def flaky_unlink(self, *args, **kwargs):
+        if self.parent.name == ".receipt.json.ownership":
+            raise OSError(errno.EIO, "simulated I/O error")
+        return real_unlink(self, *args, **kwargs)
+
+    with output_operation(), durable_receipt_ownership(target):
+        _write_receipt({"stage": 1}, str(target), tmp_path, overwrite=True)
+        monkeypatch.setattr(Path, "unlink", flaky_unlink)
+        _write_receipt({"stage": 2}, str(target), tmp_path, overwrite=True)
+    assert json.loads(target.read_text())["stage"] == 2

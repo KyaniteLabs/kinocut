@@ -57,7 +57,7 @@ EXPECTED_PATH_IDS = {
     "source-alias-guard",
     "mcp-video_doctor",
     "mcp-video_info",
-    "mcp-search_tools",
+    "mcp-list_operations",
     "mcp-protocol",
     "static-review-ui",
     "hyperframes-preview",
@@ -628,7 +628,7 @@ class OperatorRunner:
         ):
             self._run_operator(self._entry(path_id))
         self._run_mcp_protocol()
-        for path_id in ("mcp-video_doctor", "mcp-video_info", "mcp-search_tools"):
+        for path_id in ("mcp-video_doctor", "mcp-video_info", "mcp-list_operations"):
             self._run_mcp_call(self._entry(path_id))
         self._run_static_review(self._entry("static-review-ui"))
         self._run_hyperframes(self._entry("hyperframes-preview"))
@@ -1449,7 +1449,7 @@ class OperatorRunner:
         try:
             request = entry["request"]
             args = expand_data(request.get("arguments", {}), self._values())
-            tool = "list_operations" if request["tool"] == "search_tools" else request["tool"]
+            tool = request["tool"]
             _, data, raw, is_error = self._mcp_call("default", entry["argv"], tool, args)
         except ImportError:
             self._blocked(entry, "MCP Python SDK is not available locally; no dependency installation attempted")

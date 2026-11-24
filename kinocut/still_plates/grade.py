@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import _escape_ffmpeg_filter_value, _run_ffmpeg
+from ..ffmpeg_helpers import _atomic_output, _escape_ffmpeg_filter_value, _run_ffmpeg, _validate_output_path
 from .io import (
     ReceiptStatus,
     ensure_output_dir,
@@ -46,6 +46,43 @@ def _pipeline_gains(paths: list[Path], hero: str | Path | None):
     return neutralize_gains, match_gains, hero_path
 
 
+def _preflight_grade_targets(
+    input_paths: list[Path],
+    out_dir: Path,
+    lut_path: str | Path | None,
+) -> tuple[list[tuple[Path, Path]], Path | None]:
+    input_set = {path.resolve() for path in input_paths}
+    planned: list[tuple[Path, Path]] = []
+    seen_targets: set[Path] = set()
+    for src in input_paths:
+        final_path = out_dir / f"{src.stem}_graded.png"
+        resolved_target = final_path.resolve()
+        if resolved_target in input_set:
+            raise MCPVideoError(
+                "Still grade output path aliases an input file",
+                error_type="validation_error",
+                code="unsafe_path",
+            )
+        if resolved_target in seen_targets:
+            raise MCPVideoError(
+                "Still grade inputs share the same output filename stem",
+                error_type="validation_error",
+                code="duplicate_output_stem",
+            )
+        seen_targets.add(resolved_target)
+        planned.append((src, final_path))
+    lut: Path | None = None
+    if lut_path is not None:
+        lut = Path(lut_path).expanduser()
+        if not lut.is_file():
+            raise MCPVideoError(
+                "LUT file not found",
+                error_type="input_error",
+                code="lut_not_found",
+            )
+    return planned, lut
+
+
 def _export_graded(
     input_paths: list[Path],
     neutralize_gains: tuple,
@@ -54,39 +91,35 @@ def _export_graded(
     lut_path: str | Path | None,
     signal_mode: bool,
 ) -> list[dict[str, Any]]:
+    planned, lut = _preflight_grade_targets(input_paths, out_dir, lut_path)
     outputs: list[dict[str, Any]] = []
-    for src in input_paths:
-        original = load_rgb_array(src)
-        arr = apply_rgb_gains(original, neutralize_gains)
-        if match_gains is not None:
-            arr = apply_rgb_gains(arr, match_gains)
-        intermediate = out_dir / f"{src.stem}_graded_pre_lut.png"
-        save_rgb_array(arr, intermediate)
-        final_path = out_dir / f"{src.stem}_graded.png"
-        if lut_path is not None:
-            lut = Path(lut_path).expanduser()
-            if not lut.is_file():
-                raise MCPVideoError(
-                    "LUT file not found",
-                    error_type="input_error",
-                    code="lut_not_found",
-                )
-            _apply_lut3d(intermediate, final_path, lut)
-            intermediate.unlink(missing_ok=True)
-        else:
-            shutil.move(str(intermediate), str(final_path))
-        preservation = None
-        if signal_mode:
-            preservation = _near_extrema_preservation(original, load_rgb_array(final_path))
-        outputs.append(
-            {
-                "source": str(src),
-                "output": str(final_path),
-                "source_sha256": file_sha256(src),
-                "output_sha256": file_sha256(final_path),
-                "near_extrema_preservation": preservation,
-            }
-        )
+    with tempfile.TemporaryDirectory(prefix=".kinocut_grade_", dir=out_dir) as stage_dir:
+        for src, final_path in planned:
+            original = load_rgb_array(src)
+            arr = apply_rgb_gains(original, neutralize_gains)
+            if match_gains is not None:
+                arr = apply_rgb_gains(arr, match_gains)
+            if lut is not None:
+                intermediate = Path(stage_dir) / f"{src.stem}_graded_pre_lut.png"
+                save_rgb_array(arr, intermediate)
+                target = _validate_output_path(str(final_path))
+                with _atomic_output(target) as staged:
+                    _apply_lut3d(intermediate, Path(staged), lut)
+                intermediate.unlink(missing_ok=True)
+            else:
+                save_rgb_array(arr, final_path)
+            preservation = None
+            if signal_mode:
+                preservation = _near_extrema_preservation(original, load_rgb_array(final_path))
+            outputs.append(
+                {
+                    "source": str(src),
+                    "output": str(final_path),
+                    "source_sha256": file_sha256(src),
+                    "output_sha256": file_sha256(final_path),
+                    "near_extrema_preservation": preservation,
+                }
+            )
     return outputs
 
 
