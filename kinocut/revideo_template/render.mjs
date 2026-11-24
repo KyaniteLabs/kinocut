@@ -25,9 +25,8 @@ if (exporterFormat === undefined) {
 // Browser selection: revideo's puppeteer defaults to its downloaded
 // chrome-headless-shell, which macOS may refuse to exec on provenance
 // grounds (spawn ECANCELED). Callers point at a system Chrome via
-// KINOCUT_REVIDEO_EXECUTABLE_PATH or job.puppeteer.executablePath.
-const executablePath =
-  job.puppeteer?.executablePath ?? process.env.KINOCUT_REVIDEO_EXECUTABLE_PATH ?? undefined;
+// KINOCUT_REVIDEO_EXECUTABLE_PATH.
+const executablePath = process.env.KINOCUT_REVIDEO_EXECUTABLE_PATH;
 
 const outPath = await renderVideo({
   projectFile: path.resolve('src/project.ts'),

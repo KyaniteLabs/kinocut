@@ -7,7 +7,9 @@ from typing import Any
 
 from ..defaults import STILL_GATE_MAX_LUMA_SPREAD, STILL_GATE_MAX_SHADOW_GREEN_CYAN
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _atomic_output, _validate_artifact_path, _validate_output_path
 from .io import (
+    confined_leaf,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -16,6 +18,16 @@ from .io import (
     write_receipt,
 )
 from .stats import package_metrics
+
+
+def _gate_destinations(out_dir: Path, sheet_name: str, receipt_name: str) -> tuple[Path, Path]:
+    sheet = confined_leaf(out_dir, sheet_name)
+    receipt = confined_leaf(out_dir, receipt_name)
+    _validate_output_path(str(sheet))
+    _validate_artifact_path(str(receipt))
+    if sheet == receipt:
+        raise MCPVideoError("Gate outputs must be distinct", error_type="validation_error", code="invalid_output_path")
+    return sheet, receipt
 
 
 def still_gate(
@@ -36,6 +48,7 @@ def still_gate(
         )
     paths = [validate_still_path(p) for p in inputs]
     out_dir = ensure_output_dir(output_dir)
+    sheet_dest, receipt_dest = _gate_destinations(out_dir, contact_sheet_name, receipt_name)
     frames = [load_rgb_array(p) for p in paths]
     metrics = package_metrics(frames)
 
@@ -77,7 +90,7 @@ def still_gate(
             }
         )
 
-    sheet_path = _write_contact_sheet(paths, out_dir / contact_sheet_name)
+    sheet_path = _write_contact_sheet(paths, sheet_dest)
     passed = len(failures) == 0
     receipt = {
         "tool": "still_gate",
@@ -93,7 +106,7 @@ def still_gate(
         "contact_sheet": str(sheet_path),
         "exit_code": 0 if passed else 1,
     }
-    receipt_path = write_receipt(out_dir / receipt_name, receipt)
+    receipt_path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
     return receipt
@@ -125,6 +138,6 @@ def _write_contact_sheet(paths: list[Path], dest: Path) -> Path:
     for t in thumbs:
         sheet.paste(t, (x, gap))
         x += t.size[0] + gap
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(dest)
+    with _atomic_output(_validate_output_path(str(dest))) as staged:
+        sheet.save(staged)
     return dest.resolve()

@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 from ..defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP
@@ -158,11 +159,12 @@ def _payload_for(record: RenderRecord, clipped, *, cache_hit: bool) -> dict[str,
 def _render_media(
     *,
     source_path: str,
-    platform_dir: str,
+    scratch: str,
     final_path: str,
     start: float,
     end: float,
     audio_cfg: dict[str, Any],
+    audio_available: bool,
 ) -> str:
     duration = end - start
     fade = float(audio_cfg.get("fade_seconds", 0.05))
@@ -170,14 +172,16 @@ def _render_media(
         source_path,
         start=start,
         duration=duration,
-        output_path=os.path.join(platform_dir, "trimmed.mp4"),
+        output_path=os.path.join(scratch, "trimmed.mp4"),
     )
     vertical = resize(
         trimmed.output_path,
         aspect_ratio="9:16",
-        output_path=os.path.join(platform_dir, "vertical-raw.mp4"),
+        output_path=os.path.join(scratch, "vertical-raw.mp4") if audio_available else final_path,
     )
-    faded = os.path.join(platform_dir, "vertical-faded.mp4")
+    if not audio_available:
+        return vertical.output_path
+    faded = os.path.join(scratch, "vertical-faded.mp4")
     fade_out = max(0.0, duration - fade)
     _run_ffmpeg(
         _build_ffmpeg_cmd(
@@ -240,14 +244,16 @@ def _render_one_platform(
         if previous is not None:
             return _payload_for(previous, clipped, cache_hit=True), None, warning
 
-    finished = _render_media(
-        source_path=source_path,
-        platform_dir=platform_dir,
-        final_path=final_path,
-        start=clipped.start_seconds,
-        end=clipped.end_seconds,
-        audio_cfg=audio_cfg,
-    )
+    with TemporaryDirectory(prefix="kinocut-shorts-") as scratch:
+        finished = _render_media(
+            source_path=source_path,
+            scratch=scratch,
+            final_path=final_path,
+            start=clipped.start_seconds,
+            end=clipped.end_seconds,
+            audio_cfg=audio_cfg,
+            audio_available=plan.intake.audio_available,
+        )
     srt_path = os.path.join(platform_dir, "captions.srt")
     body = build_caption_artifact(_words_for(plan, rendered), config=CaptionConfig()).srt_body
     Path(srt_path).write_text(body + ("" if body.endswith("\n") else "\n"), encoding="utf-8")

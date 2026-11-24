@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import contextlib
 import html
+from inspect import signature
 import json
 import logging
 import math
@@ -699,6 +700,39 @@ def add_block(
     )
 
 
+def _post_steps(post_process, op_map):
+    if not isinstance(post_process, list):
+        raise MCPVideoError(
+            "Expected a list of post-processing steps", error_type="validation_error", code="invalid_parameter"
+        )
+    steps = []
+    for op in post_process:
+        if not isinstance(op, dict):
+            raise MCPVideoError(
+                "Expected a post-processing object", error_type="validation_error", code="invalid_parameter"
+            )
+        op_type = op.get("op", op.get("type", ""))
+        if not isinstance(op_type, str) or op_type not in op_map:
+            raise MCPVideoError(
+                f"Unknown post-processing operation: {rejected_value(op_type)}. Valid operations: {', '.join(op_map)}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        params = op.get("params", {})
+        if not isinstance(params, dict) or "output_path" in params:
+            raise MCPVideoError(
+                "Invalid post-processing params", error_type="validation_error", code="invalid_parameter"
+            )
+        try:
+            signature(op_map[op_type]).bind("input", output_path=None, **params)
+        except TypeError:
+            raise MCPVideoError(
+                "Invalid post-processing arguments", error_type="validation_error", code="invalid_parameter"
+            ) from None
+        steps.append((op_type, params))
+    return steps
+
+
 def render_and_post(
     project_path: str,
     post_process: list[dict[str, Any]],
@@ -708,7 +742,9 @@ def render_and_post(
     # Step 1: Render with Hyperframes. ``output_path`` names the *final* artifact:
     # when there are post-processing steps the last one writes it, so the
     # intermediate render goes to its default location instead of colliding with it.
-    render_result = render(project_path, output_path=output_path if not post_process else None)
+    op_map = _post_process_ops()
+    steps = _post_steps(post_process, op_map)
+    render_result = render(project_path, output_path=output_path if not steps else None)
     hyperframes_output = render_result.output_path
     if not render_result.success:
         raise HyperframesRenderError(
@@ -719,23 +755,11 @@ def render_and_post(
         )
 
     # Step 2: Post-process with the Kinocut engine
-    op_map = _post_process_ops()
-
     operations: list[str] = []
     current_input = hyperframes_output
 
-    for i, op in enumerate(post_process):
-        op_type = op.get("op", op.get("type", ""))
-        params = op.get("params", {})
-        is_last = i == len(post_process) - 1
-
-        if op_type not in op_map:
-            raise MCPVideoError(
-                f"Unknown post-processing operation: {rejected_value(op_type)}. Valid operations: {', '.join(op_map)}",
-                error_type="validation_error",
-                code="invalid_parameter",
-            )
-
+    for i, (op_type, params) in enumerate(steps):
+        is_last = i == len(steps) - 1
         step_output = output_path if is_last else None
         result = op_map[op_type](current_input, output_path=step_output, **params)
         current_input = result.output_path

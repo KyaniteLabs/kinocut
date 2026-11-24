@@ -5,11 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ..audio_bed_validation import reject_output_alias
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _validate_artifact_path
 from .edit import image_edit
 from .gate import still_gate
 from .grade import still_grade
-from .io import ReceiptStatus, ensure_output_dir, validate_still_path, write_receipt
+from .io import ReceiptStatus, confined_leaf, ensure_output_dir, validate_still_path, write_receipt
 from .match import still_match
 
 
@@ -41,7 +43,7 @@ def _dry_run_receipt(
     establish_path: Path,
     beat_paths: list[Path],
     out_dir: Path,
-    receipt_name: str,
+    receipt_dest: Path,
 ) -> dict[str, Any]:
     """Build a dry-run still-package receipt without rendering."""
     receipt = {
@@ -52,7 +54,7 @@ def _dry_run_receipt(
         "establish": str(establish_path),
         "beats": [str(p) for p in beat_paths],
     }
-    path = write_receipt(out_dir / receipt_name, receipt)
+    path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(path)
     receipt["output_dir"] = str(out_dir)
     return receipt
@@ -79,7 +81,12 @@ def still_package(
         )
     establish_path = validate_still_path(establish)
     beat_paths = [validate_still_path(b) for b in beats]
+    if len({beat.stem.casefold() for beat in beat_paths}) != len(beat_paths):
+        raise MCPVideoError("Beat stems must be unique", error_type="validation_error", code="duplicate_beat_stem")
     out_dir = ensure_output_dir(output_dir)
+    receipt_dest = confined_leaf(out_dir, receipt_name)
+    reject_output_alias(str(receipt_dest), tuple(map(str, (establish_path, *beat_paths))))
+    _validate_artifact_path(str(receipt_dest))
     intent_list = intents or ["match establish world and light"] * len(beat_paths)
     if len(intent_list) != len(beat_paths):
         raise MCPVideoError(
@@ -94,7 +101,7 @@ def still_package(
         {"step": "still_gate"},
     ]
     if dry_run:
-        return _dry_run_receipt(graph, establish_path, beat_paths, out_dir, receipt_name)
+        return _dry_run_receipt(graph, establish_path, beat_paths, out_dir, receipt_dest)
 
     edited_paths, edit_receipts = _edit_beats(establish_path, beat_paths, intent_list, out_dir / "edits")
     match_receipt = still_match(hero=establish_path, inputs=edited_paths, output_dir=out_dir / "matched")
@@ -126,5 +133,5 @@ def still_package(
         "exit_code": 0 if passed else 1,
         "output_dir": str(out_dir),
     }
-    package["receipt_path"] = str(write_receipt(out_dir / receipt_name, package))
+    package["receipt_path"] = str(write_receipt(receipt_dest, package))
     return package

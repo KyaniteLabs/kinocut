@@ -9,7 +9,7 @@ from PIL import Image
 
 from ..defaults import DEFAULT_EQUIPMENT_SUBJECT_INTERSECTION
 from ..errors import MCPVideoError
-from ..ffmpeg_helpers import _validate_output_path
+from ..ffmpeg_helpers import _atomic_output, _validate_output_path
 
 _DOCS = "docs/PRODUCT_MATTE.md"
 _STATIC_ROW_FRACTION = 0.18
@@ -46,7 +46,8 @@ def intersection_ratio(subject: Image.Image, equipment: np.ndarray) -> float:
 
 def write_overlay(path: str, equipment: np.ndarray) -> str:
     dest = _validate_output_path(path)
-    Image.fromarray(equipment, mode="L").save(dest)
+    with _atomic_output(dest) as staged:
+        Image.fromarray(equipment, mode="L").save(staged)
     return dest
 
 
