@@ -449,6 +449,31 @@ class HyperframesProjectError(MCPVideoError):
         )
 
 
+_HYPERFRAMES_CACHE_ERRNO_RE = re.compile(r"\b(?:enoent|eacces|eperm|erofs)\b")
+_HYPERFRAMES_MKDIR_RE = re.compile(r"\bmkdir\b")
+_HYPERFRAMES_LOCK_PATH_RE = re.compile(r"/(?:locks|\.chrome\.install\.lock)(?=$|[\s'\"/,):;])")
+
+
+def _is_hyperframes_cache_write_error(diagnostic: str) -> bool:
+    """Detect Hyperframes cache/lock mkdir failures in linear time per line."""
+    if (
+        "the render slot cannot be taken" in diagnostic
+        and "this account cannot write to " in diagnostic
+        and "hyperframes_cache_dir" in diagnostic
+    ):
+        return True
+    for line in diagnostic.splitlines():
+        errno_match = _HYPERFRAMES_CACHE_ERRNO_RE.search(line)
+        if errno_match is None:
+            continue
+        mkdir_match = _HYPERFRAMES_MKDIR_RE.search(line, errno_match.end())
+        if mkdir_match is None:
+            continue
+        if _HYPERFRAMES_LOCK_PATH_RE.search(line, mkdir_match.end()) is not None:
+            return True
+    return False
+
+
 class HyperframesRenderError(MCPVideoError):
     """Hyperframes render failure."""
 
@@ -462,13 +487,7 @@ class HyperframesRenderError(MCPVideoError):
         diagnostic = (stderr or "").lower().replace("\\", "/")
         if returncode in (137, -9) or "out of memory" in diagnostic or "heap out of memory" in diagnostic:
             description = "Hyperframes ran out of memory; reduce resolution/fps or free host memory, then retry."
-        elif re.search(
-            r"\b(?:enoent|eacces|eperm|erofs)\b[^\n]*\bmkdir\b[^\n]*/(?:locks|\.chrome\.install\.lock)\b", diagnostic
-        ) or (
-            "the render slot cannot be taken" in diagnostic
-            and "this account cannot write to " in diagnostic
-            and "hyperframes_cache_dir" in diagnostic
-        ):
+        elif _is_hyperframes_cache_write_error(diagnostic):
             description = "Hyperframes could not write to its cache. Set HYPERFRAMES_CACHE_DIR to a writable directory."
         elif any(tok in diagnostic for tok in ("chromium", "chrome", "browser", "playwright", "puppeteer", "sandbox")):
             description = (
