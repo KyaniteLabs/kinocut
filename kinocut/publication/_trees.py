@@ -217,7 +217,20 @@ def anchored_tree(path: Path, *, overwrite: bool = False) -> Iterator[Path]:
             snapshot = _snapshot_replaceable(base, stage, overwrite)
             _check_stage(anchor, stage, identity)
             try:
-                _rename_exclusive(anchor, stage.name, base.name, exchange=snapshot is not None)
+                if snapshot is not None and os.name == "nt":
+                    displaced = base.parent / f".{base.name}.displaced_{secrets.token_hex(6)}"
+                    os.rename(base, displaced)
+                    try:
+                        os.rename(stage, base)
+                    except BaseException:
+                        with contextlib.suppress(OSError):
+                            if not os.path.lexists(base) and os.path.lexists(displaced):
+                                os.rename(displaced, base)
+                        raise
+                    displaced_stage = displaced
+                else:
+                    _rename_exclusive(anchor, stage.name, base.name, exchange=snapshot is not None)
+                    displaced_stage = stage
             except OSError as exc:
                 raise _tree_error(
                     "Could not atomically publish the package directory.",
@@ -228,7 +241,7 @@ def anchored_tree(path: Path, *, overwrite: bool = False) -> Iterator[Path]:
                     recovery="Choose a new package_root on a filesystem that supports atomic directory publication.",
                 ) from exc
             published = True
-            _verify_publication(anchor, stage, base, identity, snapshot)
+            _verify_publication(anchor, displaced_stage, base, identity, snapshot)
         finally:
             if not published:
                 with contextlib.suppress(OSError):

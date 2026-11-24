@@ -58,18 +58,70 @@ def test_tree_exchange_keeps_old_delivery_visible_until_commit(tmp_path):
     assert list(tmp_path.iterdir()) == [final]
 
 
-def test_tree_exchange_fails_closed_on_windows(tmp_path, monkeypatch):
-    from kinocut.publication import _anchor
+def test_tree_exchange_succeeds_on_windows_via_durable_sibling(tmp_path, monkeypatch):
+    from kinocut.publication import _trees
 
     final = tmp_path / "delivery"
-    final.mkdir()
-    original = final.stat()
-    with pytest.raises(MCPVideoError) as failure, anchored_tree(final, overwrite=True):
-        monkeypatch.setattr(_anchor, "os", SimpleNamespace(name="nt", stat=os.stat, fstat=os.fstat, close=os.close))
-    assert failure.value.code == "shorts_package_publish_failed"
-    assert failure.value.__cause__.errno == errno.ENOTSUP
-    assert final.stat().st_ino == original.st_ino
+    (final / "platform").mkdir(parents=True)
+    (final / "platform" / "manifest.json").write_text("old", encoding="utf-8")
+    monkeypatch.setattr(_trees, "os", SimpleNamespace(**{**os.__dict__, "name": "nt"}))
+    with anchored_tree(final, overwrite=True) as stage:
+        (stage / "platform").mkdir()
+        (stage / "platform" / "manifest.json").write_text("new", encoding="utf-8")
+    assert (final / "platform" / "manifest.json").read_text(encoding="utf-8") == "new"
     assert list(tmp_path.iterdir()) == [final]
+
+
+def test_tree_exchange_windows_contested_rollback_preserves_old_package(tmp_path, monkeypatch):
+    from kinocut.publication import _trees
+
+    final = tmp_path / "delivery"
+    (final / "platform").mkdir(parents=True)
+    (final / "platform" / "manifest.json").write_text("old-package", encoding="utf-8")
+    real_rename = os.rename
+
+    def contested_rename(src, dst):
+        if os.path.basename(str(src)).startswith(".kinocut_package_") and os.fspath(dst) == str(final):
+            final.mkdir()
+            (final / "rival.txt").write_text("rival", encoding="utf-8")
+            raise FileExistsError(errno.EEXIST, "destination claimed by rival")
+        return real_rename(src, dst)
+
+    monkeypatch.setattr(
+        _trees, "os", SimpleNamespace(**{**os.__dict__, "name": "nt", "rename": staticmethod(contested_rename)})
+    )
+    with pytest.raises(MCPVideoError) as failure, anchored_tree(final, overwrite=True) as stage:
+        (stage / "platform").mkdir()
+        (stage / "platform" / "manifest.json").write_text("new-package", encoding="utf-8")
+    assert failure.value.code == "package_write_conflict"
+    assert (final / "rival.txt").read_text(encoding="utf-8") == "rival"
+    preserved = list(tmp_path.glob(".delivery.displaced_*"))
+    assert len(preserved) == 1
+    assert (preserved[0] / "platform" / "manifest.json").read_text(encoding="utf-8") == "old-package"
+
+
+def test_thumbnail_supports_bmp_through_atomic_staging(tmp_path):
+    from kinocut import engine_thumbnail
+    from kinocut.ffmpeg_helpers import _run_ffmpeg
+
+    source = tmp_path / "source.mp4"
+    _run_ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=64x64:d=0.5",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(source),
+        ]
+    )
+    final = tmp_path / "frame.bmp"
+    result = engine_thumbnail.thumbnail(str(source), output_path=str(final), smart=False)
+    assert result.output_path == str(final)
+    assert final.read_bytes().startswith(b"BM")
 
 
 def test_thumbnail_failure_does_not_truncate_previous_delivery(tmp_path, monkeypatch):

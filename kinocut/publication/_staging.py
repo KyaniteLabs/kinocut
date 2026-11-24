@@ -65,9 +65,20 @@ _MUXERS = {
     ".png": "image2",
     ".jpg": "image2",
     ".jpeg": "image2",
+    ".bmp": "image2",
+    ".tif": "image2",
+    ".tiff": "image2",
     ".webp": "webp",
 }
-_IMAGE_CODECS = {".png": "png", ".jpg": "mjpeg", ".jpeg": "mjpeg", ".webp": "webp"}
+_IMAGE_CODECS = {
+    ".png": "png",
+    ".jpg": "mjpeg",
+    ".jpeg": "mjpeg",
+    ".bmp": "bmp",
+    ".tif": "tiff",
+    ".tiff": "tiff",
+    ".webp": "webp",
+}
 
 
 def is_staged_output(path: str) -> bool:
