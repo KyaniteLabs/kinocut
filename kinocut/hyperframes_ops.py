@@ -749,7 +749,13 @@ def render_and_post(
     for op_type, params in steps:
         _validate_post_step_values(op_type, params)
     if output_path is not None:
-        _validate_output_path(output_path)
+        validated_output = _validate_output_path(output_path)
+        if Path(validated_output).is_dir():
+            raise MCPVideoError(
+                "Output path must be a file, not a directory",
+                error_type="validation_error",
+                code="invalid_output_path",
+            )
     render_result = render(project_path, output_path=output_path if not steps else None)
     hyperframes_output = render_result.output_path
     if not render_result.success:

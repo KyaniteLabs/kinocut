@@ -81,7 +81,7 @@ def _media_path_from_clip(clip: dict[str, Any]) -> str | None:
         for key in ("source", "path", "media_path"):
             val = meta.get(key)
             if isinstance(val, str) and val.strip():
-                return val.strip()
+                return _url_to_local_path(val.strip())
     return None
 
 

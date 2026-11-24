@@ -332,6 +332,18 @@ def test_render_and_post_rejects_bad_values_and_output_path_before_render(tmp_pa
     with pytest.raises(MCPVideoError):
         hyperframes_ops.render_and_post(str(tmp_path), [{"op": "resize", "params": {"aspect_ratio": "99:1"}}])
     with pytest.raises(MCPVideoError):
+        hyperframes_ops.render_and_post(str(tmp_path), [{"op": "convert", "params": {"format": "flv"}}])
+    with pytest.raises(MCPVideoError):
+        hyperframes_ops.render_and_post(
+            str(tmp_path), [{"op": "watermark", "params": {"image_path": str(tmp_path / "missing.png")}}]
+        )
+    with pytest.raises(MCPVideoError):
+        hyperframes_ops.render_and_post(
+            str(tmp_path),
+            [{"op": "resize", "params": {"aspect_ratio": "9:16"}}],
+            output_path=str(tmp_path),
+        )
+    with pytest.raises(MCPVideoError):
         hyperframes_ops.render_and_post(
             str(tmp_path),
             [{"op": "resize", "params": {"aspect_ratio": "9:16"}}],
@@ -340,12 +352,22 @@ def test_render_and_post_rejects_bad_values_and_output_path_before_render(tmp_pa
 
 
 def test_otio_rejects_unc_network_paths():
-    from kinocut.multipliers.otio_io import _url_to_local_path
+    from kinocut.multipliers.otio_io import _media_path_from_clip, _url_to_local_path
 
     assert _url_to_local_path("file:///%5C%5Cserver%5Cshare%5Cclip.mp4") is None
     assert _url_to_local_path("file:////server/share/clip.mp4") is None
     assert _url_to_local_path(r"\\server\share\clip.mp4") is None
     assert _url_to_local_path("//server/share/clip.mp4") is None
+    assert _media_path_from_clip({"metadata": {"source": "//server/share/clip.mp4"}}) is None
+
+
+def test_closing_missing_session_does_not_create_lock_file(tmp_path):
+    from kinocut.te import edit_session
+
+    missing = tmp_path / "session.json"
+    with pytest.raises(MCPVideoError):
+        edit_session.session_close(str(missing))
+    assert not (tmp_path / ".session.lock").exists()
 
 
 def test_invalid_still_names_do_not_create_output_dir(tmp_path):

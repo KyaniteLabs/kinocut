@@ -352,8 +352,9 @@ def _invalid_post(message: str) -> None:
 def _validate_post_step_values(op_type: str, params: dict[str, Any]) -> None:
     """Reject invalid post-processing parameter values before starting a Hyperframes render."""
     import math
+    from typing import get_args
 
-    from .models import ASPECT_RATIOS, QUALITY_PRESETS
+    from .models import ASPECT_RATIOS, QUALITY_PRESETS, ExportFormat
     from .validation import DURATION_POLICIES
 
     def _check_positive_int(key: str) -> None:
@@ -378,6 +379,9 @@ def _validate_post_step_values(op_type: str, params: dict[str, Any]) -> None:
         if quality is not None and (not isinstance(quality, str) or quality not in QUALITY_PRESETS):
             _invalid_post("Unknown resize quality preset")
     elif op_type == "convert":
+        fmt = params.get("format")
+        if fmt is not None and (not isinstance(fmt, str) or fmt not in get_args(ExportFormat)):
+            _invalid_post("Unknown convert format")
         quality = params.get("quality")
         if quality is not None and (not isinstance(quality, str) or quality not in QUALITY_PRESETS):
             _invalid_post("Unknown convert quality preset")
@@ -394,9 +398,10 @@ def _validate_post_step_values(op_type: str, params: dict[str, Any]) -> None:
         for key in ("volume", "fade_in", "fade_out", "start_time"):
             _check_nonneg_num(key)
     elif op_type == "watermark":
-        wm = params.get("watermark_path")
-        if wm is not None:
-            _validate_input_path(str(wm))
+        wm = params.get("image_path")
+        if not isinstance(wm, str) or not wm:
+            _invalid_post("watermark image_path is required")
+        _validate_input_path(wm)
         opacity = params.get("opacity")
         if opacity is not None and (
             isinstance(opacity, bool) or not isinstance(opacity, (int, float)) or not (0.0 <= float(opacity) <= 1.0)

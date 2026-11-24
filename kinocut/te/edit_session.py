@@ -149,6 +149,7 @@ def session_close(session_path: str, *, write_receipt: bool = True) -> dict[str,
     Receipt is required for Track E conversational GO (measured improvement + receipt).
     """
     p = Path(session_path)
+    _load_open_session(p)
     with _session_lock(p):
         state = _load_open_session(p)
         with output_operation(overwrite=True):
