@@ -16,6 +16,26 @@ from .ffmpeg_helpers import _validate_project_path
 from .validation_errors import rejected_value
 
 
+def _validate_and_render(project_path: str, **options: Any) -> dict[str, Any]:
+    from .hyperframes.validation import validate_render_options
+    from .hyperframes_engine import render
+
+    validate_render_options(
+        quality=options["quality"],
+        format=options["format"],
+        resolution=options["resolution"],
+        width=options["width"],
+        height=options["height"],
+        crf=options["crf"],
+        max_concurrent_renders=options["max_concurrent_renders"],
+        browser_gpu=options["browser_gpu"],
+        no_browser_gpu=options["no_browser_gpu"],
+        hdr=options["hdr"],
+        sdr=options["sdr"],
+    )
+    return _result(render(_validate_project_path(project_path), **options))
+
+
 @mcp.tool()
 @_safe_tool
 def hyperframes_render(
@@ -62,37 +82,32 @@ def hyperframes_render(
         variables: Inline JSON object/string with runtime data for the composition.
         variables_file: Path to a JSON file with runtime data for the composition.
     """
-    project_path = _validate_project_path(project_path)
-    from .hyperframes_engine import render
-
-    return _result(
-        render(
-            project_path,
-            output_path=output_path,
-            fps=fps,
-            width=width,
-            height=height,
-            composition=composition,
-            quality=quality,
-            format=format,
-            resolution=resolution,
-            workers=workers,
-            crf=crf,
-            video_bitrate=video_bitrate,
-            variables=variables,
-            variables_file=variables_file,
-            docker=docker,
-            hdr=hdr,
-            sdr=sdr,
-            gpu=gpu,
-            browser_gpu=browser_gpu,
-            no_browser_gpu=no_browser_gpu,
-            quiet=quiet,
-            strict=strict,
-            strict_all=strict_all,
-            max_concurrent_renders=max_concurrent_renders,
-            strict_variables=strict_variables,
-        )
+    return _validate_and_render(
+        project_path,
+        output_path=output_path,
+        fps=fps,
+        width=width,
+        height=height,
+        composition=composition,
+        quality=quality,
+        format=format,
+        resolution=resolution,
+        workers=workers,
+        crf=crf,
+        video_bitrate=video_bitrate,
+        variables=variables,
+        variables_file=variables_file,
+        docker=docker,
+        hdr=hdr,
+        sdr=sdr,
+        gpu=gpu,
+        browser_gpu=browser_gpu,
+        no_browser_gpu=no_browser_gpu,
+        quiet=quiet,
+        strict=strict,
+        strict_all=strict_all,
+        max_concurrent_renders=max_concurrent_renders,
+        strict_variables=strict_variables,
     )
 
 
@@ -198,6 +213,9 @@ def hyperframes_inspect(
     strict: bool = False,
 ) -> dict[str, Any]:
     """Inspect rendered composition layout for overflow and visual issues."""
+    from .hyperframes.validation import validate_inspect_options
+
+    validate_inspect_options(samples, False, False)
     project_path = _validate_project_path(project_path)
     from .hyperframes_engine import inspect
 

@@ -233,3 +233,19 @@ def test_option_validation_is_shared(project, fake_runner, capsys, operation, kw
     with pytest.raises(MCPVideoError, match=message):
         _cli_result(capsys, f"hyperframes-{operation}", *positional, *flags)
     assert fake_runner.commands == []
+
+
+@pytest.mark.parametrize(
+    ("operation", "kwargs"),
+    [("render", {"crf": 99}), ("inspect", {"samples": 0})],
+)
+def test_mixed_invalid_path_and_option_reports_invalid_parameter_on_mcp_and_client(
+    tmp_path, fake_runner, operation, kwargs
+):
+    missing = str(tmp_path / "does-not-exist")
+    mcp = getattr(tools, f"hyperframes_{operation}")(missing, **kwargs)
+    assert mcp["error"]["code"] == "invalid_parameter", mcp
+    with pytest.raises(MCPVideoError) as exc_info:
+        getattr(Client(), f"hyperframes_{operation}")(missing, **kwargs)
+    assert exc_info.value.code == "invalid_parameter"
+    assert fake_runner.commands == []
