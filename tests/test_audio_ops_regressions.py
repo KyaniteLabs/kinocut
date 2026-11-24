@@ -10,13 +10,17 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import json
+import sys
 import wave
 
 import numpy as np
 import pytest
 
 from kinocut.engine_audio_ops import add_audio, duck_audio
+from kinocut.errors import ProcessingError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json
+from kinocut.server_tools_basic import video_add_audio
 
 pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg not installed")
 
@@ -95,21 +99,92 @@ def test_add_audio_guardrails_reach_the_result_not_stderr(tmp_path):
         warnings.simplefilter("always")
         result = add_audio(video, click, volume=1.5, mix=True, output_path=str(tmp_path / "out.mp4"))
 
-    assert any("volume=1.5 > 1.0" in warning for warning in result.warnings)
+    assert sum("volume=1.5 > 1.0" in warning for warning in result.warnings) == 1
     assert any("summed without loudness normalization" in warning for warning in result.warnings)
     assert not any("AUDIO GUARDRAIL" in str(item.message) for item in caught)
 
 
-def test_add_audio_and_duck_audio_name_the_streams_they_drop(tmp_path):
-    video = _make_video(tmp_path / "in.mp4", audio_streams=2)
+PATH_SENTINEL = "«redacted-sk-path»"
+CAPTION_SENTINEL = "«redacted-sk-caption»"
+
+
+@pytest.fixture
+def subtitled_multitrack(tmp_path):
+    source = _make_video(tmp_path / "in.mp4", audio_streams=2)
+    subtitle = tmp_path / "captions.srt"
+    subtitle.write_text(f"1\n00:00:00,000 --> 00:00:01,000\n{CAPTION_SENTINEL}\n", encoding="utf-8")
+    video = str(tmp_path / f"in-{PATH_SENTINEL}.mkv")
+    _ffmpeg(["-i", source, "-i", str(subtitle), "-map", "0", "-map", "1:s", "-c", "copy", video])
+    return video
+
+
+@pytest.mark.parametrize("mode", ["mix", "replace", "reattach", "duck"])
+def test_audio_drop_warnings_match_muxed_streams(subtitled_multitrack, tmp_path, mode):
+    video = subtitled_multitrack
     click = _make_click_wav(tmp_path / "click.wav", channels=1)
+    output = str(tmp_path / f"{mode}.mp4")
+    if mode == "duck":
+        result = duck_audio(video, click, output_path=output)
+    else:
+        result = add_audio(video, video if mode == "reattach" else click, mix=mode == "mix", output_path=output)
 
-    added = add_audio(video, click, mix=True, output_path=str(tmp_path / "added.mp4"))
-    ducked = duck_audio(video, click, output_path=str(tmp_path / "ducked.mp4"))
+    assert [stream["codec_type"] for stream in _run_ffprobe_json(output)["streams"]] == ["video", "audio"]
+    assert sum("subtitle stream(s)" in warning for warning in result.warnings) == 1
+    if mode == "replace":
+        assert sum("All 2 source audio" in warning for warning in result.warnings) == 1
+        assert not any("additional audio" in warning for warning in result.warnings)
+    else:
+        assert sum("1 additional audio track" in warning for warning in result.warnings) == 1
+        assert all("replace existing audio" not in warning for warning in result.warnings)
 
-    for result in (added, ducked):
-        assert any("1 additional audio track" in warning for warning in result.warnings), result.warnings
-        assert any("only the first is kept" in warning for warning in result.warnings)
+
+def test_audio_warning_does_not_echo_diagnostic_in_mcp_or_cli(
+    subtitled_multitrack, tmp_path, monkeypatch, capsys, caplog
+):
+    from kinocut.__main__ import main
+
+    def bad_guardrail(*_args, **_kwargs):
+        raise RuntimeError(f"FFmpeg diagnostic {PATH_SENTINEL} {CAPTION_SENTINEL}")
+
+    monkeypatch.setattr("kinocut.engine_audio_ops.validate_audio_mix", bad_guardrail)
+    video = subtitled_multitrack
+    click = _make_click_wav(tmp_path / "click.wav", channels=1)
+    mcp_output = str(tmp_path / f"mcp-{PATH_SENTINEL}.mp4")
+    cli_output = str(tmp_path / f"cli-{PATH_SENTINEL}.mp4")
+    mcp = video_add_audio(video, click, output_path=mcp_output)
+    monkeypatch.setattr(sys, "argv", ["kino", "--format", "json", "add-audio", video, click, "-o", cli_output])
+    main()
+    captured = capsys.readouterr()
+    for payload, output in ((mcp, mcp_output), (json.loads(captured.out), cli_output)):
+        assert payload.pop("output_path") == output
+        assert any("Could not validate audio mix" in warning for warning in payload["warnings"])
+        serialized = json.dumps(payload, ensure_ascii=False)
+        assert PATH_SENTINEL not in serialized and CAPTION_SENTINEL not in serialized
+    assert PATH_SENTINEL not in captured.err and CAPTION_SENTINEL not in captured.err
+    assert PATH_SENTINEL not in caplog.text and CAPTION_SENTINEL not in caplog.text
+
+
+def test_ffmpeg_diagnostic_does_not_reach_mcp_or_cli_error(subtitled_multitrack, tmp_path, monkeypatch, capsys):
+    from kinocut.__main__ import main
+
+    def bad_render(args):
+        raise ProcessingError(" ".join(args), 1, f"decode error: {PATH_SENTINEL} {CAPTION_SENTINEL}")
+
+    monkeypatch.setattr("kinocut.engine_audio_ops._run_ffmpeg", bad_render)
+    video = subtitled_multitrack
+    click = _make_click_wav(tmp_path / "click.wav", channels=1)
+    output = str(tmp_path / f"fail-{PATH_SENTINEL}.mp4")
+    mcp = video_add_audio(video, click, output_path=output)
+    monkeypatch.setattr(sys, "argv", ["kino", "--format", "json", "add-audio", video, click, "-o", output])
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 1
+    captured = capsys.readouterr()
+    for payload in (mcp, json.loads(captured.err)):
+        assert payload["success"] is False and payload["error"]["code"] == "ffmpeg_exit_1"
+        serialized = json.dumps(payload, ensure_ascii=False)
+        assert PATH_SENTINEL not in serialized and CAPTION_SENTINEL not in serialized
+        assert "stderr" not in payload["error"]
 
 
 def test_clean_stereo_sources_add_no_stream_warnings(tmp_path):

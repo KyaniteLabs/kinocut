@@ -61,3 +61,19 @@ def test_dejavu_still_preferred_when_present(monkeypatch):
     monkeypatch.setattr(eru.os.path, "isfile", lambda p: p == target)
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: pytest.fail("fontconfig consulted before DejaVu"))
     assert eru._default_font() == target
+
+
+@pytest.mark.parametrize(
+    "system, path", [("Darwin", "/System/Library/Fonts/Helvetica.ttc"), ("Windows", "C:/Windows/Fonts/arial.ttf")]
+)
+@pytest.mark.parametrize("present", [True, False])
+def test_platform_font_must_exist(monkeypatch, system, path, present):
+    monkeypatch.setattr("platform.system", lambda: system)
+    monkeypatch.setenv("WINDIR", r"C:\Windows")
+    monkeypatch.setattr(eru.os.path, "isfile", lambda candidate: present and candidate == path)
+    if present:
+        assert eru._default_font() == path
+    else:
+        with pytest.raises(MCPVideoError) as exc:
+            eru._default_font()
+        assert exc.value.code == "font_not_found"

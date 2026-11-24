@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -22,7 +23,7 @@ class MeasuredInputLoudness(BaseModel):
 
 
 class MeasuredOutputLoudness(BaseModel):
-    """Second-pass loudnorm reading of the normalized audio."""
+    """Second-pass loudnorm filter reading, not measured after encoding."""
 
     I: float = Field(description="Integrated loudness in LUFS")  # noqa: E741
     TP: float = Field(description="True peak in dBTP")
@@ -39,6 +40,7 @@ class NormalizedAudioResult(EditResult):
     audio_codec: str | None = None
     measured_input: MeasuredInputLoudness | None = None
     measured_output: MeasuredOutputLoudness | None = None
+    measured_output_source: Literal["second_pass_loudnorm_filter"] | None = None
 
 
 def _normalization_codec(output: str) -> tuple[str, bool]:
