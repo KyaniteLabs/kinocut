@@ -20,7 +20,15 @@ from ..ffmpeg_helpers import (
 )
 from ..output_policy import with_output_policy
 from ..projectstore.receipt_ownership import durable_receipt_ownership, witness_receipt_stage
-from .models import CandidateMoment, TranscriptSegment, TranscriptWord
+from .highlight_discovery import discover_highlights
+from .models import (
+    CandidateMoment,
+    HighlightDiscoveryConfig,
+    SelectionExample,
+    SourceSignal,
+    TranscriptSegment,
+    TranscriptWord,
+)
 from ..validation_errors import exception_kind, likely_cause, own_reason
 
 
@@ -32,6 +40,7 @@ __all__ = [
     "ShortsPlan",
     "ShortsPlanStatus",
     "load_shorts_plan",
+    "propose_shorts_plan",
     "save_shorts_plan",
 ]
 
@@ -255,6 +264,45 @@ def _safe_output_dir(plan: ShortsPlan) -> str:
             recovery="Choose a real directory inside project_dir.",
         )
     return resolved
+
+
+def propose_shorts_plan(
+    *,
+    job_id: str,
+    project_dir: str,
+    output_dir: str,
+    intake: IntakeReport,
+    platforms: tuple[Literal["youtube-shorts", "instagram-reel"], ...],
+    transcript: tuple[TranscriptSegment, ...],
+    transcript_words: tuple[TranscriptWord, ...] = (),
+    signals: tuple[SourceSignal, ...] = (),
+    examples: tuple[SelectionExample, ...] = (),
+    config: HighlightDiscoveryConfig | None = None,
+    fallback_proposals: tuple[CandidateMoment, ...] = (),
+) -> ShortsPlan:
+    """Persist new proposals for review; never recompute a saved candidate or transfer an approval."""
+    selection = discover_highlights(transcript, signals=signals, examples=examples, config=config)
+    proposals = selection.candidates or fallback_proposals
+    if not proposals:
+        raise _plan_error(
+            "No Shorts candidates were found.",
+            code="shorts_no_candidates",
+            cause=own_reason("no complete transcript window met the requested bounds."),
+            recovery="Provide more timed transcript or supply fallback proposals for review.",
+        )
+    return save_shorts_plan(
+        ShortsPlan(
+            job_id=job_id,
+            project_dir=project_dir,
+            output_dir=output_dir,
+            intake=intake,
+            platforms=platforms,
+            transcript=transcript,
+            transcript_words=transcript_words,
+            config=selection.config.model_dump(mode="json"),
+            proposals=proposals,
+        )
+    )
 
 
 @with_output_policy

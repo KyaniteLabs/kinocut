@@ -10,6 +10,7 @@ from __future__ import annotations
 from .limits import DEFAULT_AI_TIMEOUT, DEFAULT_CRF, DEFAULT_FFMPEG_TIMEOUT, DEFAULT_PRESET  # noqa: F401
 
 DEFAULT_OVERWRITE = False
+DEFAULT_LONGFORM_TRANSCRIBE_SECONDS = 1800.0
 
 # Quality presets
 DEFAULT_QUALITY = "high"

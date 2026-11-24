@@ -96,6 +96,8 @@ def subtitles(
     subtitle_path: str,
     output_path: str | None = None,
     style: str | None = None,
+    *,
+    check_captions: bool = False,
 ) -> EditResult:
     """Burn subtitles (SRT/VTT/authored ASS) into a video.
 
@@ -106,6 +108,7 @@ def subtitles(
         style: Optional ``force_style`` override (``Key=Value,...``). Omitted by
             default so authored ASS styling is preserved; when given it is
             validated through the closed style parser.
+        check_captions: Report advisory timing and estimated layout warnings.
     """
     input_path = _validate_input_path(input_path)
     subtitle_path = _validate_input_path(subtitle_path)
@@ -159,4 +162,11 @@ def subtitles(
 
     result.output_path = output
     result.elapsed_ms = timing["elapsed_ms"]
+    if check_captions:
+        from .aivideo.subtitle_advisory import subtitle_advisory
+
+        summary = subtitle_advisory(input_path, subtitle_path)
+        if not summary["passed"]:
+            counts = ", ".join(f"{kind}={count}" for kind, count in summary.get("findings", {}).items())
+            result.warnings.append(f"Subtitle QA: {summary['status']} ({counts or 'no verified cues'}).")
     return result

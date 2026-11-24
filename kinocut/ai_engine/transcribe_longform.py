@@ -111,6 +111,7 @@ def transcribe_longform(
     overlap_seconds: int = LONGFORM_TRANSCRIBE_OVERLAP_SECONDS,
     scene_aware: bool = True,
     plan: LongformTranscribePlan | None = None,
+    deduplicate_segments: bool = False,
 ) -> LongformTranscribeResult:
     """Transcribe media through deterministic overlapping Whisper chunks."""
     _validate_whisper_model(model)
@@ -153,6 +154,7 @@ def transcribe_longform(
                 chunk,
                 overlap_seconds=plan.overlap_seconds,
                 prev_chunk_end=previous_end,
+                deduplicate_segments=deduplicate_segments,
             )
             previous_end = chunk.end
 

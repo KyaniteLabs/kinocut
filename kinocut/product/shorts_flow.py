@@ -302,7 +302,11 @@ def _apply_captions(
         output_path=captioned_path,
         style=caption_style,
     )
-    return captioned_path, _caption_receipt(caption_entries, generated, truncated_captions)
+    from ..aivideo.subtitle_advisory import subtitle_advisory
+
+    receipt = _caption_receipt(caption_entries, generated, truncated_captions)
+    receipt["subtitle_qa"] = subtitle_advisory(assembled_path, generated.srt_path, profile="vertical")
+    return captioned_path, receipt
 
 
 def _parse_segments(

@@ -168,6 +168,8 @@ def _merge_chunk(
     chunk: LongformChunk,
     overlap_seconds: int,
     prev_chunk_end: float | None,
+    *,
+    deduplicate_segments: bool = False,
 ) -> None:
     """Append source-bound spans; deduplicate one-to-one overlapping word events."""
     _validate_chunk_timings(chunk_result, chunk)
@@ -188,7 +190,9 @@ def _merge_chunk(
         text = str(raw_segment.get("text", "")).strip()
         if not text or local_start < 0.0 or local_end <= local_start:
             continue
-        for word_text, word_start, word_end, probability in _extract_segment_words(raw_segment):
+        segment_words = _extract_segment_words(raw_segment)
+        initial_count = len(new_words)
+        for word_text, word_start, word_end, probability in segment_words:
             global_start = word_start + offset
             normalized = word_text.casefold()
             if (
@@ -212,10 +216,17 @@ def _merge_chunk(
                     probability=probability,
                 )
             )
+        start, end = local_start + offset, local_end + offset
+        if deduplicate_segments and len(new_words) - initial_count < len(segment_words):
+            retained = new_words[initial_count:]
+            if not retained:
+                continue
+            text = " ".join(word.word for word in retained)
+            start, end = min(word.start for word in retained), max(word.end for word in retained)
         accumulated_segments.append(
             LongformSegment(
-                start=local_start + offset,
-                end=local_end + offset,
+                start=start,
+                end=end,
                 text=text,
                 chunk_index=chunk.index,
                 avg_logprob=_segment_avg_logprob(raw_segment),
