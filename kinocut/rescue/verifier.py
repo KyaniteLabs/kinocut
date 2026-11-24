@@ -277,10 +277,10 @@ def _caption_segments(path: str | None) -> list[tuple[float, float, str]]:
         first = lines[0].strip() if lines else ""
         if first in {"STYLE", "REGION"} or first == "NOTE" or first.startswith(("NOTE ", "NOTE\t")):
             continue
-        timing_index = next((i for i, line in enumerate(lines) if " --> " in line), None)
+        timing_index = next((i for i, line in enumerate(lines) if "-->" in line), None)
         if timing_index is None:
             continue
-        start_raw, end_raw = lines[timing_index].split(" --> ", 1)
+        start_raw, end_raw = re.split(r"[ \t]*-->[ \t]*", lines[timing_index], maxsplit=1)
         start_tokens = start_raw.strip().split()
         end_tokens = end_raw.strip().split()
         if not start_tokens or not end_tokens:

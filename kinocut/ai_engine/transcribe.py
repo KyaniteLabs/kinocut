@@ -304,6 +304,11 @@ def _format_json_transcript(
         "segment_count": len(segments),
         "segments": [
             {
+                **{
+                    key: value
+                    for key, value in seg.items()
+                    if key not in {"id", "start", "end", "text", "tokens", "avg_logprob", "no_speech_prob"}
+                },
                 "id": seg.get("id", i),
                 "start": seg.get("start", 0.0),
                 "end": seg.get("end", 0.0),

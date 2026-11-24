@@ -83,6 +83,8 @@ def test_auto_longform_retries_cleanly_and_deduplicates_srt(tmp_path, monkeypatc
         assert result["segments"][1]["compression_ratio"] == 1.2
         sidecar = _format_json_transcript(result["transcript"], result["segments"], result["language"])
         assert [seg["tokens"] for seg in sidecar["segments"]] == [[101, 102], [103, 104]]
+        assert [seg["compression_ratio"] for seg in sidecar["segments"]] == [1.1, 1.2]
+        assert sidecar["segments"][1]["words"] == [{"word": "finish", "start": 1501.0, "end": 1502.0}]
         text = captions.read_text()
         assert text.count("start") == 1 and "00:25:01,000 --> 00:25:02,000" in text
         runs.append((text, result))
@@ -122,6 +124,30 @@ def test_longform_preserves_unaligned_speech_and_ignores_silent_chunk_language(t
     assert [seg["text"] for seg in result["segments"]] == ["aligned speech", "unaligned tail"]
 
 
+def test_longform_overlap_dedup_preserves_unicode_combining_marks(tmp_path, monkeypatch):
+    source = tmp_path / "long_indic.wav"
+    with wave.open(str(source), "wb") as stream:
+        stream.setparams((1, 1, 32, 0, "NONE", "not compressed"))
+        stream.writeframes(b"\x80" * (32 * 1801))
+    starts = []
+
+    def decode(cmd, **kwargs):
+        starts.append(float(cmd[cmd.index("-ss") + 1]))
+
+    def recognize(path, **options):
+        if starts[-1] == 0:
+            return {"language": "hi", "segments": [_segment(("मा", 1490, 1491))]}
+        return {"language": "hi", "segments": [_segment(("माँ", 5.2, 6.2))]}
+
+    monkeypatch.setitem(
+        sys.modules, "whisper", SimpleNamespace(load_model=lambda _: SimpleNamespace(transcribe=recognize))
+    )
+    monkeypatch.setattr("kinocut.ai_engine.transcribe._run_command", decode)
+    result = ai_transcribe(str(source), model="tiny", language="hi")
+    assert result["transcript"] == "मा माँ"
+    assert [seg["text"] for seg in result["segments"]] == ["मा", "माँ"]
+
+
 @pytest.mark.parametrize(("duration", "chunk", "chunked"), [(1800, None, False), (1801, False, False), (3, True, True)])
 def test_single_pass_and_chunk_overrides(sample_video, monkeypatch, duration, chunk, chunked):
     model = Mock()
@@ -144,7 +170,7 @@ def test_subtitle_burn_warns_without_modifying_authored_input(tmp_path, sample_v
         content = (
             "WEBVTT\n\n"
             f"00:00.000 --> 00:01.000 align:start position:10%\n{text}\n\n"
-            "00:00.500 --> 00:01.500 align:end\nShort.\n"
+            "00:00.500\t-->\t00:01.500 align:end\nShort.\n"
         )
     else:
         content = _AUTHORED_ASS.replace("AUTHORED", text)

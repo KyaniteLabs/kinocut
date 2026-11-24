@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-import re
+import unicodedata
 from typing import Any
 
 from ..errors import MCPVideoError
@@ -76,10 +76,12 @@ def _extract_segment_words(
 
 
 def _normalize_dedup_token(text: str) -> str:
-    """Case-fold and strip punctuation so punctuation-only overlap drift still deduplicates."""
-    stripped = text.strip().casefold()
-    alnum = re.sub(r"[^\w]+", "", stripped, flags=re.UNICODE).replace("_", "")
-    return alnum or stripped
+    """Case-fold and drop punctuation/whitespace while preserving Unicode combining marks."""
+    folded = unicodedata.normalize("NFC", text.strip().casefold())
+    cleaned = "".join(
+        ch for ch in folded if not ch.isspace() and not unicodedata.category(ch).startswith(("P", "S", "Z"))
+    )
+    return cleaned or folded
 
 
 def _build_dedup_tail(words: list[LongformWord], overlap_start: float) -> set[str]:

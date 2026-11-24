@@ -25,6 +25,8 @@ def _report(media: str, captions: str, profile: str | None, burn_ass: str | None
     suffix = Path(captions).suffix.lower()
     if suffix == ".ass":
         return _convert_and_qa(media, burn_ass or captions, "ass", profile)
+    if suffix == ".vtt" and burn_ass:
+        return _convert_and_qa(media, burn_ass, "ass", profile)
     try:
         report = subtitle_qa(media, captions, project_id="local-captions", profile=profile)
         if report.cue_count or not (burn_ass or suffix == ".vtt"):
