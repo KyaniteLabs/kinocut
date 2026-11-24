@@ -449,6 +449,31 @@ class HyperframesProjectError(MCPVideoError):
         )
 
 
+_HYPERFRAMES_CACHE_ERRNO_RE = re.compile(r"\b(?:enoent|eacces|eperm|erofs)\b")
+_HYPERFRAMES_MKDIR_RE = re.compile(r"\bmkdir\b")
+_HYPERFRAMES_LOCK_PATH_RE = re.compile(r"/(?:locks|\.chrome\.install\.lock)(?=$|[\s'\"/,):;])")
+
+
+def _is_hyperframes_cache_write_error(diagnostic: str) -> bool:
+    """Detect Hyperframes cache/lock mkdir failures in linear time per line."""
+    if (
+        "the render slot cannot be taken" in diagnostic
+        and "this account cannot write to " in diagnostic
+        and "hyperframes_cache_dir" in diagnostic
+    ):
+        return True
+    for line in diagnostic.splitlines():
+        errno_match = _HYPERFRAMES_CACHE_ERRNO_RE.search(line)
+        if errno_match is None:
+            continue
+        mkdir_match = _HYPERFRAMES_MKDIR_RE.search(line, errno_match.end())
+        if mkdir_match is None:
+            continue
+        if _HYPERFRAMES_LOCK_PATH_RE.search(line, mkdir_match.end()) is not None:
+            return True
+    return False
+
+
 class HyperframesRenderError(MCPVideoError):
     """Hyperframes render failure."""
 
@@ -459,18 +484,21 @@ class HyperframesRenderError(MCPVideoError):
         message = f"Hyperframes render failed (exit code {returncode})"
         if reason:
             message = f"{message}: {reason}"
-        lower = (stderr or "").lower()
-        if returncode in (137, -9) or "out of memory" in lower or "heap out of memory" in lower:
+        diagnostic = (stderr or "").lower().replace("\\", "/")
+        if returncode in (137, -9) or "out of memory" in diagnostic or "heap out of memory" in diagnostic:
             description = "Hyperframes ran out of memory; reduce resolution/fps or free host memory, then retry."
-        elif any(tok in lower for tok in ("chromium", "chrome", "browser", "playwright", "puppeteer", "sandbox")):
+        elif _is_hyperframes_cache_write_error(diagnostic):
+            description = "Hyperframes could not write to its cache. Set HYPERFRAMES_CACHE_DIR to a writable directory."
+        elif any(tok in diagnostic for tok in ("chromium", "chrome", "browser", "playwright", "puppeteer", "sandbox")):
             description = (
-                "Browser launch or runtime failed; run `kino hyperframes-doctor` to verify Chromium and sandbox setup."
+                "Hyperframes could not start its browser. Check the browser install and HYPERFRAMES_BROWSER_PATH, "
+                "or run `kino hyperframes-doctor`."
             )
-        elif any(tok in lower for tok in ("enoent", "command not found", "cannot find module", "node")):
+        elif any(tok in diagnostic for tok in ("enoent", "command not found", "cannot find module", "node")):
             description = (
                 "Runtime dependency or binary is missing; run `kino hyperframes-doctor` to verify Node and Hyperframes."
             )
-        elif "timed out" in lower or returncode == -1:
+        elif "timed out" in diagnostic or returncode == -1:
             description = "Render timed out; verify host load or simplify the composition, then retry."
         else:
             description = (

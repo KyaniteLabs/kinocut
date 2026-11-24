@@ -1628,6 +1628,70 @@ class TestRenderAndPost:
 class TestErrorHandling:
     """Tests for error handling edge cases."""
 
+    @pytest.mark.parametrize(
+        ("returncode", "diagnostic", "classification"),
+        [
+            pytest.param(1, "EACCES: permission denied, mkdir '/cache/locks'", "cache", id="posix-locks"),
+            pytest.param(1, "EACCES: permission denied, mkdir '/cache/locks/slot'", "cache", id="posix-locks-child"),
+            pytest.param(1, r"ENOENT: mkdir 'C:\cache\locks'", "cache", id="windows-locks"),
+            pytest.param(1, "EROFS: mkdir '/cache/.chrome.install.lock'", "cache", id="posix-chrome-lock"),
+            pytest.param(1, r"EACCES: mkdir 'C:\cache\.chrome.install.lock'", "cache", id="windows-chrome-lock"),
+            pytest.param(1, "EPERM: mkdir '/cache/locks'", "cache", id="eperm"),
+            pytest.param(1, "EACCES: permission denied, mkdir '/cache/locks-backup'", "composition", id="locks-backup"),
+            pytest.param(1, "ENOENT: mkdir '/cache/locks-backup'", "dependency", id="enoent-locks-backup"),
+            pytest.param(
+                1,
+                "The render slot cannot be taken because this account cannot write to the cache. "
+                "Set HYPERFRAMES_CACHE_DIR.",
+                "cache",
+                id="render-slot",
+            ),
+            pytest.param(1, "Failed to launch the browser process", "browser", id="browser-launch"),
+            pytest.param(1, "Could not find Chrome", "browser", id="missing-chrome"),
+            pytest.param(1, "browser executable not found", "browser", id="missing-browser"),
+            pytest.param(1, "ENOENT: spawn node", "dependency", id="missing-dependency"),
+            pytest.param(137, "EACCES: mkdir '/cache/.chrome.install.lock'", "oom", id="oom-before-cache"),
+            pytest.param(-9, "Process was killed", "oom", id="oom-sigkill"),
+            pytest.param(1, "FATAL ERROR: heap out of memory", "oom", id="oom-diagnostic"),
+            pytest.param(1, "Render timed out", "timeout", id="timeout-diagnostic"),
+            pytest.param(-1, "Process stopped", "timeout", id="timeout-exit-code"),
+            pytest.param(1, "Invalid composition root", "composition", id="composition-fallback"),
+        ],
+    )
+    def test_render_error_hint_keeps_stderr_private(self, returncode, diagnostic, classification):
+        sensitive_path = "/private/project/secret"
+        stderr = f"{diagnostic}\nProject: {sensitive_path}"
+        err = HyperframesRenderError("hyperframes render", returncode, stderr)
+        assert err.full_stderr == stderr
+        assert sensitive_path not in str(err)
+        assert sensitive_path not in repr(err.to_dict())
+
+        hint = err.suggested_action["description"]
+        expected = {
+            "cache": "HYPERFRAMES_CACHE_DIR",
+            "browser": "HYPERFRAMES_BROWSER_PATH",
+            "dependency": "Runtime dependency or binary is missing",
+            "oom": "out of memory",
+            "timeout": "timed out",
+            "composition": "index.html",
+        }
+        assert expected[classification] in hint
+        assert ("index.html" in hint) == (classification == "composition")
+        assert ("HYPERFRAMES_CACHE_DIR" in hint) == (classification == "cache")
+        assert ("HYPERFRAMES_BROWSER_PATH" in hint) == (classification == "browser")
+        if classification in {"browser", "dependency"}:
+            assert "`kino hyperframes-doctor`" in hint
+
+    def test_render_error_cache_matcher_stays_linear_on_long_non_matching_line(self):
+        import time
+
+        adversarial = " ".join(["EACCES mkdir /tmp/other"] * 10_000)
+        start = time.monotonic()
+        err = HyperframesRenderError("hyperframes render", 1, adversarial)
+        elapsed = time.monotonic() - start
+        assert elapsed < 0.5
+        assert "HYPERFRAMES_CACHE_DIR" not in err.suggested_action["description"]
+
     def test_render_timeout(self, sample_hyperframes_project, tmp_path):
         """render() should raise HyperframesRenderError on timeout."""
         project = str(sample_hyperframes_project)
