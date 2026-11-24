@@ -11,6 +11,7 @@ import tempfile
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
+from contextvars import ContextVar
 
 from .errors import (
     FFmpegNotFoundError,
@@ -215,10 +216,37 @@ def _generate_thumbnail_base64(video_path: str) -> str | None:
             os.unlink(tmp_path)
 
 
+_intermediate_dir: ContextVar[str | None] = ContextVar("intermediate_mux_dir", default=None)
+
+
+@contextmanager
+def _intermediate_outputs(directory: str):
+    """Skip progressive-download layout only for files in this private workdir."""
+    token = _intermediate_dir.set(os.path.realpath(directory))
+    try:
+        yield
+    finally:
+        _intermediate_dir.reset(token)
+
+
+def _run_video_only(runner, args: list[str], *progress) -> None:
+    """Keep the selected audio packets unless the output muxer rejects their codec."""
+    try:
+        runner(args, *progress)
+    except ProcessingError as exc:
+        if "codec not currently supported in container" not in exc.full_stderr.lower():
+            raise
+        from .defaults import DEFAULT_AUDIO_BITRATE
+
+        codec = args.index("-c:a") + 1
+        runner([*args[:codec], "aac", "-b:a", DEFAULT_AUDIO_BITRATE, *args[codec + 1 :]], *progress)
+
+
 def _movflags_args(output_path: str) -> list[str]:
     """Return -movflags +faststart only for MP4/MOV containers."""
     ext = os.path.splitext(output_path)[1].lower()
-    if ext in (".mp4", ".mov"):
+    directory = _intermediate_dir.get()
+    if ext in (".mp4", ".mov") and (directory is None or os.path.realpath(os.path.dirname(output_path)) != directory):
         return ["-movflags", "+faststart"]
     return []
 

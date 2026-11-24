@@ -235,7 +235,7 @@ class TestEngineIntegration:
         """An explicit timestamp must skip the smart-selection path entirely."""
         from mcp_video.engine_thumbnail import thumbnail
 
-        with mock.patch("kinocut.aesthetic.smart_thumbnail.find_best_thumbnail_timestamp") as smart:
+        with mock.patch("kinocut.aesthetic.smart_thumbnail.selected_frame") as smart:
             result = thumbnail(sample_video, timestamp=1.0)
         smart.assert_not_called()
         assert result.timestamp == 1.0

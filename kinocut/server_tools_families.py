@@ -286,7 +286,8 @@ def list_operations(
                 f"Unknown family '{family}'. Available families: {', '.join(FAMILY_MODULES)}",
                 code="unknown_family",
             )
-        catalog_by_name = {row["name"]: row for row in discovery_catalog()}
+        catalog = discovery_catalog(FAMILY_MODULES[family]) if family is not None else discovery_catalog()
+        catalog_by_name = {row["name"]: row for row in catalog}
         declared = _declared_annotations()
         needle = (query or "").strip().casefold()
         rows = []

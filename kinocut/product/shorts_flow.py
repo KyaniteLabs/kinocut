@@ -13,6 +13,7 @@ from ..errors import MCPVideoError
 from ..engine_edit import trim
 from ..engine_merge import merge
 from ..engine_resize import resize
+from ..engine_runtime_utils import _intermediate_outputs
 from ..engine_subtitle_generate import generate_subtitles
 from ..engine_subtitles import subtitles
 from ..ffmpeg_helpers import _validate_input_path, _validate_output_path
@@ -425,7 +426,7 @@ def video_shorts(
             # trims, merge (several segments only), captions (when burned), vertical render
             [seconds, seconds if len(parsed) > 1 else 0.0, seconds if has_captions else 0.0, seconds],
         )
-        with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
+        with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir, _intermediate_outputs(workdir):
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir, progress)
             segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
             captioned_path, caption_step = _apply_captions(

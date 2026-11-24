@@ -8,12 +8,13 @@ Clean SIGTERM/SIGHUP paths keep ProcessTree.close() / killpg as before.
 
 import contextlib
 import os
+import select
 import signal
 import subprocess
 import threading
 import time
 
-from .defaults import DEFAULT_RENDER_STOP_POLL_INTERVAL, DEFAULT_RENDER_STOP_TIMEOUT
+from .defaults import DEFAULT_RENDER_STOP_TIMEOUT
 from .errors import MCPVideoError, ProcessingError
 
 
@@ -52,6 +53,7 @@ class ProcessTree:
         self.lock = threading.Lock()
         self.closed = False
         self.exitcode: int | None = None
+        self._exit_event: threading.Event | None = None
         self.command = cmd
         try:
             # Popen has no timeout; caller owns a deadline and waits with a timeout.
@@ -116,14 +118,40 @@ class ProcessTree:
                     )
                 if self.exitcode is not None:
                     return self.exitcode
-            remaining = None if deadline is None else deadline - time.monotonic()
-            if timeout is not None and remaining is not None and remaining <= 0:
+                remaining = None if deadline is None else deadline - time.monotonic()
+                if remaining is not None and remaining <= 0:
+                    raise subprocess.TimeoutExpired(self.command, timeout)
+                descriptor = None
+                if self.guardian is not None and self.guardian.retaining:
+                    descriptor = os.dup(self.guardian.status_read)
+                else:
+                    event = self._native_exit_event(process.pid)
+            if descriptor is None:
+                ready = event.wait(remaining)
+            else:
+                try:
+                    ready = select.select([descriptor], [], [], remaining)[0]
+                finally:
+                    os.close(descriptor)
+            if not ready:
                 raise subprocess.TimeoutExpired(self.command, timeout)
-            time.sleep(
-                DEFAULT_RENDER_STOP_POLL_INTERVAL
-                if remaining is None
-                else min(DEFAULT_RENDER_STOP_POLL_INTERVAL, remaining)
-            )
+
+    def _native_exit_event(self, pid: int) -> threading.Event:
+        """One non-reaping observer shared by timed waits and concurrent waiters."""
+        if self._exit_event is None:
+            event = threading.Event()
+
+            def observe():
+                try:
+                    os.waitid(os.P_PID, pid, os.WEXITED | os.WNOWAIT)
+                except OSError:
+                    pass  # wait() checks ownership again under the lock.
+                finally:
+                    event.set()
+
+            threading.Thread(target=observe, daemon=True).start()
+            self._exit_event = event
+        return self._exit_event
 
     def _kill(self):
         if self.process is None:
