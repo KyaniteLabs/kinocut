@@ -8,7 +8,7 @@ import tempfile
 
 import pytest
 
-from kinocut import atomic_publication, staged_writers
+from kinocut.publication import _files as atomic_publication, _staging as staged_writers
 from kinocut.errors import MCPVideoError
 from kinocut.product import shorts_flow
 

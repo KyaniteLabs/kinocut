@@ -8,8 +8,10 @@ import stat
 from contextvars import ContextVar
 from pathlib import Path
 
-from kinocut.errors import MCPVideoError
-from kinocut.ffmpeg_helpers import _ON_PUBLISH, _OPERATION_WRITES, _validate_artifact_location
+from ..errors import MCPVideoError
+from ._anchor import _same_inode
+from ._operation import _ON_PUBLISH, _OPERATION_WRITES
+from ._policy import _validate_artifact_location
 
 _RECEIPT: ContextVar[tuple[Path, set[Path]] | None] = ContextVar("kinocut_durable_receipt", default=None)
 
@@ -86,18 +88,15 @@ def durable_receipt_ownership(path: Path):
         _prune_replaced(path, directory, witnesses)
 
 
-def witness_receipt_stage(final: str, staged: str) -> None:
+def _witness_receipt_stage(final: str, staged: str, identity: os.stat_result) -> None:
     """Retain the owned stage inode before atomic publication can expose it."""
     receipt = _RECEIPT.get()
-    if receipt is None or Path(final).resolve() != receipt[0]:
+    if receipt is None or Path(final) != receipt[0]:
         return
     target, witnesses = receipt
-    from kinocut.ffmpeg_helpers import _owns_operation_output
-
-    if not _owns_operation_output(os.path.realpath(staged)):
-        raise MCPVideoError("Receipt stage ownership changed", code="unsafe_path")
-    info = os.stat(staged, follow_symlinks=False)
     directory = target.parent / f".{target.name}.ownership"
-    proof = _proof(directory, info)
+    proof = _proof(directory, identity)
     os.link(staged, proof, follow_symlinks=False)
+    if not _same_inode(proof.stat(follow_symlinks=False), identity):
+        raise MCPVideoError("Receipt stage ownership changed", code="unsafe_path")
     witnesses.add(proof)

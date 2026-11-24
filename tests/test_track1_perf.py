@@ -277,7 +277,7 @@ def test_retaining_wait_handles_high_numbered_fd(monkeypatch):
 
 @pytest.mark.parametrize("flow", ["shorts", "timeline"])
 def test_only_deliverable_gets_faststart(sample_video, tmp_path, monkeypatch, flow):
-    from kinocut import staged_writers
+    from kinocut.publication import _staging as staged_writers
     from kinocut.engine_timeline import edit_timeline
     from kinocut.product.shorts_flow import video_shorts
 

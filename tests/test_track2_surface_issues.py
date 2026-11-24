@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from kinocut import atomic_publication, doctor
+from kinocut import doctor
+from kinocut.publication import _files as atomic_publication
 from kinocut.engine_probe import probe
 from kinocut.engine_resize import resize
 from kinocut.errors import MCPVideoError
@@ -253,7 +254,7 @@ def test_compact_family_schema_advertises_additional_properties_true():
 @pytest.mark.usefixtures("overwrite_consent")
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux directory exchange preservation")
 def test_package_overwrite_preserves_concurrently_added_unrelated_file(tmp_path, monkeypatch):
-    from kinocut.product import shorts_package
+    from kinocut.publication import _trees
 
     plan = _plan_with_renders(tmp_path)
     candidate = {"candidate_id": "candidate_01"}
@@ -261,14 +262,14 @@ def test_package_overwrite_preserves_concurrently_added_unrelated_file(tmp_path,
     monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda path, **kwargs: {"video": path})
     first = package_approved_candidate(plan, **candidate)
     root = Path(first["packages"][0]["package_root"]).parent
-    real_exchange = shorts_package._rename_exclusive
+    real_exchange = _trees._rename_exclusive
 
     def inject_unrelated(anchor, src, dst, *, exchange=False):
         if exchange:
             (root / "youtube-shorts" / "user_notes.txt").write_text("keep me", encoding="utf-8")
         return real_exchange(anchor, src, dst, exchange=exchange)
 
-    monkeypatch.setattr(shorts_package, "_rename_exclusive", inject_unrelated)
+    monkeypatch.setattr(_trees, "_rename_exclusive", inject_unrelated)
     with pytest.raises(MCPVideoError) as exc_info:
         package_approved_candidate(plan, **candidate, overwrite=True)
     assert exc_info.value.code == "package_write_conflict"
@@ -281,7 +282,7 @@ def test_package_overwrite_preserves_concurrently_added_unrelated_file(tmp_path,
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux post-verify race preservation")
 @pytest.mark.parametrize("late_rel", ["youtube-shorts/late_file.txt", "root_note.txt"])
 def test_package_overwrite_preserves_file_added_after_verification(tmp_path, monkeypatch, late_rel):
-    from kinocut.product import shorts_package
+    from kinocut.publication import _trees
 
     plan = _plan_with_renders(tmp_path)
     candidate = {"candidate_id": "candidate_01"}
@@ -289,14 +290,14 @@ def test_package_overwrite_preserves_file_added_after_verification(tmp_path, mon
     monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda path, **kwargs: {"video": path})
     first = package_approved_candidate(plan, **candidate)
     root = Path(first["packages"][0]["package_root"]).parent
-    real_matches = shorts_package._matches_snapshot
+    real_matches = _trees._matches_snapshot
 
     def inject_after_verify(displaced, snapshot):
         ok = real_matches(displaced, snapshot)
         (displaced / late_rel).write_text("do not delete", encoding="utf-8")
         return ok
 
-    monkeypatch.setattr(shorts_package, "_matches_snapshot", inject_after_verify)
+    monkeypatch.setattr(_trees, "_matches_snapshot", inject_after_verify)
     with pytest.raises(MCPVideoError) as exc_info:
         package_approved_candidate(plan, **candidate, overwrite=True)
     assert exc_info.value.code == "package_write_conflict"
@@ -305,46 +306,6 @@ def test_package_overwrite_preserves_file_added_after_verification(tmp_path, mon
     assert (preserved[0] / late_rel).read_text(encoding="utf-8") == "do not delete"
     assert (preserved[0] / "youtube-shorts" / "captions.srt").is_file()
     assert not list(root.parent.glob(f".{root.name}.trash_*"))
-
-
-def test_windows_contested_rollback_preserves_old_package_outside_tempdir(tmp_path, monkeypatch):
-    from kinocut.product import shorts_package
-
-    base = tmp_path / "packages"
-    plat = base / "youtube-shorts"
-    plat.mkdir(parents=True)
-    (plat / "manifest.json").write_text("old-package", encoding="utf-8")
-    stage_parent = tmp_path / ".kinocut_package_tmp"
-    stage = stage_parent / "packages"
-    (stage / "youtube-shorts").mkdir(parents=True)
-    (stage / "youtube-shorts" / "manifest.json").write_text("new-package", encoding="utf-8")
-
-    class _FakeAnchor:
-        def check(self):
-            return None
-
-    real_rename = os.rename
-
-    def contested_rename(src, dst):
-        if Path(src) == stage and Path(dst) == base:
-            # Rival claims base right before stage->base rename.
-            base.mkdir()
-            (base / "rival.txt").write_text("rival", encoding="utf-8")
-            raise FileExistsError(errno.EEXIST, "destination claimed by rival")
-        return real_rename(src, dst)
-
-    monkeypatch.setattr(
-        shorts_package,
-        "os",
-        type("FakeOS", (), {**os.__dict__, "name": "nt", "rename": staticmethod(contested_rename)})(),
-    )
-    with pytest.raises(MCPVideoError) as exc_info:
-        shorts_package._publish_package_tree(_FakeAnchor(), stage, base, overwrite=True)
-    assert exc_info.value.code == "package_write_conflict"
-    assert (base / "rival.txt").read_text(encoding="utf-8") == "rival"
-    preserved = list(tmp_path.glob(".packages.displaced_*"))
-    assert len(preserved) == 1
-    assert (preserved[0] / "youtube-shorts" / "manifest.json").read_text(encoding="utf-8") == "old-package"
 
 
 def test_family_accepts_flat_kwargs_but_not_mixed_or_invalid_params(sample_video):

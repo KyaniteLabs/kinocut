@@ -9,7 +9,7 @@ import pytest
 
 from kinocut.errors import MCPVideoError
 from kinocut.mp4_faststart import _rebuild, relocate_index
-from kinocut.staged_writers import _darwin_faststart_command
+from kinocut.publication._staging import _darwin_faststart_command
 
 requires_positional_io = pytest.mark.skipif(
     not all(hasattr(os, name) for name in ("pread", "pwrite")), reason="Darwin relocation requires POSIX positional I/O"
@@ -123,7 +123,7 @@ def test_unsupported_index_preserves_original_staging_bytes(tmp_path, invalid_in
     ],
 )
 def test_darwin_command_preserves_other_muxer_flags(monkeypatch, flags, enabled):
-    import kinocut.staged_writers as writers
+    from kinocut.publication import _staging as writers
 
     monkeypatch.setattr(writers.sys, "platform", "darwin")
     command = ["ffmpeg", "-i", "input", "-movflags", flags, "output.mp4"]
@@ -137,7 +137,7 @@ def test_darwin_command_preserves_other_muxer_flags(monkeypatch, flags, enabled)
 @requires_positional_io
 def test_real_muxer_faststart_preserves_every_encoded_packet(tmp_path, suffix, monkeypatch):
     from kinocut.ffmpeg_helpers import _atomic_output, _run_command, _run_ffmpeg
-    import kinocut.staged_writers as writers
+    from kinocut.publication import _staging as writers
 
     monkeypatch.setattr(writers.sys, "platform", "darwin")
     source, output = tmp_path / ("source" + suffix), tmp_path / ("output" + suffix)
@@ -180,7 +180,7 @@ def test_failed_producer_keeps_original_error_and_never_relocates(tmp_path, monk
     import kinocut.bounded_process as bounded
     import kinocut.ffmpeg_helpers as helpers
     import kinocut.mp4_faststart as faststart
-    import kinocut.staged_writers as writers
+    from kinocut.publication import _staging as writers
 
     monkeypatch.setattr(writers.sys, "platform", "darwin")
     monkeypatch.setattr(
@@ -199,7 +199,7 @@ def test_failed_producer_keeps_original_error_and_never_relocates(tmp_path, monk
 
 
 def test_unsigned_later_movflags_replace_faststart(monkeypatch):
-    import kinocut.staged_writers as writers
+    from kinocut.publication import _staging as writers
 
     monkeypatch.setattr(writers.sys, "platform", "darwin")
     command = ["ffmpeg", "-i", "input", "-movflags", "+faststart", "-movflags", "use_metadata_tags", "output.mp4"]

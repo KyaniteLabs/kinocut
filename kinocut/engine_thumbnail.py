@@ -6,7 +6,7 @@ import shutil
 
 from .engine_edit import _time_to_seconds
 from .errors import MCPVideoError, ValidationError
-from .ffmpeg_helpers import _validate_input_path, _validate_output_path
+from .ffmpeg_helpers import _validate_input_path
 from .engine_probe import get_duration
 from .paths import _auto_output
 from .ffmpeg_helpers import _atomic_output, _open_staged_writer, _run_ffmpeg
@@ -65,22 +65,8 @@ def thumbnail(
         timestamp = requested_timestamp
 
     output = output_path or _auto_output(input_path, f"frame_{timestamp:.1f}s", ext=".jpg")
-    _validate_output_path(output)
-
-    _run_ffmpeg(
-        [
-            "-ss",
-            str(timestamp),
-            "-i",
-            input_path,
-            "-vframes",
-            "1",
-            "-q:v",
-            "2",
-            "-y",
-            output,
-        ]
-    )
+    with _atomic_output(output) as staged:
+        _run_ffmpeg(["-ss", str(timestamp), "-i", input_path, "-vframes", "1", "-q:v", "2", "-y", staged])
 
     return ThumbnailResult(
         frame_path=output,
