@@ -150,6 +150,44 @@ def test_incompatible_audio_falls_back_to_aac(sample_video, tmp_path, audio_code
     assert probe(output.output_path).audio_codec == "aac"
 
 
+def test_video_only_muxer_failure_does_not_retry_or_mask_error(tmp_path, monkeypatch):
+    from kinocut import engine_resize
+    from kinocut.errors import ProcessingError
+
+    video_only = tmp_path / "video_only.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=s=64x64:r=25:d=0.5",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(video_only),
+        ],
+        check=True,
+    )
+    calls = 0
+    real_run = engine_resize._run_ffmpeg
+
+    def counted_run(args, *rest):
+        nonlocal calls
+        calls += 1
+        return real_run(args, *rest)
+
+    monkeypatch.setattr(engine_resize, "_run_ffmpeg", counted_run)
+    with pytest.raises(ProcessingError) as exc_info:
+        engine_resize.resize(str(video_only), width=32, output_path=str(tmp_path / "bad.webm"))
+    assert calls == 1
+    assert exc_info.value.code != "unsupported_codec"
+
+
 def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
     from kinocut.engine_audio_ops import add_audio
     from kinocut.engine_probe import _run_ffprobe_json
@@ -171,7 +209,9 @@ def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
             "-c:v",
             "libx264",
             "-g",
-            "50",
+            "25",
+            "-bf",
+            "2",
             "-pix_fmt",
             "yuv420p",
             str(src),
@@ -182,6 +222,11 @@ def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
         ["ffmpeg", "-y", "-loglevel", "error", "-ss", "0.24", "-i", str(src), "-t", "4", "-c", "copy", str(cut)],
         check=True,
     )
+    # Confirm cut fixture has matching format/video duration and start_time so only edit-list detection triggers scan.
+    cut_meta = _run_ffprobe_json(str(cut))
+    cut_vs = next(s for s in cut_meta["streams"] if s["codec_type"] == "video")
+    assert abs(float(cut_vs["duration"]) - float(cut_meta["format"]["duration"])) <= 0.001
+    assert abs(float(cut_vs["start_time"]) - float(cut_meta["format"]["start_time"])) <= 0.001
     subprocess.run(
         ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=440:d=8", str(wav)],
         check=True,
@@ -190,7 +235,7 @@ def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
     meta = _run_ffprobe_json(str(out))
     v_dur = float(next(s for s in meta["streams"] if s["codec_type"] == "video")["duration"])
     a_dur = float(next(s for s in meta["streams"] if s["codec_type"] == "audio")["duration"])
-    assert abs(a_dur - v_dur) <= 0.08
+    assert abs(a_dur - v_dur) <= 0.05
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX FD limit test")
