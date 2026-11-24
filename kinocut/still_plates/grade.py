@@ -19,15 +19,12 @@ from .io import (
     write_receipt,
 )
 from .stats import apply_rgb_gains, mean_rgb, shared_gains_to_hero
+from .match import _package_mean_rgb
 from ..validation_errors import exception_kind
 
 
-def _package_mean_rgb(arrs: list) -> tuple[float, float, float]:
-    return tuple(float(sum(mean_rgb(a)[i] for a in arrs) / len(arrs)) for i in range(3))
-
-
-def _pipeline_arrays(arrs: list, hero: str | Path | None):
-    package_rgb = _package_mean_rgb(arrs)
+def _pipeline_gains(paths: list[Path], hero: str | Path | None):
+    package_rgb = _package_mean_rgb(load_rgb_array(path) for path in paths)
     gray = sum(package_rgb) / 3.0
     neutralize_gains = shared_gains_to_hero(
         (gray, gray, gray),
@@ -35,32 +32,34 @@ def _pipeline_arrays(arrs: list, hero: str | Path | None):
         max_gain=STILL_MATCH_MAX_GAIN,
         min_gain=STILL_MATCH_MIN_GAIN,
     )
-    neutralized = [apply_rgb_gains(a, neutralize_gains) for a in arrs]
     match_gains = (1.0, 1.0, 1.0)
-    matched = neutralized
     hero_path: Path | None = None
     if hero is not None:
         hero_path = validate_still_path(hero)
         hero_rgb = mean_rgb(load_rgb_array(hero_path))
         match_gains = shared_gains_to_hero(
             hero_rgb,
-            _package_mean_rgb(neutralized),  # type: ignore[arg-type]
+            _package_mean_rgb(apply_rgb_gains(load_rgb_array(path), neutralize_gains) for path in paths),
             max_gain=STILL_MATCH_MAX_GAIN,
             min_gain=STILL_MATCH_MIN_GAIN,
         )
-        matched = [apply_rgb_gains(a, match_gains) for a in neutralized]
-    return matched, neutralize_gains, match_gains, hero_path
+    return neutralize_gains, match_gains, hero_path
 
 
 def _export_graded(
     input_paths: list[Path],
-    matched: list,
+    neutralize_gains: tuple,
+    match_gains: tuple | None,
     out_dir: Path,
     lut_path: str | Path | None,
     signal_mode: bool,
 ) -> list[dict[str, Any]]:
     outputs: list[dict[str, Any]] = []
-    for src, arr in zip(input_paths, matched, strict=True):
+    for src in input_paths:
+        original = load_rgb_array(src)
+        arr = apply_rgb_gains(original, neutralize_gains)
+        if match_gains is not None:
+            arr = apply_rgb_gains(arr, match_gains)
         intermediate = out_dir / f"{src.stem}_graded_pre_lut.png"
         save_rgb_array(arr, intermediate)
         final_path = out_dir / f"{src.stem}_graded.png"
@@ -78,7 +77,7 @@ def _export_graded(
             shutil.move(str(intermediate), str(final_path))
         preservation = None
         if signal_mode:
-            preservation = _near_extrema_preservation(load_rgb_array(src), load_rgb_array(final_path))
+            preservation = _near_extrema_preservation(original, load_rgb_array(final_path))
         outputs.append(
             {
                 "source": str(src),
@@ -110,9 +109,10 @@ def still_grade(
     input_paths = [validate_still_path(p) for p in inputs]
     out_dir = ensure_output_dir(output_dir)
     stages = ["neutralize", "match"] + (["look_lut"] if lut_path is not None else [])
-    arrs = [load_rgb_array(p) for p in input_paths]
-    matched, neutralize_gains, match_gains, hero_path = _pipeline_arrays(arrs, hero)
-    outputs = _export_graded(input_paths, matched, out_dir, lut_path, signal_mode)
+    neutralize_gains, match_gains, hero_path = _pipeline_gains(input_paths, hero)
+    outputs = _export_graded(
+        input_paths, neutralize_gains, match_gains if hero_path else None, out_dir, lut_path, signal_mode
+    )
     receipt = {
         "tool": "still_grade",
         "stages": stages,

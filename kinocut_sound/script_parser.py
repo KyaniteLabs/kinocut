@@ -275,8 +275,11 @@ class ParsedScript(RecordBase):
             raise ValueError("scene ids must be unique")
         expected_lines: list[str] = []
         expected_events: list[str] = []
+        lines_by_scene: dict[str, list[str]] = {}
+        for item in self.parsed_lines:
+            lines_by_scene.setdefault(item.scene_id, []).append(item.line.line_id)
         for scene in self.scenes:
-            scene_lines = tuple(item.line.line_id for item in self.parsed_lines if item.scene_id == scene.scene_id)
+            scene_lines = tuple(lines_by_scene.get(scene.scene_id, ()))
             if scene.line_ids != scene_lines:
                 raise ValueError("scene line membership must exactly match parsed line order")
             expected_lines.extend(scene.line_ids)

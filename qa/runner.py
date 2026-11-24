@@ -356,7 +356,7 @@ def measured_waveform(data: dict[str, Any] | None) -> bool:
 
 
 def subtitle_search_matches(data: dict[str, Any]) -> list[str]:
-    tools = data.get("tools")
+    tools = data.get("operations")
     if data.get("success") is False or not isinstance(tools, list):
         return []
     return [
@@ -562,19 +562,15 @@ class OperatorRunner:
                 return entry
         raise CatalogError(f"required path not found: {path_id}")
 
-    def _fleet_root(self) -> Path:
-        configured = os.environ.get(FLEET_ROOT_ENV)
-        root = Path(configured).expanduser() if configured else Path.home() / "fleet"
-        return root.resolve()
-
     def _values(self) -> dict[str, Any]:
+        fleet_root = os.environ.get(FLEET_ROOT_ENV)
         return {
             "qa_work": self.work,
             "product_root": self.product_root,
             "venv": self.venv,
             "python": sys.executable,
             "venv_python": self.python,
-            "fleet_root": self._fleet_root(),
+            **({"fleet_root": Path(fleet_root).expanduser().resolve()} if fleet_root else {}),
         }
 
     def _expanded(self, entry: dict[str, Any], key: str = "argv") -> list[str]:
@@ -1103,7 +1099,13 @@ class OperatorRunner:
         if self.product_problem or not self.product_sha:
             self._blocked(entry, self.product_problem or "exact product SHA is unavailable")
             return
+        if not os.environ.get(FLEET_ROOT_ENV):
+            self._blocked(entry, f"set {FLEET_ROOT_ENV} to the external brand-gate checkout")
+            return
         argv = self._expanded(entry)
+        if not Path(argv[1]).is_file():
+            self._blocked(entry, f"brand gate is absent from the configured {FLEET_ROOT_ENV}")
+            return
         try:
             report_path = Path(argv[argv.index("--json") + 1])
         except (ValueError, IndexError):
@@ -1115,7 +1117,7 @@ class OperatorRunner:
         # but must also see the interpreter's Pillow install, which the product
         # PYTHONNOUSERSITE guard would hide.
         base_env = self._base_env()
-        with tempfile.TemporaryDirectory(prefix="kinoqa-brand-", dir="/tmp") as chrome_tmp:
+        with tempfile.TemporaryDirectory(prefix="kinoqa-brand-") as chrome_tmp:
             env = {
                 "PATH": base_env["PATH"],
                 "HOME": base_env["HOME"],
@@ -1447,7 +1449,8 @@ class OperatorRunner:
         try:
             request = entry["request"]
             args = expand_data(request.get("arguments", {}), self._values())
-            _, data, raw, is_error = self._mcp_call("default", entry["argv"], request["tool"], args)
+            tool = "list_operations" if request["tool"] == "search_tools" else request["tool"]
+            _, data, raw, is_error = self._mcp_call("default", entry["argv"], tool, args)
         except ImportError:
             self._blocked(entry, "MCP Python SDK is not available locally; no dependency installation attempted")
             return
@@ -1476,9 +1479,9 @@ class OperatorRunner:
         else:
             names = subtitle_search_matches(data)
             if names:
-                self._pass(entry, f"actual stdio search_tools returned subtitle operations ({len(names)} matches)")
+                self._pass(entry, f"actual stdio list_operations returned subtitle operations ({len(names)} matches)")
             else:
-                self._fail(entry, "search_tools returned no structured subtitle operation matches")
+                self._fail(entry, "list_operations returned no structured subtitle operation matches")
 
     @staticmethod
     def _free_port() -> int:

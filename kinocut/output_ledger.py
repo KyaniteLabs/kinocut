@@ -22,6 +22,8 @@ _LEDGER_NAME = "outputs.jsonl"
 _COMPACT_BYTES = 1024 * 1024
 # Windows has no O_NOFOLLOW; there the realpath() resolution is the guard.
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_Snapshot = frozenset[tuple[str, tuple[int, ...]]]
+_cached: tuple[tuple[int, ...], _Snapshot] | None = None
 
 
 def _state_dir() -> str:
@@ -62,18 +64,28 @@ def record_output(path: str) -> None:
             _compact()
 
 
-def _entries() -> list[tuple[str, list[int]]]:
+def _entries() -> _Snapshot:
+    global _cached
     try:
         fd = _open_ledger(os.O_RDONLY)
     except OSError:
-        return []
+        return frozenset()
     with os.fdopen(fd, "r", encoding="utf-8", errors="replace") as stream:
-        rows = []
+        info = os.fstat(fd)
+        key = (*_identity(info), info.st_ctime_ns)
+        cached = _cached
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        rows = set()
         for raw in stream:
             with contextlib.suppress(ValueError, TypeError, KeyError):
                 row = json.loads(raw)
-                rows.append((str(row["path"]), [int(v) for v in row["id"]]))
-        return rows
+                rows.add((str(row["path"]), tuple(int(v) for v in row["id"])))
+        snapshot = frozenset(rows)
+        after = os.fstat(fd)
+        if key == (*_identity(after), after.st_ctime_ns):
+            _cached = key, snapshot
+        return snapshot
 
 
 def owns(path: str) -> bool:
@@ -83,14 +95,14 @@ def owns(path: str) -> bool:
         current = _identity(os.stat(resolved, follow_symlinks=False))
     except OSError:
         return False
-    return any(p == resolved and ident == current for p, ident in _entries())
+    return (resolved, tuple(current)) in _entries()
 
 
 def _compact() -> None:
-    keep: dict[str, list[int]] = {}
+    keep: dict[str, tuple[int, ...]] = {}
     for p, ident in _entries():
         with contextlib.suppress(OSError):
-            if _identity(os.stat(p, follow_symlinks=False)) == ident:
+            if tuple(_identity(os.stat(p, follow_symlinks=False))) == ident:
                 keep[p] = ident
     staged = _ledger_path() + f".{os.getpid()}.tmp"
     with contextlib.suppress(OSError):

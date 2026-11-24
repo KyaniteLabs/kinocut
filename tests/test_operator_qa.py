@@ -156,12 +156,12 @@ def test_incomplete_catalog_cannot_hide_coverage_gaps():
         runner.validate_catalog(catalog)
 
 
-def test_search_tool_results_include_required_parameters():
+def test_list_operations_results_include_required_parameters():
     runner = load_runner()
     assert runner.subtitle_search_matches(
-        {"success": True, "tools": [{"name": "video_subtitles", "required_params": ["input_path"]}]}
+        {"success": True, "operations": [{"name": "video_subtitles", "required_params": ["input_path"]}]}
     ) == ["video_subtitles"]
-    assert runner.subtitle_search_matches({"success": True, "tools": [{"name": "video_subtitles"}]}) == []
+    assert runner.subtitle_search_matches({"success": True, "operations": [{"name": "video_subtitles"}]}) == []
 
 
 def test_empty_gap_list_requires_an_exhaustive_live_inventory_mapping():

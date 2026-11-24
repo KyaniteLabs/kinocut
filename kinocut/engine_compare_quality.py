@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import re
-import subprocess
 
-from .ffmpeg_helpers import _validate_input_path
+from .ffmpeg_helpers import _run_command, _validate_input_path
 from .engine_probe import probe
 from .engine_runtime_utils import _ffmpeg
 from .errors import ProcessingError
-from .limits import DEFAULT_FFMPEG_TIMEOUT
 from .models import QualityMetricsResult
-from .validation_errors import exception_kind
 
 SUPPORTED_QUALITY_METRICS = {"psnr", "ssim"}
 
@@ -52,20 +48,9 @@ def compare_quality(
     target_w = orig_info.width
     target_h = orig_info.height
 
-    for metric_lower in supported_metrics:
-        try:
-            stderr = _run_metric(original_path, distorted_path, metric_lower, target_w, target_h)
-            _parse_metric(stderr, metric_lower, computed)
-        except Exception as e:
-            if isinstance(e, ProcessingError):
-                raise
-            logging.warning("Quality metric %s failed: %s", metric_lower, e)
-            raise ProcessingError(
-                _metric_command_label(original_path, distorted_path, metric_lower),
-                1,
-                "",
-                reason=exception_kind(e),
-            ) from e
+    stderr = _run_metrics(original_path, distorted_path, supported_metrics, target_w, target_h)
+    for metric in supported_metrics:
+        _parse_metric(stderr, metric, computed)
 
     return QualityMetricsResult(
         metrics=computed,
@@ -73,38 +58,27 @@ def compare_quality(
     )
 
 
-def _run_metric(original_path: str, distorted_path: str, metric_lower: str, target_w: int, target_h: int) -> str:
-    filter_str = f"[1:v]scale={target_w}:{target_h}[scaled];[0:v][scaled]{metric_lower}"
+def _run_metrics(original_path: str, distorted_path: str, metrics: list[str], target_w: int, target_h: int) -> str:
+    scale = f"[1:v]scale={target_w}:{target_h}"
+    if len(set(metrics)) == 1:
+        graph = f"{scale}[scaled];[0:v][scaled]{metrics[0]}[out]"
+    else:
+        graph = f"{scale},split[d1][d2];[0:v]split[r1][r2];[r1][d1]psnr[out];[r2][d2]ssim,nullsink"
     cmd = [
         _ffmpeg(),
         "-i",
         original_path,
         "-i",
         distorted_path,
-        "-lavfi",
-        filter_str,
+        "-filter_complex",
+        graph,
+        "-map",
+        "[out]",
         "-f",
         "null",
         "-",
     ]
-    try:
-        proc = subprocess.run(  # noqa: S603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise ProcessingError(
-            " ".join(cmd),
-            -1,
-            "",
-            reason=f"the quality metric timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
-        ) from exc
-    if proc.returncode != 0:
-        raise ProcessingError(" ".join(cmd), proc.returncode, proc.stderr)
-    return proc.stderr
+    return _run_command(cmd).stderr
 
 
 def _parse_metric(stderr: str, metric_lower: str, computed: dict[str, float]) -> None:
@@ -143,7 +117,3 @@ def _overall_quality(computed: dict[str, float]) -> str:
             return "medium"
         return "low"
     return "unknown"
-
-
-def _metric_command_label(original_path: str, distorted_path: str, metric_lower: str) -> str:
-    return f"ffmpeg -i {original_path} -i {distorted_path} -lavfi {metric_lower}"
