@@ -81,16 +81,23 @@ def _media_path_from_clip(clip: dict[str, Any]) -> str | None:
         for key in ("source", "path", "media_path"):
             val = meta.get(key)
             if isinstance(val, str) and val.strip():
-                return val.strip()
+                return _url_to_local_path(val.strip())
     return None
 
 
 def _url_to_local_path(url: str) -> str | None:
-    if url.startswith("file://"):
+    if url.lower().startswith("file:"):
         parsed = urlparse(url)
-        return unquote(parsed.path)
+        if parsed.netloc.lower() not in {"", "localhost"}:
+            return None
+        local = unquote(parsed.path)
+        if local.startswith(("//", "\\\\")) or local.lstrip("/").startswith("\\\\"):
+            return None
+        return local
     if "://" in url and not url.startswith("file:"):
         # Remote URLs are never auto-fetched — fail closed at import time.
+        return None
+    if url.startswith(("//", "\\\\")):
         return None
     return url
 

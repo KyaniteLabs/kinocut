@@ -15,6 +15,7 @@ from pydantic import Field
 
 from kinocut.capability_report import capability_report
 from kinocut.contracts._common import ValueObject
+from kinocut.doctor import run_diagnostics
 
 _CORPUS_VERSION = "ai-video-v1"
 
@@ -86,7 +87,8 @@ def _ffmpeg_version(diagnostics: dict[str, Any]) -> str | None:
 def run_aivideo_benchmark(diagnostics: dict[str, Any] | None = None) -> BenchmarkReceipt:
     """Run the versioned AI-video corpus against the current toolchain (#61)."""
 
-    reports = {report.capability_id: report for report in capability_report(diagnostics)}
+    diag = diagnostics if diagnostics is not None else run_diagnostics()
+    reports = {report.capability_id: report for report in capability_report(diag)}
     results: list[BenchmarkItemResult] = []
     passed = 0
     for item in AIVIDEO_CORPUS.items:
@@ -101,7 +103,6 @@ def run_aivideo_benchmark(diagnostics: dict[str, Any] | None = None) -> Benchmar
                 availability=availability,
             )
         )
-    diag = diagnostics if diagnostics is not None else {}
     return BenchmarkReceipt(
         corpus_version=AIVIDEO_CORPUS.corpus_version,
         kinocut_version=_kinocut_version(),
