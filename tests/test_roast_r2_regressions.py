@@ -109,6 +109,21 @@ def test_init_project_validates_path_and_escapes_yaml_name(tmp_path):
     assert parsed["name"] == injected_name
     assert "evil" not in parsed
     assert result["cutfile"] == str(target / "cutfile.yaml")
+    # Must also succeed without optional PyYAML installed (Minimal install CI job).
+    import sys
+
+    saved_yaml = sys.modules.get("yaml")
+    sys.modules["yaml"] = None  # type: ignore[assignment]
+    try:
+        bare_target = tmp_path / "bare_proj"
+        bare_res = init_project(str(bare_target), name="bare-demo")
+        assert bare_res["cutfile"] == str(bare_target / "cutfile.yaml")
+        assert (bare_target / "cutfile.yaml").is_file()
+    finally:
+        if saved_yaml is not None:
+            sys.modules["yaml"] = saved_yaml
+        else:
+            sys.modules.pop("yaml", None)
 
 
 def test_package_getattr_preserves_internal_module_not_found(monkeypatch):
