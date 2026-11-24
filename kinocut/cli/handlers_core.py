@@ -89,6 +89,9 @@ def _register_frame_commands(runner: CommandRunner) -> None:
             end="end",
             output_path="output",
             accurate="accurate",
+            bpm="bpm",
+            fps="fps",
+            offset_s="offset",
         ),
     )
     runner.register(

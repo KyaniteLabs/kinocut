@@ -51,6 +51,9 @@ def _add_core_edit_parsers(subparsers: argparse._SubParsersAction) -> None:
     trim_p.add_argument("-s", "--start", default="0", help="Start time")
     trim_p.add_argument("-d", "--duration", help="Duration")
     trim_p.add_argument("-e", "--end", help="End time")
+    trim_p.add_argument("--bpm", type=float, help="Enable musical bar:beat:sub times")
+    trim_p.add_argument("--fps", type=float, default=30.0, help="Musical editing frame rate")
+    trim_p.add_argument("--offset", type=float, default=0.0, help="Song origin in seconds")
     trim_p.add_argument("-o", "--output", help="Output file path")
     trim_p.add_argument("--accurate", action="store_true", help="Compatibility flag; trims are always frame-accurate")
 
