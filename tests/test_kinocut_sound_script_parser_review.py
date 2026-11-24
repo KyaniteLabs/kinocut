@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from kinocut_sound.lines import Emotion, ProfileRef, Prosody
-from kinocut_sound import episode_assembly as assembly
+from kinocut_sound._timeline_identity import bounded_pause_cue_id
 from kinocut_sound.limits import (
     MAX_SCRIPT_ACTORS,
     MAX_SCRIPT_BEATS_PER_SCENE,
@@ -559,11 +559,11 @@ def test_parsed_script_rejects_every_timeline_emitting_id_collision(collision):
     elif collision == "line_pause_beat":
         payload["parsed_lines"][0]["pause_after_seconds"] = 0.5
         line_id = payload["parsed_lines"][0]["line"]["line_id"]
-        _rename_beat_id(payload, assembly._bounded_pause_cue_id("line", line_id))
+        _rename_beat_id(payload, bounded_pause_cue_id("line", line_id))
     else:
         payload["scenes"][0]["pause_after_seconds"] = 0.5
         scene_id = payload["scenes"][0]["scene_id"]
-        _rename_beat_id(payload, assembly._bounded_pause_cue_id("scene", scene_id))
+        _rename_beat_id(payload, bounded_pause_cue_id("scene", scene_id))
 
     with pytest.raises(ValidationError):
         parser.ParsedScript.model_validate(payload)

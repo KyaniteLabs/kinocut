@@ -35,25 +35,6 @@ DUCK = {
 }
 
 MODEL_DATA = {
-    "kinocut_sound.episode_assembly.ClipRef": {
-        "line_id": "line",
-        "artifact_hash": SHA,
-        "source_ref": "audio.wav",
-        "duration_seconds": 1.0,
-    },
-    "kinocut_sound.episode_assembly.FoleyCueIntent": {
-        "cue_id": "foley",
-        "after_line_id": "line",
-        "asset_ref": "foley",
-        "asset_hash": SHA,
-        "duration_seconds": 1.0,
-    },
-    "kinocut_sound.episode_assembly.DesignedSilenceIntent": {
-        "cue_id": "silence",
-        "after_line_id": "line",
-        "quality": "dead",
-        "duration_seconds": 1.0,
-    },
     "kinocut_sound.script_parser.ParsedLine": {
         "scene_id": "scene",
         "line_index": 1,

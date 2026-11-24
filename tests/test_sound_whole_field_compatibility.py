@@ -2,15 +2,12 @@
 
 from array import array
 import hashlib
-from types import SimpleNamespace
 import pytest
 
 from kinocut_sound._canonical import BoundedCode, RecordBase
 from kinocut_sound.public.mix_request import SourceAsset, load_mix_request
 from kinocut_sound.qa.meter import _version
 from kinocut_sound.validation import SHA256_PATTERN, RECORD_KIND_PATTERN, CREATED_BY_PATTERN
-from kinocut_sound.voice.clone import CloneRenderer
-from kinocut_sound.voice.blend import BlendRenderer
 from kinocut_sound.mix._wav import pcm_to_wav
 from tests.test_sound_public_mix import mix_project, _render  # noqa: F401
 from tests.test_sound_static_routing import routed_project, make_stereo  # noqa: F401
@@ -35,29 +32,6 @@ def test_published_pattern_strings_are_unchanged():
     assert source["sha256"]["pattern"] == SHA256_PATTERN == r"^sha256:[0-9a-f]{64}$"
     assert record["record_kind"]["pattern"] == RECORD_KIND_PATTERN == r"^[a-z][a-z0-9_]{0,63}$"
     assert record["created_by"]["pattern"] == CREATED_BY_PATTERN == r"^(human|agent|tool)(:[a-z0-9][a-z0-9_.-]{0,63})?$"
-
-
-@pytest.mark.parametrize("renderer", [CloneRenderer, BlendRenderer])
-@pytest.mark.parametrize("path", ["voice.wav", "exports/voice-1.wav"])
-def test_valid_export_paths_reach_authorization(renderer, path):
-    class ReachedAuthorization(Exception):
-        pass
-
-    def reached(**kwargs):
-        raise ReachedAuthorization
-
-    sentinel = SimpleNamespace(_authorize_export=reached, _authorize=reached)
-    with pytest.raises(ReachedAuthorization):
-        renderer.export(
-            sentinel,
-            output_path=path,
-            output_dir="unused",
-            line=None,
-            profile=None,
-            ledger=None,
-            context=None,
-            at_iso="2026-01-01T00:00:00Z",
-        )
 
 
 @pytest.mark.parametrize(

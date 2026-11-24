@@ -51,7 +51,7 @@ def test_field_specific_baseline_controls(name, field, kind, expected):
 
 
 def test_inventory_and_factories_cover_every_migration_row():
-    assert INVENTORY["existing_guard_count"] == len(INVENTORY["existing_guards"]) == 31
+    assert INVENTORY["existing_guard_count"] == len(INVENTORY["existing_guards"]) == 28
     assert len(INVENTORY["added_guards"]) == 2
     assert {name for name, _ in GUARDS} <= MODEL_DATA.keys()
     controls = {(row["model"], row["field"]) for row in BASELINE["controls"]}
