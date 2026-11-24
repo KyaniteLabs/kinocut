@@ -214,7 +214,7 @@ def _format_edit_text(result: Any) -> None:
         lines.append(f"[bold green]Format:[/bold green] {data['format']}")
     for line in (
         _format_loudness("Input loudness", data.get("measured_input"), ("I", "LRA", "TP")),
-        _format_loudness("Output loudness", data.get("measured_output"), ("I", "TP")),
+        _format_loudness("Output loudness (second-pass filter)", data.get("measured_output"), ("I", "TP")),
     ):
         if line:
             lines.append(line)

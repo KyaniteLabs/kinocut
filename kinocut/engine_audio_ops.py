@@ -231,39 +231,38 @@ def _add_audio_guardrail_warnings(video_info, audio_path, audio_probe, volume, s
     ``warnings.warn`` only reached the server's stderr, once per location.
     """
 
-    messages: list[str] = []
-    if volume > 1.0:
-        messages.append(
-            f"[AUDIO GUARDRAIL] volume={volume} > 1.0. If source audio is already "
-            f"near peak, this may cause digital clipping/distortion."
-        )
     # The attached audio is commonly an audio-only file (e.g. a voiceover WAV),
     # so probe it with an audio-aware probe — otherwise a valid WAV is misreported
     # as "No video stream found" (issue #7).
     try:
         audio_info = _build_audio_input_info(audio_path, audio_probe)
-        messages.extend(
+        return [
             f"[AUDIO GUARDRAIL] {message}"
             for message in validate_audio_mix(video_info, audio_info, volume=volume, start_time=start_time or 0.0)
-        )
-    except Exception as e:
-        logger.warning("[AUDIO GUARDRAIL] Could not validate audio mix: %s", e, exc_info=True)
-        messages.append(f"[AUDIO GUARDRAIL] Could not validate audio mix: {e}")
-    return messages
+        ]
+    except Exception as exc:
+        logger.warning("[AUDIO GUARDRAIL] Could not validate audio mix: %s", type(exc).__name__)
+        return ["[AUDIO GUARDRAIL] Could not validate audio mix; listen before publishing."]
 
 
-def _dropped_stream_warnings(video_probe: dict) -> list[str]:
-    """These operations carry one picture stream and one audio track; say what they leave behind."""
-    streams = video_probe.get("streams", [])
-    extra_audio = sum(1 for stream in streams if stream.get("codec_type") == "audio") - 1
+def _dropped_stream_warnings(probe: dict, *, uses_first_audio: bool, input_role: str = "source") -> list[str]:
+    """Describe audio and subtitle drops implied by the explicit stream maps."""
+    streams = probe.get("streams", [])
+    audio = sum(1 for stream in streams if stream.get("codec_type") == "audio")
     subtitles = sum(1 for stream in streams if stream.get("codec_type") == "subtitle")
     messages: list[str] = []
-    if extra_audio > 0:
+    if audio and not uses_first_audio:
         messages.append(
-            f"{extra_audio} additional audio track(s) in the source are not carried into the output; only the first is kept."
+            f"All {audio} source audio track(s) were dropped to replace existing audio. "
+            "Use mix=True to include the first source track."
+        )
+    elif audio > 1:
+        messages.append(
+            f"{audio - 1} additional audio track(s) in the {input_role} are not carried into the output; "
+            "only the first contributes to the output audio."
         )
     if subtitles > 0:
-        messages.append(f"{subtitles} subtitle stream(s) in the source are not carried into the output.")
+        messages.append(f"{subtitles} subtitle stream(s) in the {input_role} are not carried into the output.")
     return messages
 
 
@@ -508,12 +507,9 @@ def add_audio(
     )
     result = _render_audio_edit(cmd, output, "add_audio")
 
-    warnings = [*_dropped_stream_warnings(video_probe)]
-    if source_has_audio and not mix:
-        warnings.append(
-            "This operation will replace existing audio. Use mix=True to "
-            "preserve source audio and listen before publishing."
-        )
+    warnings = _dropped_stream_warnings(video_probe, uses_first_audio=mix or audio_path == video_path)
+    if audio_path != video_path:
+        warnings.extend(_dropped_stream_warnings(audio_probe, uses_first_audio=True, input_role="attached media"))
     if mix and source_has_audio:
         warnings.append("Both tracks are summed without loudness normalization and may clip; listen before publishing.")
     if duration_policy == "shortest":
@@ -542,6 +538,18 @@ def _validate_duck_params(
     if clean[0] <= 0:
         raise MCPVideoError("music_volume must be positive", error_type="validation_error", code="invalid_parameter")
     return clean
+
+
+def _duck_filter(music_volume: float, threshold: float, ratio: float, attack: float, release: float) -> str:
+    volume, threshold_s, ratio_s, attack_s, release_s = (
+        _escape_ffmpeg_filter_value(str(value)) for value in (music_volume, threshold, ratio, attack, release)
+    )
+    return (
+        f"[1:a:0]volume={volume}[bg];"
+        f"[bg][0:a:0]sidechaincompress=threshold={threshold_s}:ratio={ratio_s}"
+        f":attack={attack_s}:release={release_s}[duck];"
+        "[0:a:0][duck]amix=inputs=2:duration=first:normalize=0[aout]"
+    )
 
 
 def duck_audio(
@@ -589,15 +597,8 @@ def duck_audio(
         )
 
     _primary_audio_timeline(video_path, source_probe)
-    _primary_audio_timeline(music_path, _run_ffprobe_json(music_path))
-
-    safe = [_escape_ffmpeg_filter_value(str(value)) for value in (music_volume, threshold, ratio, attack, release)]
-    filter_complex = (
-        f"[1:a:0]volume={safe[0]}[bg];"
-        f"[bg][0:a:0]sidechaincompress=threshold={safe[1]}:ratio={safe[2]}"
-        f":attack={safe[3]}:release={safe[4]}[duck];"
-        f"[0:a:0][duck]amix=inputs=2:duration=first:normalize=0[aout]"
-    )
+    music_probe = source_probe if music_path == video_path else _run_ffprobe_json(music_path)
+    _primary_audio_timeline(music_path, music_probe)
 
     args = [
         "-i",
@@ -605,7 +606,7 @@ def duck_audio(
         "-i",
         music_path,
         "-filter_complex",
-        filter_complex,
+        _duck_filter(music_volume, threshold, ratio, attack, release),
         "-map",
         "0:v:0?",
         "-map",
@@ -620,4 +621,7 @@ def duck_audio(
         output,
     ]
     result = _render_audio_edit(args, output, "duck_audio")
-    return result.model_copy(update={"warnings": [*result.warnings, *_dropped_stream_warnings(source_probe)]})
+    warnings = _dropped_stream_warnings(source_probe, uses_first_audio=True)
+    if music_path != video_path:
+        warnings.extend(_dropped_stream_warnings(music_probe, uses_first_audio=True, input_role="music input"))
+    return result.model_copy(update={"warnings": [*result.warnings, *warnings]})

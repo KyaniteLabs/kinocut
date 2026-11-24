@@ -20,6 +20,7 @@ from .defaults import (
     QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES,
 )
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
+from .quality_lavfi import frame_tags_command, movie_source
 from .quality_signal_reader import read_signalstats, read_ffmpeg_signalstats
 from .quality_source import QualitySourceMixin
 from .quality_guardrail_checks import QualityChecksMixin
@@ -37,25 +38,6 @@ logger = logging.getLogger(__name__)
 # Value of `details.reason` on an audio_levels report that failed because the
 # video has no audio stream at all (as opposed to measurable-but-bad audio).
 NO_AUDIO_STREAM_REASON = "no_audio_stream"
-
-
-def _escape_lavfi_path(path: str) -> str:
-    """Escape special characters in a file path for FFmpeg lavfi movie= filter.
-
-    Characters that must be escaped: \\ ' : [ ] , ; =
-    """
-    for char, escaped in [
-        ("\\", "\\\\"),
-        ("'", "\\'"),
-        (":", "\\:"),
-        ("[", "\\["),
-        ("]", "\\]"),
-        (",", "\\,"),
-        (";", "\\;"),
-        ("=", "\\="),
-    ]:
-        path = path.replace(char, escaped)
-    return path
 
 
 class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
@@ -116,15 +98,10 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
             self.SATURATION_MAX = self.profile.saturation.target_max
 
     def _movie_source(self, video: str, tail: str) -> str:
-        # Quote the value: FFmpeg runs two unescaping passes over filter args,
-        # so a single-escaped drive-letter colon ("D\:") is re-split on pass 2
-        # and the movie filter receives only "D". Quoting survives both passes
-        # on Windows and is a no-op for colon-free POSIX paths.
-        movie = f"movie='{_escape_lavfi_path(video)}'"
-        limit = self.max_analyze_seconds
-        if limit and limit > 0:
-            movie = f"{movie},trim=duration={float(limit):.3f},setpts=PTS-STARTPTS"
-        return f"{movie},{tail}"
+        return movie_source(video, tail, self.max_analyze_seconds)
+
+    def _frame_tags_command(self, video: str, tail: str, tags: str) -> list[str]:
+        return frame_tags_command(self._movie_source(video, self._quality_input_filter(video, tail)), tags)
 
     def _input_limit_args(self) -> list[str]:
         limit = self.max_analyze_seconds
@@ -169,21 +146,8 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 self._signalstats_cache[cache_key] = means  # refresh LRU order
                 return means
 
-        cmd = [
-            "ffprobe",
-            "-v",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            self._movie_source(video, "signalstats"),
-            "-show_entries",
-            f"frame=pix_fmt,color_range,color_transfer:frame_tags={self._SIGNALSTATS_ALL_TAGS}",
-            "-of",
-            "json",
-        ]
         try:
-            cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
+            cmd = self._frame_tags_command(video, "signalstats", self._SIGNALSTATS_ALL_TAGS)
             reduction = read_signalstats(cmd)
             means = reduction.means()
             if not means:
@@ -200,21 +164,8 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
 
     def _run_ffprobe(self, video: str, filter_name: str) -> dict[str, Any]:
         """Run ffprobe with signalstats filter and parse results."""
-        cmd = [
-            "ffprobe",
-            "-v",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            self._movie_source(video, "signalstats"),
-            "-show_entries",
-            f"frame=pix_fmt,color_range,color_transfer:frame_tags={filter_name}",
-            "-of",
-            "json",
-        ]
         try:
-            cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
+            cmd = self._frame_tags_command(video, "signalstats", filter_name)
             reduction = read_signalstats(cmd, retain_values=True)
             values = reduction.values.get(filter_name)
             if not values:
@@ -500,21 +451,8 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         Returns ``mean``, ``median``, ``static_fraction`` and ``frames``, or an
         ``_error`` diagnostic if analysis fails. Requires only FFmpeg.
         """
-        cmd = [
-            "ffprobe",
-            "-v",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            self._movie_source(video, DEFAULT_QUALITY_MOTION_FILTER),
-            "-show_entries",
-            "frame=pix_fmt,color_range,color_transfer:frame_tags=lavfi.signalstats.YAVG",
-            "-of",
-            "json",
-        ]
         try:
-            cmd[6] = self._movie_source(video, self._quality_input_filter(video, DEFAULT_QUALITY_MOTION_FILTER))
+            cmd = self._frame_tags_command(video, DEFAULT_QUALITY_MOTION_FILTER, "lavfi.signalstats.YAVG")
             reduction = read_signalstats(cmd, retain_values=True, difference=True)
             values = reduction.values.get("lavfi.signalstats.YAVG", [])
             # tblend emits one fewer diff frame than source frames; a single

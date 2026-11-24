@@ -119,6 +119,19 @@ def test_linear_gain_within_ceiling_has_no_warning_and_keeps_source_rate(tmp_pat
     )
 
 
+@pytest.mark.parametrize("present", [False, True])
+def test_normalization_distinguishes_silence_from_missing_audio(tmp_path, present):
+    source = tmp_path / "source.mp4"
+    audio = ["-f", "lavfi", "-i", "anullsrc=d=1", "-c:a", "aac"] if present else []
+    _run_ffmpeg(["-f", "lavfi", "-i", "color=s=64x64:d=1", *audio, "-c:v", "libx264", str(source)])
+    result = normalize_audio(str(source), output_path=str(tmp_path / "out.mp4"))
+    assert (result.audio_codec == "aac") == present
+    assert result.measured_input is None and result.measured_output is None
+    assert [message.split(":", 1)[0] for message in result.warnings] == [
+        "input_is_silent" if present else "input_has_no_audio_stream"
+    ]
+
+
 def test_real_output_keeps_the_source_sample_rate(sample_video: str, tmp_path) -> None:
     output = tmp_path / "normalized.mp4"
     result = normalize_audio(sample_video, target_lufs=-16.0, output_path=str(output))
@@ -159,7 +172,7 @@ def test_no_audio_input_uses_stream_copy_fallback(tmp_path, monkeypatch) -> None
     assert "-af" not in calls[0]
 
 
-def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, monkeypatch) -> None:
+def test_gated_audio_uses_one_pass_fallback_without_a_silence_warning(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._validate_normalized_output",
         lambda *_args: {"format": {"format_name": "wav"}, "streams": []},
@@ -172,7 +185,7 @@ def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, m
             {
                 "input_i": "-inf",
                 "input_lra": "0.0",
-                "input_tp": "-inf",
+                "input_tp": "-35.0",
                 "input_thresh": "-70.0",
                 "target_offset": "0.0",
             }
@@ -194,6 +207,7 @@ def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, m
     result = normalize_audio(str(source), output_path=str(output))
 
     assert result.measured_input is None and result.measured_output is None
+    assert result.warnings == []
     assert len(calls) == 2
     assert all("TP=-1.5" in command[command.index("-af") + 1] for command in calls)
     assert "measured_I" not in calls[1][calls[1].index("-af") + 1]
@@ -294,6 +308,7 @@ def test_real_default_margin_clears_production_audio_gate(tmp_path) -> None:
 LOUDNESS_SNAPSHOT = {
     "measured_input": {"I": -20.0, "LRA": 2.0, "TP": -12.0},
     "measured_output": {"I": -16.0, "TP": -8.0},
+    "measured_output_source": "second_pass_loudnorm_filter",
 }
 
 
@@ -378,7 +393,7 @@ def test_measured_loudness_snapshot_reaches_cli_and_mcp(tmp_path, monkeypatch, c
     _format_edit_text(result)
     text = text_console.export_text()
     assert "Input loudness: I -20.00 LUFS, LRA 2.00 LU, TP -12.00 dBTP" in text
-    assert "Output loudness: I -16.00 LUFS, TP -8.00 dBTP" in text
+    assert "Output loudness (second-pass filter): I -16.00 LUFS, TP -8.00 dBTP" in text
 
     plain = Console(file=StringIO(), record=True, force_terminal=True, width=120, color_system=None)
     monkeypatch.setattr(formatting, "console", plain)
