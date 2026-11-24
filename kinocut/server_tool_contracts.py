@@ -211,7 +211,7 @@ def _log_request_pair(name: str, arguments: dict[str, Any]) -> None:
     """
     if name in _FAMILY_TOOL_NAMES:
         operation = arguments.get("operation")
-        if not isinstance(operation, str) or not operation:
+        if not isinstance(operation, str) or FAMILY_OF_OPERATION.get(operation) != name:
             return
     elif name in FAMILY_OF_OPERATION:
         operation = name

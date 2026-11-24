@@ -205,5 +205,94 @@ def test_request_text_is_truncated(enabled_log: Path) -> None:
     huge = "please trim this clip quietly " * 600
     log_invocation("video_intent", {"goal": huge})
     record = _records(enabled_log)[0]
-    assert len(record["request_text"]) <= request_log._MAX_REQUEST_TEXT + 64
-    assert "chars truncated" in record["request_text"]
+    assert len(record["request_text"].encode("utf-8")) <= request_log._MAX_REQUEST_TEXT
+    assert "truncated" in record["request_text"]
+
+
+def test_request_text_enforces_utf8_byte_budget_with_multibyte_chars(enabled_log: Path) -> None:
+    multibyte = "剪辑视频 🎬 " * 1200
+    log_invocation("video_intent", {"goal": multibyte})
+    record = _records(enabled_log)[0]
+    assert len(record["request_text"].encode("utf-8")) <= request_log._MAX_REQUEST_TEXT
+    assert "bytes truncated" in record["request_text"]
+
+
+def test_sensitive_keys_and_spaced_paths_are_fully_redacted(enabled_log: Path) -> None:
+    log_invocation(
+        "video_trim",
+        {
+            "refresh_token": "short123",
+            "api_key": "tiny",
+            "input_path": "/Users/alice/My Private Project/final cut 2026.mp4",
+            "clips": ["/Users/alice/Vacation Clip One.mp4", "/Users/alice/Vacation Clip Two.mp4"],
+        },
+    )
+    text = _records(enabled_log)[0]["request_text"]
+    for leaked in (
+        "short123",
+        "tiny",
+        "My Private Project",
+        "final cut 2026",
+        "Vacation Clip One",
+        "Vacation Clip Two",
+    ):
+        assert leaked not in text
+    assert "<redacted>" in text
+    assert "<path>" in text
+
+
+def test_unterminated_pem_and_oversized_input_stay_linear(enabled_log: Path) -> None:
+    import time
+
+    adversarial_pem = "-----BEGIN RSA PRIVATE KEY----- " * 5000 + "SUPERSECRETBODY"
+    start = time.monotonic()
+    out = redact_text(adversarial_pem)
+    assert time.monotonic() - start < 0.5
+    assert "SUPERSECRETBODY" not in out
+    assert "<redacted>" in out
+
+    start = time.monotonic()
+    log_invocation("video_intent", {"goal": "trim clip " * 200_000})
+    assert time.monotonic() - start < 0.5
+    record = _records(enabled_log)[0]
+    assert len(record["request_text"].encode("utf-8")) <= request_log._MAX_REQUEST_TEXT
+
+
+def test_unsafe_log_destinations_are_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import os
+
+    # 1. Symlink destination must not be followed.
+    victim = tmp_path / "victim.jsonl"
+    victim.write_text("KEEP\n", encoding="utf-8")
+    link = tmp_path / "link.jsonl"
+    link.symlink_to(victim)
+    monkeypatch.setenv(request_log.ENV_REQUEST_LOG, str(link))
+    log_invocation("video_info", {"input_path": "/tmp/a.mp4"})
+    assert victim.read_text(encoding="utf-8") == "KEEP\n"
+
+    # 2. World-readable existing file must be rejected on POSIX.
+    if os.name == "posix":
+        world = tmp_path / "world.jsonl"
+        world.write_text("", encoding="utf-8")
+        world.chmod(0o644)
+        monkeypatch.setenv(request_log.ENV_REQUEST_LOG, str(world))
+        log_invocation("video_info", {"input_path": "/tmp/a.mp4"})
+        assert world.read_text(encoding="utf-8") == ""
+
+        # 3. FIFO must fail fast without blocking.
+        fifo = tmp_path / "pipe.jsonl"
+        os.mkfifo(fifo, 0o600)
+        monkeypatch.setenv(request_log.ENV_REQUEST_LOG, str(fifo))
+        log_invocation("video_info", {"input_path": "/tmp/a.mp4"})
+
+
+def test_unrecognized_or_cross_family_operation_is_not_logged(enabled_log: Path) -> None:
+    from kinocut.tool_registry import configure_tool_surface
+
+    try:
+        configure_tool_surface()
+        _call("video_plan_ops", {"operation": "bogus_" + "x" * 5000, "params": {}})
+        _call("video_plan_ops", {"operation": "video_trim", "params": {}})
+    finally:
+        configure_tool_surface("all")
+    assert _records(enabled_log) == []

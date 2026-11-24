@@ -36,6 +36,7 @@ import contextlib
 import json
 import os
 import re
+import stat
 import sys
 import uuid
 from collections.abc import Mapping
@@ -47,21 +48,79 @@ from typing import Any, cast
 ENV_REQUEST_LOG = "KINOCUT_REQUEST_LOG"
 _LOG_NAME = "request_log.jsonl"
 _MAX_REQUEST_TEXT = 8192
+_MAX_SCAN_CHARS = _MAX_REQUEST_TEXT * 2
+_MAX_REDACT_ITEMS = 256
+_MAX_REDACT_DEPTH = 16
 _PLACEHOLDER = "<redacted>"
+_PATH_PLACEHOLDER = "<path>"
 
 _TRUTHY = {"1", "true", "yes", "on"}
 _FALSY = {"", "0", "false", "no", "off"}
 
+_PEM_BEGIN_RE = re.compile(r"-----BEGIN [A-Z0-9 ]{0,64}PRIVATE KEY-----")
+_PEM_END_RE = re.compile(r"-----END [A-Z0-9 ]{0,64}PRIVATE KEY-----")
+
+_SENSITIVE_KEY_RE = re.compile(
+    r"(?i)(?:^|[_-])(?:api[-_]?key|access[-_]?key|secret|client[-_]?secret|token|password|passwd|"
+    r"authorization|auth|cookie|credential|private[-_]?key|bearer|jwt|session[-_]?id)(?:$|[_-])"
+)
+_EXACT_PATH_KEYS = frozenset(
+    {
+        "path",
+        "paths",
+        "file",
+        "files",
+        "dir",
+        "dirs",
+        "directory",
+        "folder",
+        "input",
+        "inputs",
+        "output",
+        "outputs",
+        "source",
+        "sources",
+        "target",
+        "destination",
+        "video",
+        "videos",
+        "audio",
+        "image",
+        "images",
+        "clip",
+        "clips",
+        "subtitle",
+        "subtitles",
+        "srt",
+        "ass",
+        "font",
+        "logo",
+        "watermark",
+        "overlay",
+        "background",
+        "foreground",
+        "mask",
+        "matte",
+        "lut",
+        "script",
+        "project",
+        "workspace",
+        "workdir",
+        "work_dir",
+        "list_file",
+        "variables_file",
+        "plan",
+        "plan_path_or_dir",
+    }
+)
+_PATH_KEY_SUFFIXES = ("_path", "_paths", "_file", "_files", "_dir", "_dirs", "_folder", "_video", "_audio", "_image")
+
 # Ordered redaction rules: (pattern, replacement).  Order matters — URLs are
 # rewritten before path rules so `scheme://host/path` is not half-eaten, and
 # credential assignments run before the generic dense-token rule so the key
-# name survives as context.  This table is the privacy review surface.
+# name survives as context.  PEM private key blocks are stripped in one linear
+# pass before this table runs.  This table is the privacy review surface.
 _REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
-    # PEM private key blocks, headers included.
-    (
-        re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----", re.DOTALL),
-        _PLACEHOLDER,
-    ),
     # Bearer credentials, with or without an assignment key.  Runs before the
     # assignment rule so the token after "Bearer" is consumed even when the
     # assignment value itself stops at whitespace.
@@ -118,21 +177,90 @@ _REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 
 
+def _redact_pem_blocks(text: str) -> str:
+    """Strip PEM private key blocks in one linear forward pass."""
+    if "PRIVATE KEY-----" not in text:
+        return text
+    parts: list[str] = []
+    pos = 0
+    while True:
+        begin = _PEM_BEGIN_RE.search(text, pos)
+        if begin is None:
+            parts.append(text[pos:])
+            return "".join(parts)
+        parts.append(text[pos : begin.start()])
+        parts.append(_PLACEHOLDER)
+        end = _PEM_END_RE.search(text, begin.end())
+        if end is None:
+            return "".join(parts)
+        pos = end.end()
+
+
 def redact_text(text: str) -> str:
     """Apply every redaction rule to ``text``, in table order."""
+    text = _redact_pem_blocks(text)
     for pattern, replacement in _REDACTIONS:
         text = pattern.sub(replacement, text)
     return text
 
 
-def _redact_value(value: object) -> object:
-    """Return a redacted copy of ``value``; never mutates the input."""
+def _is_path_key(key: str) -> bool:
+    lowered = key.strip().lower()
+    return lowered in _EXACT_PATH_KEYS or lowered.endswith(_PATH_KEY_SUFFIXES)
+
+
+def _redact_path_value(value: object, budget: list[int], depth: int) -> object:
     if isinstance(value, str):
-        return redact_text(value)
-    if isinstance(value, dict):
-        return {redact_text(str(key)): _redact_value(item) for key, item in cast(dict[object, object], value).items()}
+        return _PATH_PLACEHOLDER
     if isinstance(value, (list, tuple)):
-        return [_redact_value(item) for item in cast(list[object] | tuple[object, ...], value)]
+        return [
+            _redact_path_value(item, budget, depth + 1)
+            for item in cast(list[object] | tuple[object, ...], value)[:_MAX_REDACT_ITEMS]
+        ]
+    return _redact_value(value, budget=budget, depth=depth + 1)
+
+
+def _redact_bounded_str(text: str, budget: list[int]) -> str:
+    remaining = budget[0]
+    if remaining <= 0:
+        return "<truncated>"
+    clipped = len(text) > remaining
+    chunk = text[:remaining] if clipped else text
+    budget[0] = max(0, remaining - len(chunk))
+    redacted = redact_text(chunk)
+    return redacted + ("...<truncated>" if clipped else "")
+
+
+def _redact_value(value: object, *, budget: list[int] | None = None, depth: int = 0) -> object:
+    """Return a bounded redacted copy of ``value``; never mutates the input."""
+    active_budget = budget if budget is not None else [_MAX_SCAN_CHARS]
+    if depth >= _MAX_REDACT_DEPTH or active_budget[0] <= 0:
+        return "<truncated>"
+    if isinstance(value, str):
+        return _redact_bounded_str(value, active_budget)
+    if isinstance(value, dict):
+        result: dict[str, object] = {}
+        for index, (raw_key, item) in enumerate(cast(dict[object, object], value).items()):
+            if index >= _MAX_REDACT_ITEMS or active_budget[0] <= 0:
+                result["<truncated>"] = True
+                break
+            key_str = str(raw_key)
+            safe_key = _redact_bounded_str(key_str, active_budget)
+            if _SENSITIVE_KEY_RE.search(key_str):
+                result[safe_key] = _PLACEHOLDER
+            elif _is_path_key(key_str):
+                result[safe_key] = _redact_path_value(item, active_budget, depth)
+            else:
+                result[safe_key] = _redact_value(item, budget=active_budget, depth=depth + 1)
+        return result
+    if isinstance(value, (list, tuple)):
+        items: list[object] = []
+        for index, item in enumerate(cast(list[object] | tuple[object, ...], value)):
+            if index >= _MAX_REDACT_ITEMS or active_budget[0] <= 0:
+                items.append("<truncated>")
+                break
+            items.append(_redact_value(item, budget=active_budget, depth=depth + 1))
+        return items
     return value
 
 
@@ -158,18 +286,55 @@ def _session_id() -> str:
     return uuid.uuid4().hex
 
 
+def _truncate_utf8_bytes(text: str, max_bytes: int) -> str:
+    """Cap ``text`` at ``max_bytes`` UTF-8 bytes including the truncation notice."""
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+    notice = f"...<{len(encoded) - max_bytes} bytes truncated>"
+    while True:
+        keep = max(0, max_bytes - len(notice.encode("utf-8")))
+        prefix = encoded[:keep].decode("utf-8", errors="ignore")
+        actual_omitted = len(encoded) - len(prefix.encode("utf-8"))
+        updated = f"...<{actual_omitted} bytes truncated>"
+        if updated == notice:
+            return prefix + notice
+        notice = updated
+
+
 def _request_text(arguments: Mapping[str, Any]) -> str:
-    """Serialize ``arguments`` to compact JSON, redacted and size-capped."""
+    """Serialize ``arguments`` to compact JSON, redacted and UTF-8 byte-capped."""
     rendered = json.dumps(_redact_value(dict(arguments)), ensure_ascii=False, separators=(",", ":"), default=str)
+    if len(rendered) > _MAX_SCAN_CHARS:
+        rendered = rendered[:_MAX_SCAN_CHARS]
     rendered = redact_text(rendered)
-    if len(rendered) > _MAX_REQUEST_TEXT:
-        return rendered[:_MAX_REQUEST_TEXT] + f"...<{len(rendered) - _MAX_REQUEST_TEXT} chars truncated>"
-    return rendered
+    return _truncate_utf8_bytes(rendered, _MAX_REQUEST_TEXT)
 
 
 def _open_log(path: Path) -> int:
     path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
-    return os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_CLOEXEC", 0), 0o600)
+    flags = (
+        os.O_WRONLY
+        | os.O_APPEND
+        | os.O_CREAT
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+    )
+    fd = os.open(path, flags, 0o600)
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode):
+            raise OSError("Request log destination must be a regular file")
+        if hasattr(os, "geteuid"):
+            if st.st_uid != os.geteuid():
+                raise PermissionError("Request log destination is not owned by the current user")
+            if st.st_mode & 0o077:
+                raise PermissionError("Request log destination must not be group- or world-accessible")
+    except BaseException:
+        os.close(fd)
+        raise
+    return fd
 
 
 def log_invocation(operation: str, arguments: Mapping[str, Any]) -> None:
