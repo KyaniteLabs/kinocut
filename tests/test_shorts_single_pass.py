@@ -185,3 +185,41 @@ def test_captioned_shorts_succeeds_with_apostrophe_in_tmpdir_or_output_dir(
     assert result["output_path"] == str(output) and output.is_file()
     assert list(out_dir.iterdir()) == [output]
     assert not list(scratch.iterdir())
+
+
+def test_synthesis_workdir_skips_broken_tmpdir_when_preferred_dir_is_safe(tmp_path, monkeypatch):
+    from kinocut.engine_subtitles import _synthesis_workdir
+
+    out_dir = tmp_path / "plain_out"
+    out_dir.mkdir()
+    apostrophe_dir = tmp_path / "creator's out"
+    apostrophe_dir.mkdir()
+    safe_cwd = tmp_path / "safe_cwd"
+    safe_cwd.mkdir()
+
+    def _broken_tempdir() -> str:
+        raise FileNotFoundError("missing TMPDIR")
+
+    monkeypatch.setattr(tempfile, "gettempdir", _broken_tempdir)
+    monkeypatch.chdir(safe_cwd)
+    assert _synthesis_workdir(str(out_dir / "burned.mp4")) == str(out_dir)
+    assert _synthesis_workdir(str(apostrophe_dir / "burned.mp4")) == str(safe_cwd)
+    assert shorts_flow._filter_safe_ass_dir(str(apostrophe_dir / "c.srt"), str(out_dir / "short.mp4")) == str(out_dir)
+
+
+def test_subtitles_fails_closed_when_all_staging_dirs_contain_apostrophe(source, tmp_path, monkeypatch):
+    from kinocut.engine_subtitles import subtitles
+
+    apostrophe_dir = tmp_path / "creator's workspace"
+    apostrophe_dir.mkdir()
+    srt = apostrophe_dir / "captions.srt"
+    srt.write_text("1\n00:00:00,000 --> 00:00:00,200\nFail closed\n", encoding="utf-8")
+    output = apostrophe_dir / "burned.mp4"
+
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(apostrophe_dir))
+    monkeypatch.chdir(apostrophe_dir)
+    with pytest.raises(MCPVideoError) as caught:
+        subtitles(source, str(srt), output_path=str(output))
+    assert caught.value.code == "subtitle_prepare_failed"
+    assert "creator's workspace" not in str(caught.value)
+    assert not output.exists()

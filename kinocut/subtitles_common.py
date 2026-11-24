@@ -154,6 +154,25 @@ def _normalize_playres(ass_content: str, width: int, height: int) -> str:
     return "\n".join(result) + "\n"
 
 
+def filter_safe_ass_workdir(*preferred_dirs: str) -> str:
+    """Select an apostrophe-free existing staging directory lazily, or fail closed."""
+    for candidate in preferred_dirs:
+        if "'" not in candidate and os.path.isdir(candidate):
+            return candidate
+    for resolver in (tempfile.gettempdir, os.getcwd):
+        try:
+            candidate = resolver()
+        except OSError:
+            continue
+        if "'" not in candidate and os.path.isdir(candidate):
+            return candidate
+    raise MCPVideoError(
+        "failed to prepare the subtitle file for burn-in",
+        error_type="processing_error",
+        code="subtitle_prepare_failed",
+    )
+
+
 def synthesize_dimensioned_ass(subtitle_path: str, display_size: tuple[int, int]) -> str:
     """Convert an SRT/VTT file to ASS and pin one PlayResX/Y = ``display_size``.
 

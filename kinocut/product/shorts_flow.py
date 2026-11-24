@@ -28,7 +28,7 @@ from ..ffmpeg_helpers import (
     _validate_output_path,
 )
 from ..models import ASPECT_RATIOS, QUALITY_PRESETS
-from ..subtitles_common import parse_force_style, synthesize_dimensioned_ass
+from ..subtitles_common import filter_safe_ass_workdir, parse_force_style, synthesize_dimensioned_ass
 from ..workflow.status import StepStatus
 
 Progress = Callable[[float], None]
@@ -327,15 +327,7 @@ def _prepare_captions(
 
 def _filter_safe_ass_dir(srt: str, output: str) -> str:
     """Pick an owned directory without filter-hostile apostrophes for transient ASS staging."""
-    candidates = [
-        str(Path(srt).parent),
-        os.path.dirname(os.path.abspath(output)),
-        os.getcwd(),
-    ]
-    for directory in candidates:
-        if "'" not in directory and os.path.isdir(directory):
-            return directory
-    return os.path.dirname(os.path.abspath(output))
+    return filter_safe_ass_workdir(str(Path(srt).parent), os.path.dirname(os.path.abspath(output)))
 
 
 def _render_crop(
@@ -361,10 +353,9 @@ def _render_crop(
         if srt is not None:
             _require_filter("subtitles", "Subtitle burn-in")
             force_style = parse_force_style(DEFAULT_SUBTITLE_STYLE if style is None else style)
+            ass_dir = _filter_safe_ass_dir(srt, output)
             try:
-                fd, temp_ass = tempfile.mkstemp(
-                    suffix=".ass", prefix="kc_shorts_", dir=_filter_safe_ass_dir(srt, output)
-                )
+                fd, temp_ass = tempfile.mkstemp(suffix=".ass", prefix="kc_shorts_", dir=ass_dir)
                 with os.fdopen(fd, "w", encoding="utf-8") as handle:
                     handle.write(synthesize_dimensioned_ass(srt, (width, height)))
             except OSError as exc:

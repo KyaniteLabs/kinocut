@@ -35,6 +35,7 @@ from .subtitles_common import (
     _has_renderable_ass_dialogue,
     _require_renderable_ass_dialogue,
     _subtitle_format,
+    filter_safe_ass_workdir,
     parse_force_style,
     probe_display_dimensions,
     synthesize_dimensioned_ass,
@@ -44,10 +45,7 @@ from .subtitles_common import (
 def _synthesis_workdir(output_path: str) -> str:
     """Directory for the transient dimensioned ASS (prefer output dir; avoid filter-hostile apostrophes)."""
     out_dir = os.path.dirname(os.path.abspath(output_path))
-    for candidate in (out_dir, tempfile.gettempdir(), os.getcwd()):
-        if "'" not in candidate and os.path.isdir(candidate):
-            return candidate
-    return out_dir
+    return filter_safe_ass_workdir(out_dir)
 
 
 def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_path: str) -> None:
