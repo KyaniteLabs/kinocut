@@ -6,6 +6,15 @@ from kinocut.engine_media_timeline import _packet_extent, _primary_audio_timelin
 from kinocut.errors import MCPVideoError
 
 
+def test_matroska_picture_extent_prefers_packet_measurement_over_tag(monkeypatch):
+    from kinocut import engine_media_timeline as module
+
+    video = {"codec_type": "video", "start_time": "0.5", "tags": {"DURATION": "00:00:01.417000000"}}
+    metadata = {"format": {"format_name": "matroska,webm", "duration": "1.5"}, "streams": [video]}
+    monkeypatch.setattr(module, "_packet_extent", lambda path, stream: (0.5, 1.0))
+    assert module._picture_extent("clip.mkv", metadata) == (0.5, 1.0)
+
+
 def _producer(text, source=None):
     def write(args, **kwargs):
         assert kwargs["timeout"] > 0

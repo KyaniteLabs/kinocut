@@ -76,7 +76,9 @@ def test_add_audio_reads_each_input_once(sample_video, sample_audio_wav, tmp_pat
         return probe(path)
 
     monkeypatch.setattr(engine_probe, "_run_ffprobe_json", counted)
-    monkeypatch.setattr(engine_audio_ops, "_packet_extent", lambda *_: pytest.fail("unexpected packet scan"))
+    monkeypatch.setattr(
+        "kinocut.engine_media_timeline._packet_extent", lambda *_: pytest.fail("unexpected packet scan")
+    )
     engine_audio_ops.add_audio(sample_video, sample_audio_wav, output_path=str(tmp_path / "attached.mp4"))
     assert reads.count(sample_video) == reads.count(sample_audio_wav) == 1
 
@@ -194,7 +196,10 @@ def test_video_only_muxer_failure_does_not_retry_or_mask_error(tmp_path, monkeyp
     assert exc_info.value.code != "unsupported_codec"
 
 
-def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
+def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path, monkeypatch):
+    from unittest.mock import Mock
+    from kinocut import engine_media_timeline
+    from kinocut.engine_audio_mix import _picture_timeline
     from kinocut.engine_audio_ops import add_audio
     from kinocut.engine_probe import _run_ffprobe_json
 
@@ -230,6 +235,12 @@ def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
     )
     # Confirm cut fixture has matching format/video duration and start_time so only edit-list detection triggers scan.
     cut_meta = _run_ffprobe_json(str(cut))
+    scan = Mock(wraps=engine_media_timeline._packet_extent)
+    monkeypatch.setattr(engine_media_timeline, "_packet_extent", scan)
+    assert _picture_timeline(str(src), _run_ffprobe_json(str(src))) == (0, 6)
+    scan.assert_not_called()
+    assert _picture_timeline(str(cut), cut_meta)[1] > 0
+    scan.assert_called_once_with(str(cut), "v:0")
     cut_vs = next(s for s in cut_meta["streams"] if s["codec_type"] == "video")
     assert abs(float(cut_vs["duration"]) - float(cut_meta["format"]["duration"])) <= 0.001
     assert abs(float(cut_vs["start_time"]) - float(cut_meta["format"]["start_time"])) <= 0.001

@@ -9,6 +9,7 @@ import threading
 from typing import Any, NamedTuple
 
 from .errors import InputFileError, MCPVideoError, ProcessingError
+from .engine_media_timeline import _parse_probe_duration
 from .defaults import DEFAULT_FPS
 from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
 from .models import ExactVideoInfo, VideoInfo
@@ -23,11 +24,16 @@ from .limits import FFPROBE_EXACT_TIMEOUT, MAX_FILE_SIZE_MB, MAX_VIDEO_DURATION
 class _ProbeCacheEntry(NamedTuple):
     info: VideoInfo
     has_video: bool
+    aliases: frozenset[str] = frozenset()
 
 
 _probe_cache: dict[tuple[Any, ...], _ProbeCacheEntry] = {}
 _MAX_PROBE_CACHE = 256
 _probe_cache_lock = threading.Lock()
+
+
+def _norm_alias(path: str) -> str:
+    return os.path.normcase(os.path.abspath(path))
 
 
 def _cache_key(path: str) -> tuple[Any, ...]:
@@ -40,9 +46,13 @@ def _cache_key(path: str) -> tuple[Any, ...]:
     return (path, stat.st_dev, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
 
 
-def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | None:
+def _cached_info(path: str, key: tuple, *, require_video: bool, alias: str | None = None) -> VideoInfo | None:
+    cache_id = (os.path.normcase(path), key)
     with _probe_cache_lock:
-        cached = _probe_cache.get(key)
+        cached = _probe_cache.get(cache_id)
+        if cached is not None and alias and alias not in cached.aliases:
+            cached = cached._replace(aliases=cached.aliases | {alias})
+            _probe_cache[cache_id] = cached
     if cached is None:
         return None
     if _cache_key(path) != key:
@@ -52,21 +62,18 @@ def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | N
     return cached.info.model_copy(deep=True, update={"path": path})
 
 
-def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool) -> None:
+def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool, alias: str | None = None) -> None:
     if _cache_key(path) != key:
         raise InputFileError(path, "Media changed while probing; retry with a stable source")
+    cache_id = (os.path.normcase(path), key)
+    aliases = frozenset({os.path.normcase(path), *({alias} if alias else ())})
     with _probe_cache_lock:
-        if len(_probe_cache) >= _MAX_PROBE_CACHE:
+        existing = _probe_cache.get(cache_id)
+        if existing is not None:
+            aliases |= existing.aliases
+        elif len(_probe_cache) >= _MAX_PROBE_CACHE:
             _probe_cache.pop(next(iter(_probe_cache)))
-        _probe_cache[key] = _ProbeCacheEntry(info.model_copy(deep=True), has_video)
-
-
-def _parse_probe_duration(value: Any) -> float | None:
-    try:
-        duration = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return duration if math.isfinite(duration) and duration >= 0 else None
+        _probe_cache[cache_id] = _ProbeCacheEntry(info.model_copy(deep=True), has_video, aliases)
 
 
 def _build_video_info(path: str, data: dict) -> VideoInfo:
@@ -161,17 +168,18 @@ def probe(path: str) -> VideoInfo:
     Results are cached by filesystem identity and copied for each caller.
     Changing a source during a probe fails instead of returning mixed metadata.
     """
+    raw_alias = _norm_alias(path)
     path = _validate_input_path(path)
     key = _cache_key(path)
 
-    cached = _cached_info(path, key, require_video=True)
+    cached = _cached_info(path, key, require_video=True, alias=raw_alias)
     if cached is not None:
         return cached
 
     data = _read_input_metadata(path, require_video=True)
     info = _build_video_info(path, data)
 
-    _cache_info(path, key, info, has_video=True)
+    _cache_info(path, key, info, has_video=True, alias=raw_alias)
     return info
 
 
@@ -254,16 +262,17 @@ def probe_audio_input(path: str) -> VideoInfo:
         InputFileError: if the file is not a valid media file at all, or has
             neither a video nor an audio stream.
     """
+    raw_alias = _norm_alias(path)
     path = _validate_input_path(path)
     key = _cache_key(path)
 
-    cached = _cached_info(path, key, require_video=False)
+    cached = _cached_info(path, key, require_video=False, alias=raw_alias)
     if cached is not None:
         return cached
 
     data = _read_input_metadata(path)
     info = _build_audio_input_info(path, data)
-    _cache_info(path, key, info, has_video=_get_video_stream(data) is not None)
+    _cache_info(path, key, info, has_video=_get_video_stream(data) is not None, alias=raw_alias)
     return info
 
 
@@ -314,8 +323,10 @@ def invalidate_probe_cache(path: str | None = None) -> None:
         if path is None:
             _probe_cache.clear()
         else:
-            path = os.path.realpath(path)
-            keys_to_remove = [k for k in _probe_cache if k[0] == path]
+            targets = {_norm_alias(path), os.path.normcase(os.path.realpath(path))}
+            keys_to_remove = [
+                k for k, entry in _probe_cache.items() if k[0] in targets or bool(entry.aliases & targets)
+            ]
             for k in keys_to_remove:
                 del _probe_cache[k]
 
