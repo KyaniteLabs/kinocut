@@ -27,6 +27,7 @@ import hashlib
 import json
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
@@ -207,25 +208,23 @@ def test_in_process_surface_matches_baseline_byte_for_byte(mode):
 # --- re-derivation 2: real stdio client (the bytes clients see) -------------------
 
 
-def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
+@asynccontextmanager
+async def _stdio_session(mode: str, state: Path):
     from mcp import ClientSession, StdioServerParameters
-    from mcp.client.stdio import stdio_client
+    from mcp.client.stdio import get_default_environment, stdio_client
 
+    env = get_default_environment() | {"KINOCUT_STATE_DIR": str(state)}
+    if mode != "default":
+        env["KINOCUT_TOOLS"] = mode
+    params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"], env=env, cwd=ROOT)
+    async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+        await session.initialize()
+        yield session
+
+
+def _stdio_surface(mode: str, state: Path) -> tuple[int, int, list[str]]:
     async def capture() -> tuple[int, int, list[str]]:
-        from mcp.client.stdio import get_default_environment
-
-        if mode == "default":
-            # Hermetic by construction: build the SDK's safe allowlist
-            # environment explicitly and select the default mode by hand, so
-            # an ambient KINOCUT_TOOLS on the test host can never change what
-            # "default" measures (the allowlist never carries KINOCUT_TOOLS
-            # or PYTHONPATH; "" selects the default mode exactly like unset).
-            env = get_default_environment() | {"KINOCUT_TOOLS": ""}
-        else:
-            env = {**os.environ, "KINOCUT_TOOLS": mode}
-        params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"], env=env)
-        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
-            await session.initialize()
+        async with _stdio_session(mode, state) as session:
             tools = await session.list_tools()
         names = sorted(tool.name for tool in tools.tools)
         total = sum(len(canonical_schema_bytes(tool.inputSchema)) for tool in tools.tools)
@@ -235,19 +234,34 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
 
 
 @pytest.mark.parametrize("mode,count,total", [("default", 18, 15_349), ("all", 208, 121_009)])
-def test_stdio_wire_surface_matches_baseline(mode, count, total):
-    wire_count, wire_total, names = _stdio_surface(mode)
+def test_stdio_wire_surface_matches_baseline(mode, count, total, tmp_path):
+    wire_count, wire_total, names = _stdio_surface(mode, tmp_path)
     baseline = BASELINE["modes"][mode]
     assert wire_count == count == baseline["tool_count"], mode
     assert wire_total == total == baseline["total_input_schema_bytes"], mode
     assert names == [row["name"] for row in baseline["tools"]], mode
 
 
-def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools():
-    _, _, names = _stdio_surface("default")
+@pytest.mark.asyncio
+async def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools(tmp_path, sample_video):
     from kinocut.tool_families import FAMILY_SURFACE_TOOLS
 
-    assert names == sorted(set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS))
+    operation = "video_audio_waveform"
+    async with _stdio_session("default", tmp_path) as session:
+        names = {tool.name for tool in (await session.list_tools()).tools}
+        assert names == set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS)
+        assert len(names) == 18 and operation not in names
+        listing = await session.call_tool("list_operations", {"query": operation})
+        (row,) = listing.structuredContent["operations"]
+        assert row["name"] == operation
+        description = await session.call_tool("describe_operation", {"operation": operation})
+        assert "bins" in description.structuredContent["inputSchema"]["properties"]
+        result = await session.call_tool(row["family"], {"operation": operation, "input_path": sample_video, "bins": 2})
+        assert (
+            not result.isError and result.structuredContent["success"] and len(result.structuredContent["peaks"]) == 2
+        )
+        hidden = await session.call_tool(operation, {"input_path": sample_video, "bins": 2})
+        assert hidden.isError and operation in hidden.content[0].text
 
 
 # --- re-derivation 3: declarative registry inventory ------------------------------

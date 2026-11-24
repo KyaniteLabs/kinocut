@@ -1,5 +1,6 @@
 """Declarative Timeline IR compile-down contracts."""
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut.errors import MCPVideoError
@@ -59,9 +60,9 @@ def test_rational_time_must_be_reduced():
 
 
 def test_rational_time_rejects_invalid_bounds():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         RationalTime(numerator=-1, denominator=1)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         RationalTime(numerator=0, denominator=0)
 
 

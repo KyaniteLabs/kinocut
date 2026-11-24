@@ -828,7 +828,7 @@ def test_staged_mcpb_workflow_has_exact_evidence_boundaries() -> None:
     assert "python -m build --wheel" in workflow
     assert "pip install -e" not in workflow
     assert "--extra ai-scene" in workflow
-    assert "hyperframes@0.8.30" in workflow
+    assert "hyperframes@0.8.104" in workflow
     assert "--require-ready ci_validated" in workflow
     assert "native-launcher" not in workflow
     assert "secrets." not in workflow

@@ -66,11 +66,11 @@ class TestCanonicalValidator:
 
     def test_allows_tmp(self) -> None:
         # /tmp is not blocked — should not raise
-        _validate_output_path("/tmp/output.mp4")
+        assert _validate_output_path("/tmp/output.mp4") == "/tmp/output.mp4"
 
     def test_allows_relative(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
-        _validate_output_path("relative/output.mp4")
+        assert _validate_output_path("relative/output.mp4") == "relative/output.mp4"
 
     def test_blocks_sensitive_home_ssh(self, tmp_path, monkeypatch) -> None:
         """Writes targeting ~/.ssh are rejected."""
@@ -124,6 +124,9 @@ class TestAnalysisOutputPathsDelegation:
             output_json=None,
         )
 
+        with pytest.raises(MCPVideoError):
+            _validate_analysis_output_paths("/tmp/../etc/transcript.srt", None, None, None)
+
     def test_allows_relative_paths(self, tmp_path, monkeypatch) -> None:
         monkeypatch.chdir(tmp_path)
         from mcp_video.ai_engine import _validate_analysis_output_paths
@@ -134,6 +137,8 @@ class TestAnalysisOutputPathsDelegation:
             output_md="relative/path.md",
             output_json=None,
         )
+        with pytest.raises(MCPVideoError):
+            _validate_analysis_output_paths(None, None, "../../etc/path.md", None)
 
     def test_checks_each_parameter(self) -> None:
         """Every non-None parameter is validated independently."""

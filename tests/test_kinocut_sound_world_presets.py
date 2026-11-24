@@ -9,6 +9,7 @@ Plus hardening: unknown preset ids fail closed; preset refs must be bounded.
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut_sound.world import (
@@ -81,7 +82,7 @@ def test_deck_texture_round_trips_and_rejects_duplicates():
     reloaded = deck.reload()
     assert deck.model_dump() == reloaded.model_dump()
     # Duplicate tonal layers are rejected.
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         DeckTexturePreset(
             deck_id="custom_deck",
             tonal_layer_refs=("layer_a", "layer_a"),
@@ -101,7 +102,7 @@ def test_builtin_preset_catalogue_is_versioned_and_complete():
 
 
 def test_location_preset_rejects_unbounded_refs():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         LocationPreset(
             preset_id="bad",
             bed_asset_refs=("beds/with/slashes",),  # path-shaped

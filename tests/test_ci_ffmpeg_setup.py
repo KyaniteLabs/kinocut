@@ -1,11 +1,13 @@
 """Linux FFmpeg provisioning: workflows delegate to the retrying installer."""
 
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / ".github" / "scripts" / "install-ffmpeg-ubuntu.sh"
@@ -26,6 +28,29 @@ def test_linux_ci_delegates_ffmpeg_to_the_retrying_installer() -> None:
         for line in text.splitlines():
             if "apt-get" in line and "install-ffmpeg-ubuntu.sh" not in line:
                 raise AssertionError(f"{filename} still inlines apt-get: {line}")
+
+
+def test_every_ci_package_install_is_preceded_by_a_matching_cache_step():
+    workflow = yaml.safe_load((WORKFLOWS / "ci.yml").read_text())
+    assert workflow["env"]["KINOCUT_FFMPEG_CACHE"] == "1"
+    installs = 0
+    for job in workflow["jobs"].values():
+        for index, step in enumerate(job["steps"]):
+            if INSTALLER.name in step.get("run", ""):
+                cache = job["steps"][index - 1]
+                assert cache["uses"] == "./.github/actions/cache-ffmpeg"
+                assert cache.get("if") == step.get("if")
+                installs += 1
+    assert installs > 0
+
+
+def test_hyperframes_and_pyright_are_pinned():
+    from qa.runner import HYPERFRAMES_VERSION
+
+    ci, bundle = [(WORKFLOWS / name).read_text() for name in ("ci.yml", "mcpb.yml")]
+    for workflow in (ci, bundle):
+        assert re.findall(r"hyperframes@(\S+)", workflow) == [HYPERFRAMES_VERSION]
+    assert re.search(r"pip install -e \. pyright==\d+\.\d+\.\d+\s", ci)
 
 
 def test_shared_installer_skips_apt_when_ffmpeg_is_on_path(tmp_path):
@@ -58,6 +83,36 @@ def test_shared_installer_skips_apt_when_ffmpeg_is_on_path(tmp_path):
 def _fake(path: Path, body: str) -> None:
     path.write_text("#!/bin/bash\n" + body + "\n")
     path.chmod(0o755)
+
+
+def test_restored_ffmpeg_packages_install_without_network(tmp_path):
+    bash = shutil.which("bash")
+    tools = tmp_path / "bin"
+    tools.mkdir()
+    cache = tmp_path / ".cache/kinocut-ffmpeg"
+    for name in ("mkdir", "touch", "chmod"):
+        (tools / name).symlink_to(shutil.which(name))
+    _fake(
+        tools / "sudo",
+        """echo "$*" >> "$HOME/calls"
+case "$*" in
+  sed*|*" update") exit 0 ;;
+  *--no-download*) [[ -f "$HOME/.cache/kinocut-ffmpeg/ffmpeg.deb" ]] || exit 99 ;;
+  *Dir::Cache::archives=*" install "*) touch "$HOME/.cache/kinocut-ffmpeg/ffmpeg.deb" ;;
+  *) exit 99 ;;
+esac
+for tool in ffmpeg ffprobe; do echo "#!/bin/bash" > "$PATH/$tool"; chmod +x "$PATH/$tool"; done""",
+    )
+    env = {"HOME": str(tmp_path), "PATH": str(tools), "KINOCUT_FFMPEG_CACHE": "1"}
+    calls_file = tmp_path / "calls"
+    subprocess.run([bash, str(INSTALLER)], env=env, check=True, timeout=10)
+    assert (cache / "ffmpeg.deb").is_file() and " install " in calls_file.read_text()
+    for name in ("ffmpeg", "ffprobe"):
+        (tools / name).unlink()
+    calls_file.unlink()
+    subprocess.run([bash, str(INSTALLER)], env=env, check=True, timeout=10)
+    calls = calls_file.read_text().splitlines()
+    assert len(calls) == 1 and "--no-download" in calls[0]
 
 
 def test_static_fallback_is_on_path_in_the_same_step(tmp_path):

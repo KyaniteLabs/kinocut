@@ -1,0 +1,12 @@
+name: Cache Ubuntu FFmpeg packages
+description: Reuse packages on runners with the same base image and installer
+runs:
+  using: composite
+  steps:
+    - id: image
+      shell: bash
+      run: echo "version=${ImageVersion:?missing runner image version}" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.cache/kinocut-ffmpeg/*.deb
+        key: ffmpeg-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ hashFiles('.github/scripts/install-ffmpeg-ubuntu.sh') }}

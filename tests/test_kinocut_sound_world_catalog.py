@@ -10,6 +10,7 @@ Covers required rows:
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut_sound import AssetLicenseRef
@@ -136,7 +137,7 @@ def test_hostile_asset_payloads_fail_bounded():
     ref = AssetLicenseRef(license_id="cc_by_4", asset_hash=_SHA)
     catalog = WorldAssetCatalog(license_verifier=_verifier(ref))
     # Path-traversing source_ref is rejected by the location validator.
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CatalogAsset(
             asset_id="bed_x",
             kind=WorldAssetKind.BED,
@@ -149,7 +150,7 @@ def test_hostile_asset_payloads_fail_bounded():
         catalog.get("not_in_catalog")
     assert exc.value.code == "unknown_asset"
     # URL-shaped source_ref is rejected.
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         AssetProvenance(content_hash=_SHA, source_ref="https://example/bed.wav")
 
 

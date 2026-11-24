@@ -69,6 +69,10 @@ def test_distinct_matte_outputs_remain_valid_with_any_existing_path_combination(
     if existing in {"hole", "both"}:
         hole.write_bytes(b"original-hole")
     matte._validate_output_pair(str(cut), str(hole))
+    assert (cut.read_bytes() if cut.exists() else None) == (b"original-cut" if existing in {"cut", "both"} else None)
+    assert (hole.read_bytes() if hole.exists() else None) == (
+        b"original-hole" if existing in {"hole", "both"} else None
+    )
 
 
 def test_reframe_rejects_stale_source_before_any_render_and_preserves_delivery(tmp_path, monkeypatch):

@@ -24,7 +24,7 @@ REQUIRED_RUNTIME_GATES = {
     "session_reuse",
     "cleanup_probe",
 }
-REQUIRED_OPTIONAL_GATES = {"imagehash_detected", "hyperframes_0_8_30_detected", "scene_tool_callable"}
+REQUIRED_OPTIONAL_GATES = {"imagehash_detected", "hyperframes_0_8_104_detected", "scene_tool_callable"}
 REQUIRED_DESKTOP_GATES = {
     "wheel_import",
     "server_start",

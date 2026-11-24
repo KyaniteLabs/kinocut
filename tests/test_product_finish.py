@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from kinocut.errors import InputFileError
 from pathlib import Path
 
 import pytest
@@ -105,7 +106,7 @@ def test_edl_apply_requires_approval() -> None:
     timeline = _tiny_timeline()
     edit = make_edit(operation=EditOperation.DELETE, target_span=timeline.words[0], rationale="drop filler")
     edl = create_edl(timeline, edits=(edit,))
-    with pytest.raises(Exception):
+    with pytest.raises(InputFileError):
         render_approved_edl(
             "missing.mp4",
             edl=edl.model_dump(mode="json"),

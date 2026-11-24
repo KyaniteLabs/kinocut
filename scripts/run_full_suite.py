@@ -9,6 +9,7 @@ partitions the suite, so together the phases select exactly what
 
     python3 scripts/run_full_suite.py            # both phases, stop on first failure
     python3 scripts/run_full_suite.py --workers 6
+    python3 scripts/run_full_suite.py -m 'not slow' --cov=kinocut --junitxml=results.xml
     python3 scripts/run_full_suite.py -- -k audio  # extra args go to both phases
 """
 
@@ -19,31 +20,43 @@ import os
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 DEFAULT_WORKERS = "auto"
 
 
-def _phases(workers: str, extra: list[str]) -> list[tuple[str, list[str]]]:
+def _phases(workers: str, extra: list[str], marker: str = "") -> list[tuple[str, list[str]]]:
     base = [sys.executable, "-m", "pytest", "tests/", "-x", "-q", "--tb=short", *extra]
+    prefix = f"({marker}) and " if marker else ""
     return [
-        ("parallel", [*base, "-m", "not process_timing", "-n", workers, "--dist", "loadfile"]),
-        ("process-timing (serial)", [*base, "-m", "process_timing"]),
+        ("parallel", [*base, "-m", prefix + "not process_timing", "-n", workers, "--dist", "loadfile"]),
+        ("process-timing (serial)", [*base, "-m", prefix + "process_timing"]),
     ]
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--workers", default=os.environ.get("KINOCUT_TEST_WORKERS", DEFAULT_WORKERS))
-    parser.add_argument("extra", nargs="*", help="arguments passed to both pytest phases (after --)")
-    args = parser.parse_args(argv)
-    if any(arg == "-m" or (arg.startswith("-m") and not arg.startswith("--")) for arg in args.extra):
-        parser.error("-m is owned by the phase split; filter with -k or paths instead")
+def _run(args: argparse.Namespace, directory: Path) -> int:
     total = time.monotonic()
     collected = False
-    for name, cmd in _phases(args.workers, args.extra):
+    suites = ET.Element("testsuites")
+    for index, (name, cmd) in enumerate(_phases(args.workers, args.extra, args.marker)):
+        if args.cov:
+            cmd.extend(f"--cov={source}" if source else "--cov" for source in args.cov)
+            if index == 0:
+                cmd.extend(["--cov-report=", "--cov-fail-under=0"])
+            else:
+                cmd.extend(["--cov-append", *(f"--cov-report={report}" for report in args.cov_report)])
+        report = directory / f"{index}.xml"
+        if args.junitxml:
+            cmd.append(f"--junitxml={report}")
         started = time.monotonic()
         print(f"== {name}: {' '.join(cmd[1:])}", flush=True)
         rc = subprocess.call(cmd)
+        if args.junitxml and report.exists():
+            suites.extend(ET.parse(report).getroot())  # noqa: S314 -- pytest wrote this private temp file
+            args.junitxml.parent.mkdir(parents=True, exist_ok=True)
+            ET.ElementTree(suites).write(args.junitxml, encoding="utf-8", xml_declaration=True)
         print(f"== {name}: exit {rc} in {time.monotonic() - started:.0f}s", flush=True)
         if rc not in (0, 5):  # 5 = nothing collected, e.g. an extra -k filter matched one phase only
             return rc
@@ -53,6 +66,21 @@ def main(argv: list[str] | None = None) -> int:
         return 5
     print(f"== full suite passed in {time.monotonic() - total:.0f}s", flush=True)
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--workers", default=os.environ.get("KINOCUT_TEST_WORKERS", DEFAULT_WORKERS))
+    parser.add_argument("-m", dest="marker", default="")
+    parser.add_argument("--cov", action="append", nargs="?", const="")
+    parser.add_argument("--cov-report", action="append", default=[])
+    parser.add_argument("--junitxml", type=Path)
+    parser.add_argument("extra", nargs="*", help="additional pytest arguments (after --)")
+    args = parser.parse_args(argv)
+    if any(arg.startswith(("-m", "--cov", "--junitxml", "-n")) for arg in args.extra):
+        parser.error("use the runner's marker, worker, coverage and JUnit options before --")
+    with TemporaryDirectory() as directory:
+        return _run(args, Path(directory))
 
 
 if __name__ == "__main__":

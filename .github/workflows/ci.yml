@@ -12,6 +12,9 @@ concurrency:
   # Supersede stale PR runs; every master commit keeps its own exact-head run.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  KINOCUT_FFMPEG_CACHE: "1"
+
 jobs:
   changes:
     name: Change detection
@@ -70,7 +73,7 @@ jobs:
           while IFS= read -r -d '' changed_path; do
             printf 'changed: %q\n' "$changed_path"
             case "$changed_path" in
-              kinocut/*|kinocut_sound/*|plugins/*|tests/*|qa/*|scripts/*|workflows/05-confidence-baseline/*|docs/public_claims.json|README.md|README-PYPI.md|llms.txt|server.json|mcpb/*|npm/*|compat/*|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|Dockerfile.ci|.github/workflows/*|.github/scripts/*|.forgejo/*)
+              kinocut/*|kinocut_sound/*|plugins/*|tests/*|qa/*|scripts/*|workflows/05-confidence-baseline/*|docs/public_claims.json|README.md|README-PYPI.md|llms.txt|server.json|mcpb/*|npm/*|compat/*|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|Dockerfile.ci|.github/workflows/*|.github/scripts/*|.github/actions/cache-ffmpeg/*|.forgejo/*)
                 code=true ;;
             esac
             case "$changed_path" in
@@ -124,7 +127,7 @@ jobs:
         run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Type check core modules
         run: |
-          .venv/bin/pip install -e . pyright
+          .venv/bin/pip install -e . pyright==1.1.408
           .venv/bin/pyright
 
   package-surface:
@@ -170,6 +173,9 @@ jobs:
       - name: Create venv
         if: needs.changes.outputs.code == 'true'
         run: python -m venv .venv
+      - name: Cache Ubuntu FFmpeg packages
+        if: needs.changes.outputs.code == 'true'
+        uses: ./.github/actions/cache-ffmpeg
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20
@@ -203,6 +209,8 @@ jobs:
           cache-dependency-path: 'pyproject.toml'
       - name: Create venv
         run: python -m venv .venv
+      - name: Cache Ubuntu FFmpeg packages
+        uses: ./.github/actions/cache-ffmpeg
       - name: Ensure FFmpeg
         timeout-minutes: 20
         run: bash .github/scripts/install-ffmpeg-ubuntu.sh
@@ -259,6 +267,9 @@ jobs:
       - name: Create venv
         if: needs.changes.outputs.code == 'true'
         run: python -m venv .venv
+      - name: Cache Ubuntu FFmpeg packages
+        if: needs.changes.outputs.code == 'true'
+        uses: ./.github/actions/cache-ffmpeg
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20
@@ -293,6 +304,9 @@ jobs:
       - name: Create venv
         if: needs.changes.outputs.code == 'true'
         run: python -m venv .venv
+      - name: Cache Ubuntu FFmpeg packages
+        if: needs.changes.outputs.code == 'true'
+        uses: ./.github/actions/cache-ffmpeg
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20
@@ -329,6 +343,9 @@ jobs:
       - name: Create venv
         if: needs.changes.outputs.code == 'true'
         run: python -m venv .venv
+      - name: Cache Ubuntu FFmpeg packages
+        if: needs.changes.outputs.code == 'true'
+        uses: ./.github/actions/cache-ffmpeg
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20
@@ -364,6 +381,9 @@ jobs:
       - name: Create venv
         if: needs.changes.outputs.code == 'true'
         run: python -m venv .venv
+      - name: Cache Ubuntu FFmpeg packages
+        if: needs.changes.outputs.code == 'true'
+        uses: ./.github/actions/cache-ffmpeg
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20

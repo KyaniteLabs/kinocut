@@ -165,7 +165,7 @@ class TestBatchOverrides:
 
     def test_batch_clip_id_must_be_bounded(self, tmp_path, chain, ctx):
         clip = synthetic_clip(tmp_path / "bounded.wav", seed=9)
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             BatchClip(
                 clip_id="../bad path",
                 input_path=clip,

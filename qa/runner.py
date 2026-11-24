@@ -66,6 +66,7 @@ EXPECTED_PATH_IDS = {
 PLACEHOLDER = re.compile(r"\{\{([a-z_]+)\}\}")
 COMMAND_ALLOWLIST = {"kino", "ffmpeg", "ffprobe", "uv", "{{python}}", "{{venv_python}}"}
 BRAND_RENDER_ASSET = Path("assets") / "kinocut-wordmark.svg"
+HYPERFRAMES_VERSION = "0.8.104"
 FLEET_ROOT_ENV = "KINOCUT_QA_FLEET_ROOT"
 
 
@@ -1803,7 +1804,7 @@ class OperatorRunner:
         self.hyperframes_executable = executable
         version_cp = self._run([executable, "--version"], cwd=self.work, timeout=15)
         version = version_cp.stdout.strip() or version_cp.stderr.strip()
-        if version_cp.returncode or not any(tag in version for tag in ("0.8.104", "0.8.140")):
+        if version_cp.returncode or version != HYPERFRAMES_VERSION:
             self._blocked(
                 entry,
                 f"installed Hyperframes CLI version is not verified as supported by target docs: {version!r}; no package install attempted",

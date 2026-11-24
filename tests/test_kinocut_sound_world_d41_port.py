@@ -11,6 +11,7 @@ the S3 registry contract shape.
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut_sound.capability import AdapterDescriptor, AdapterLocality
@@ -130,14 +131,14 @@ def test_local_fake_bed_descriptor_is_deterministic():
 
 
 def test_bed_spec_rejects_unbounded_id_and_non_positive_duration():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         BedSpec(
             bed_id="not bounded",
             kind=BedKind.ROOM_TONE,
             description_hash=_SHA,
             duration_seconds=10.0,
         )
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         BedSpec(
             bed_id="bed_x",
             kind=BedKind.ROOM_TONE,

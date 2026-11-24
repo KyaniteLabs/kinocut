@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut.product.clip_pipeline import (
@@ -118,7 +119,7 @@ def test_clipped_moment_is_strict_deterministic_value_object() -> None:
     a = clip_moment(moment, platform="youtube_shorts")
     b = clip_moment(moment, platform="youtube_shorts")
     assert a.model_dump(mode="json") == b.model_dump(mode="json")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ClippedMoment.model_validate(
             {"moment_id": "m:x", "platform": "not_a_platform", "start_seconds": 0.0, "end_seconds": 1.0}
         )
