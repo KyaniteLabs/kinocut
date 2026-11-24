@@ -50,7 +50,7 @@ def snapshot_capabilities(
     base_model_valid = bool(
         base_model_sha256 is not None and expected_base and base_model_sha256 == f"sha256:{expected_base}"
     )
-    filters = probes.filters(ffmpeg_path) if ffmpeg_available else frozenset()
+    filters = probes.filters(ffmpeg_path) if (ffmpeg_available and ffmpeg_path is not None) else frozenset()
     version = re.search(r"ffmpeg version (\S+)", version_line or "", re.IGNORECASE)
 
     return {

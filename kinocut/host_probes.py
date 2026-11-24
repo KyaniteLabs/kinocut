@@ -217,7 +217,7 @@ class HostProbes:
     def matte_weights(self) -> tuple[Path, bool, str | None]:
         from .validation import OBJECT_MATTE_WEIGHTS_BYTES, OBJECT_MATTE_WEIGHTS_FILENAME, object_matte_cache_path
 
-        if self.environ is os.environ and self.home is Path.home:
+        if self.environ is os.environ and self.home == Path.home:
             path = object_matte_cache_path()
         else:
             path = self.home() / ".cache" / "mcp-video" / "models" / OBJECT_MATTE_WEIGHTS_FILENAME
