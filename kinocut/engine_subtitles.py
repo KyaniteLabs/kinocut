@@ -42,8 +42,12 @@ from .subtitles_common import (
 
 
 def _synthesis_workdir(output_path: str) -> str:
-    """Directory for the transient dimensioned ASS (kept next to the output)."""
-    return os.path.dirname(os.path.abspath(output_path))
+    """Directory for the transient dimensioned ASS (prefer output dir; avoid filter-hostile apostrophes)."""
+    out_dir = os.path.dirname(os.path.abspath(output_path))
+    for candidate in (out_dir, tempfile.gettempdir(), os.getcwd()):
+        if "'" not in candidate and os.path.isdir(candidate):
+            return candidate
+    return out_dir
 
 
 def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_path: str) -> None:

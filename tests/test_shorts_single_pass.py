@@ -163,11 +163,12 @@ def test_crop_failure_private_and_clean(source, tmp_path, monkeypatch, failure):
     assert not list(tmp_path.iterdir())
 
 
+@pytest.mark.parametrize("fit_mode", ["crop", "pad"])
 @pytest.mark.parametrize(
     ("scratch_name", "out_name"), [("operator's scratch", "plain_out"), ("plain_scratch", "creator's shorts")]
 )
-def test_captioned_crop_succeeds_with_apostrophe_in_tmpdir_or_output_dir(
-    source, tmp_path, monkeypatch, scratch_name, out_name
+def test_captioned_shorts_succeeds_with_apostrophe_in_tmpdir_or_output_dir(
+    source, tmp_path, monkeypatch, fit_mode, scratch_name, out_name
 ):
     scratch = tmp_path / scratch_name
     scratch.mkdir()
@@ -178,7 +179,7 @@ def test_captioned_crop_succeeds_with_apostrophe_in_tmpdir_or_output_dir(
     result = shorts_flow.video_shorts(
         source,
         [(0, 0.2, "Apostrophe safe")],
-        {"fit_mode": "crop", "quality": "low"},
+        {"fit_mode": fit_mode, "quality": "low"},
         str(output),
     )
     assert result["output_path"] == str(output) and output.is_file()
