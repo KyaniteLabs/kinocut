@@ -602,25 +602,18 @@ def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, s
         "[Script Info]\n[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,Hello\n",
         encoding="utf-8",
     )
-    real_close = os.close
-    real_mkstemp = subtitles_common.tempfile.mkstemp
-    descriptors = []
+    original_fdopen = os.fdopen
     reused = []
 
-    def mkstemp(*args, **kwargs):
-        fd, path = real_mkstemp(*args, **kwargs)
-        descriptors.append(fd)
-        return fd, path
+    @contextlib.contextmanager
+    def recycle_after_close(fd, *args, **kwargs):
+        with original_fdopen(fd, *args, **kwargs) as stream:
+            yield stream
+        replacement = os.open(tmp_path / "unrelated.txt", os.O_CREAT | os.O_WRONLY, 0o600)
+        reused.append(replacement)
+        assert replacement == fd
 
-    def recycle_after_close(fd):
-        real_close(fd)
-        if descriptors == [fd] and not reused:
-            replacement = os.open(tmp_path / "unrelated.txt", os.O_CREAT | os.O_WRONLY, 0o600)
-            reused.append(replacement)
-            assert replacement == fd
-
-    monkeypatch.setattr(subtitles_common.tempfile, "mkstemp", mkstemp)
-    monkeypatch.setattr(subtitles_common.os, "close", recycle_after_close)
+    monkeypatch.setattr(subtitles_common.os, "fdopen", recycle_after_close)
     monkeypatch.setattr(subtitles_common, "_require_filter", lambda *_: None)
     monkeypatch.setattr(subtitles_common, "_run_ffmpeg", lambda args: Path(args[-1]).write_bytes(source.read_bytes()))
     try:
@@ -628,12 +621,11 @@ def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, s
             str(source), "unused", str(tmp_path / "burn.mp4"), display_size=(320, 240), format_hint=subtitle_format
         ) as staged:
             assert Path(staged.path).is_file()
-        assert len(descriptors) == 1
         assert os.write(reused[0], b"still owned by another operation") > 0
     finally:
         for fd in reused:
             with contextlib.suppress(OSError):
-                real_close(fd)
+                os.close(fd)
 
 
 def test_render_cli_subtitles_parser_has_style_flag():
@@ -802,12 +794,12 @@ def test_render_srt_synthesis_failure_closes_fd_and_cleans_temp(monkeypatch, asp
 
 @requires_ffmpeg
 def test_render_srt_write_failure_is_private_without_raw_message(monkeypatch, aspect_video, srt_file, tmp_path):
-    from kinocut import engine_subtitles
+    from kinocut import engine_subtitles, subtitles_common
 
-    def _boom_write(*args, **kwargs):
+    def _boom_fdopen(*args, **kwargs):
         raise OSError("disk full secret detail")
 
-    monkeypatch.setattr(Path, "write_text", _boom_write)
+    monkeypatch.setattr(subtitles_common.os, "fdopen", _boom_fdopen)
     path, _dims = aspect_video
     with pytest.raises(MCPVideoError) as excinfo:
         engine_subtitles.subtitles(path, srt_file, output_path=str(tmp_path / "o.mp4"))

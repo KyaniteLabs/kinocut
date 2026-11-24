@@ -182,21 +182,44 @@ class StagedBurnSource:
         return subtitle_advisory(media, self.original_path, profile=profile, burn_ass=self.path)
 
 
-def _copy_authored_ass(source: str, target: str) -> None:
-    with open(source, "rb") as src, open(target, "wb") as dst:
-        if not any(_has_renderable_ass_dialogue(line.decode("utf-8", errors="replace")) for line in src):
-            _require_renderable_ass_dialogue("")
-        src.seek(0)
-        shutil.copyfileobj(src, dst)
+def _copy_authored_ass(source: str, fd: int) -> None:
+    try:
+        with os.fdopen(fd, "wb") as dst:
+            fd = -1
+            with open(source, "rb") as src:
+                if not any(_has_renderable_ass_dialogue(line.decode("utf-8", errors="replace")) for line in src):
+                    _require_renderable_ass_dialogue("")
+                src.seek(0)
+                shutil.copyfileobj(src, dst)
+    finally:
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
-def _convert_to_dimensioned_ass(source: str, target: str, subtitle_format: str, display_size: tuple[int, int]) -> None:
+def _convert_to_dimensioned_ass(
+    source: str,
+    fd: int,
+    subtitle_format: str,
+    display_size: tuple[int, int],
+    workdir: str,
+) -> None:
     input_format = "webvtt" if subtitle_format == "vtt" else "srt"
-    _run_ffmpeg(["-y", "-f", input_format, "-i", source, target])
-    ass = Path(target)
-    normalized = _normalize_playres(ass.read_text(encoding="utf-8", errors="replace"), *display_size)
-    _require_renderable_ass_dialogue(normalized)
-    ass.write_text(normalized, encoding="utf-8")
+    try:
+        with tempfile.TemporaryDirectory(prefix="kc_ass_", dir=workdir) as private_dir:
+            converted = os.path.join(private_dir, "converted.ass")
+            _run_ffmpeg(["-y", "-f", input_format, "-i", source, converted])
+            normalized = _normalize_playres(
+                Path(converted).read_text(encoding="utf-8", errors="replace"), *display_size
+            )
+        _require_renderable_ass_dialogue(normalized)
+        with os.fdopen(fd, "w", encoding="utf-8") as dst:
+            fd = -1
+            dst.write(normalized)
+    finally:
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
 @contextlib.contextmanager
@@ -219,21 +242,27 @@ def staged_burn_source(
     force_style = parse_force_style(style) if style is not None else None
 
     path = None
+    fd = -1
     try:
         try:
             workdir = workdir_for(output_path)
             fd, path = tempfile.mkstemp(suffix=".ass", dir=workdir)
-            os.close(fd)
             if subtitle_format == "ass":
-                _copy_authored_ass(source, path)
+                owned, fd = fd, -1
+                _copy_authored_ass(source, owned)
             else:
                 size = display_size if display_size is not None else probe_display_dimensions(input_path)
-                _convert_to_dimensioned_ass(source, path, subtitle_format, size)
+                owned, fd = fd, -1
+                _convert_to_dimensioned_ass(source, owned, subtitle_format, size, workdir)
             video_filter = f"subtitles={_escape_ffmpeg_filter_path(path)}"
             if force_style is not None:
                 video_filter += f":force_style='{force_style}'"
         except OSError as exc:
             raise _prepare_error() from exc
+        finally:
+            if fd >= 0:
+                with contextlib.suppress(OSError):
+                    os.close(fd)
         yield StagedBurnSource(path, video_filter, source)
     finally:
         if path is not None:

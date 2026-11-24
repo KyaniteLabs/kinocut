@@ -245,3 +245,53 @@ def test_subtitles_fails_closed_when_all_staging_dirs_contain_apostrophe(source,
     assert caught.value.code == "subtitle_prepare_failed"
     assert "creator's workspace" not in str(caught.value)
     assert not output.exists()
+
+
+def test_staged_burn_source_writes_through_owned_descriptor_not_reopened_path(source, tmp_path, monkeypatch):
+    import os
+
+    from kinocut import subtitles_common
+
+    ass = tmp_path / "authored.ass"
+    ass.write_text(
+        "[Script Info]\nPlayResX: 640\nPlayResY: 360\n[Events]\nDialogue: 0,0:00:00.00,0:00:00.20,Default,,0,0,0,,Owned\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "out.mp4"
+    victim = tmp_path / "victim.ass"
+    victim.write_text("DO_NOT_OVERWRITE", encoding="utf-8")
+    real_mkstemp = tempfile.mkstemp
+
+    def _replace_after_create(*args, **kwargs):
+        fd, staged_path = real_mkstemp(*args, **kwargs)
+        # Simulate an attacker swapping the directory entry before the copy runs.
+        os.unlink(staged_path)
+        os.symlink(victim, staged_path)
+        return fd, staged_path
+
+    monkeypatch.setattr(subtitles_common.tempfile, "mkstemp", _replace_after_create)
+    with subtitles_common.staged_burn_source(str(ass), source, str(out)):
+        pass
+    assert victim.read_text(encoding="utf-8") == "DO_NOT_OVERWRITE"
+
+
+def test_subtitles_aac_retry_preserves_unrelated_retry_failure(sample_video, tmp_path, monkeypatch):
+    from kinocut import engine_subtitles
+    from kinocut.errors import ProcessingError
+
+    srt = tmp_path / "captions.srt"
+    srt.write_text("1\n00:00:00,000 --> 00:00:00,200\nRetry\n", encoding="utf-8")
+    out = tmp_path / "out.mp4"
+    calls: list[list[str]] = []
+
+    def _runner(args):
+        calls.append(list(args))
+        if len(calls) == 1:
+            raise ProcessingError("ffmpeg", 1, "Could not find tag for codec pcm_s16le in stream #1")
+        raise ProcessingError("ffmpeg", 1, "No space left on device")
+
+    monkeypatch.setattr(engine_subtitles, "_run_ffmpeg", _runner)
+    with pytest.raises(ProcessingError) as caught:
+        engine_subtitles.subtitles(sample_video, str(srt), output_path=str(out))
+    assert len(calls) == 2
+    assert "No space left on device" in caught.value.full_stderr

@@ -272,8 +272,10 @@ def _run_video_only(runner, args: list[str], *progress) -> None:
 
         try:
             runner([*args[:codec], "aac", "-b:a", DEFAULT_AUDIO_BITRATE, *args[codec + 1 :]], *progress)
-        except MCPVideoError:
-            raise exc from None
+        except ProcessingError as retry_exc:
+            if _is_audio_copy_mux_rejection(retry_exc.full_stderr.lower()):
+                raise exc from None
+            raise
 
 
 def _movflags_args(output_path: str) -> list[str]:
