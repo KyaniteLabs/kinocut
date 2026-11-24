@@ -6,6 +6,7 @@ render receipts from the plan; never posts or opens network connections.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import secrets
 import stat
@@ -138,7 +139,7 @@ def _package_platform(
     }
 
 
-_PackageSnapshot = tuple[tuple[int, int], dict[tuple[str, str], tuple[int, int]]]
+_PackageSnapshot = tuple[tuple[int, int], dict[str, tuple[int, int]], dict[tuple[str, str], tuple[int, int]]]
 
 
 def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _PackageSnapshot | None:
@@ -153,6 +154,7 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _PackageS
             cause="The destination is a symlink or a non-directory entry.",
             recovery="Choose a new package_root under the plan output directory.",
         )
+    platforms: dict[str, tuple[int, int]] = {}
     inodes: dict[tuple[str, str], tuple[int, int]] = {}
     if overwrite:
         valid = True
@@ -162,6 +164,7 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _PackageS
             if stat.S_ISLNK(pstat.st_mode) or not stat.S_ISDIR(pstat.st_mode) or not stage_plat.is_dir():
                 valid = False
                 break
+            platforms[platform.name] = (pstat.st_dev, pstat.st_ino)
             allowed = {asset.name for asset in stage_plat.iterdir()}
             for asset in platform.iterdir():
                 astat = os.stat(asset, follow_symlinks=False)
@@ -172,7 +175,7 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _PackageS
             if not valid:
                 break
         if valid:
-            return (base_stat.st_dev, base_stat.st_ino), inodes
+            return (base_stat.st_dev, base_stat.st_ino), platforms, inodes
     raise _package_error(
         "Package destination already exists.",
         code="package_write_conflict",
@@ -182,9 +185,10 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _PackageS
 
 
 def _preserve_displaced(displaced: Path, base: Path) -> None:
-    if displaced.parent != base.parent:
-        preserved = base.parent / f".{base.name}.preserved_{secrets.token_hex(6)}"
-        os.rename(displaced, preserved)
+    preserved = base.parent / f".{base.name}.preserved_{secrets.token_hex(6)}"
+    with contextlib.suppress(OSError):
+        if displaced.exists():
+            os.rename(displaced, preserved)
     raise _package_error(
         "Package destination changed concurrently during replacement; prior contents were preserved.",
         code="package_write_conflict",
@@ -194,15 +198,21 @@ def _preserve_displaced(displaced: Path, base: Path) -> None:
 
 
 def _matches_snapshot(displaced: Path, snapshot: _PackageSnapshot) -> bool:
-    expected_dir, expected_files = snapshot
+    expected_dir, expected_platforms, expected_files = snapshot
     actual_stat = os.stat(displaced, follow_symlinks=False)
     if (actual_stat.st_dev, actual_stat.st_ino) != expected_dir or not stat.S_ISDIR(actual_stat.st_mode):
         return False
-    seen: set[tuple[str, str]] = set()
+    seen_platforms: set[str] = set()
+    seen_files: set[tuple[str, str]] = set()
     for platform in displaced.iterdir():
         pstat = os.stat(platform, follow_symlinks=False)
-        if stat.S_ISLNK(pstat.st_mode) or not stat.S_ISDIR(pstat.st_mode):
+        if (
+            stat.S_ISLNK(pstat.st_mode)
+            or not stat.S_ISDIR(pstat.st_mode)
+            or expected_platforms.get(platform.name) != (pstat.st_dev, pstat.st_ino)
+        ):
             return False
+        seen_platforms.add(platform.name)
         for asset in platform.iterdir():
             astat = os.stat(asset, follow_symlinks=False)
             key = (platform.name, asset.name)
@@ -212,34 +222,74 @@ def _matches_snapshot(displaced: Path, snapshot: _PackageSnapshot) -> bool:
                 or expected_files.get(key) != (astat.st_dev, astat.st_ino)
             ):
                 return False
-            seen.add(key)
-    return seen == set(expected_files)
+            seen_files.add(key)
+    return seen_platforms == set(expected_platforms) and seen_files == set(expected_files)
 
 
-def _remove_verified_displaced(displaced: Path, base: Path, snapshot: _PackageSnapshot) -> None:
-    """Delete only exact verified snapshot entries; preserve displaced tree on any concurrent change."""
-    if not _matches_snapshot(displaced, snapshot):
-        _preserve_displaced(displaced, base)
-    _, expected_files = snapshot
-    platforms = sorted({plat for plat, _ in expected_files})
-    for (platform_name, asset_name), expected_id in expected_files.items():
-        target = displaced / platform_name / asset_name
-        try:
-            astat = os.stat(target, follow_symlinks=False)
-        except OSError:
-            _preserve_displaced(displaced, base)
+def _unlink_verified_entries_posix(displaced: Path, snapshot: _PackageSnapshot) -> bool:
+    expected_dir, expected_platforms, expected_files = snapshot
+    dir_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    disp_fd = os.open(displaced, dir_flags)
+    try:
+        dstat = os.fstat(disp_fd)
+        if (dstat.st_dev, dstat.st_ino) != expected_dir:
+            return False
+        for plat_name, expected_plat_id in expected_platforms.items():
+            plat_fd = os.open(plat_name, dir_flags, dir_fd=disp_fd)
+            try:
+                pstat = os.fstat(plat_fd)
+                if (pstat.st_dev, pstat.st_ino) != expected_plat_id:
+                    return False
+                for (p, asset_name), expected_file_id in expected_files.items():
+                    if p != plat_name:
+                        continue
+                    astat = os.stat(asset_name, dir_fd=plat_fd, follow_symlinks=False)
+                    if (
+                        stat.S_ISLNK(astat.st_mode)
+                        or not stat.S_ISREG(astat.st_mode)
+                        or (astat.st_dev, astat.st_ino) != expected_file_id
+                    ):
+                        return False
+                    os.unlink(asset_name, dir_fd=plat_fd)
+            finally:
+                os.close(plat_fd)
+            os.rmdir(plat_name, dir_fd=disp_fd)
+    finally:
+        os.close(disp_fd)
+    displaced.rmdir()
+    return True
+
+
+def _unlink_verified_entries_fallback(displaced: Path, snapshot: _PackageSnapshot) -> bool:
+    _, expected_platforms, expected_files = snapshot
+    for (plat_name, asset_name), expected_id in expected_files.items():
+        target = displaced / plat_name / asset_name
+        astat = os.stat(target, follow_symlinks=False)
         if (
             stat.S_ISLNK(astat.st_mode)
             or not stat.S_ISREG(astat.st_mode)
             or (astat.st_dev, astat.st_ino) != expected_id
         ):
-            _preserve_displaced(displaced, base)
+            return False
         target.unlink()
+    for plat_name in expected_platforms:
+        (displaced / plat_name).rmdir()
+    displaced.rmdir()
+    return True
+
+
+def _remove_verified_displaced(displaced: Path, base: Path, snapshot: _PackageSnapshot) -> None:
+    """Delete only exact verified snapshot entries; preserve displaced tree on any concurrent change."""
     try:
-        for platform_name in platforms:
-            (displaced / platform_name).rmdir()
-        displaced.rmdir()
+        if not _matches_snapshot(displaced, snapshot):
+            _preserve_displaced(displaced, base)
+        if os.name == "posix" and hasattr(os, "O_NOFOLLOW") and os.open in os.supports_dir_fd:
+            removed = _unlink_verified_entries_posix(displaced, snapshot)
+        else:
+            removed = _unlink_verified_entries_fallback(displaced, snapshot)
     except OSError:
+        _preserve_displaced(displaced, base)
+    if not removed:
         _preserve_displaced(displaced, base)
 
 
@@ -251,20 +301,23 @@ def _publish_package_tree(anchor: _Directory, stage: Path, base: Path, overwrite
         if snapshot is None:
             _rename_exclusive(anchor, str(stage.relative_to(base.parent)), base.name, exchange=False)
             return
+        displaced = base.parent / f".{base.name}.displaced_{secrets.token_hex(6)}"
         if os.name == "nt":
-            # Keep displaced tree in a durable sibling outside TemporaryDirectory so a contested rollback never deletes it.
-            displaced = base.parent / f".{base.name}.preserved_{secrets.token_hex(6)}"
+            # Keep displaced tree in a durable sibling outside TemporaryDirectory so contested rollback never deletes it.
             os.rename(base, displaced)
             try:
                 os.rename(stage, base)
             except BaseException:
-                if not os.path.lexists(base) and os.path.lexists(displaced):
-                    os.rename(displaced, base)
+                with contextlib.suppress(OSError):
+                    if not os.path.lexists(base) and os.path.lexists(displaced):
+                        os.rename(displaced, base)
                 raise
             _remove_verified_displaced(displaced, base, snapshot)
             return
         _rename_exclusive(anchor, str(stage.relative_to(base.parent)), base.name, exchange=True)
-        _remove_verified_displaced(stage, base, snapshot)
+        # Immediately move displaced tree outside TemporaryDirectory so no exception path can rmtree it.
+        os.rename(stage, displaced)
+        _remove_verified_displaced(displaced, base, snapshot)
     except OSError as exc:
         raise _package_error(
             "Could not atomically publish the package directory.",

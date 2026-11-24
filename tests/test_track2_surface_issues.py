@@ -341,7 +341,7 @@ def test_windows_contested_rollback_preserves_old_package_outside_tempdir(tmp_pa
         shorts_package._publish_package_tree(_FakeAnchor(), stage, base, overwrite=True)
     assert exc_info.value.code == "package_write_conflict"
     assert (base / "rival.txt").read_text(encoding="utf-8") == "rival"
-    preserved = list(tmp_path.glob(".packages.preserved_*"))
+    preserved = list(tmp_path.glob(".packages.displaced_*"))
     assert len(preserved) == 1
     assert (preserved[0] / "youtube-shorts" / "manifest.json").read_text(encoding="utf-8") == "old-package"
 
