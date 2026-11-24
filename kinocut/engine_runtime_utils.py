@@ -197,6 +197,7 @@ class StagedProgress:
             raise ValueError("Progress stages need positive, finite weights")
         self._callback = callback
         self._bounds = [0.0]
+        self._highest = 0.0
         cumulative = 0.0
         for weight in weights:
             cumulative += weight
@@ -211,12 +212,17 @@ class StagedProgress:
         start, end = self._bounds[index : index + 2]
 
         def report(percent: float) -> None:
-            if percent >= 100:
-                callback(end)
+            mapped = end if percent >= 100 else start + (end - start) * max(0.0, percent) / 100
+            if mapped < self._highest:
+                mapped = self._highest
             else:
-                callback(start + (end - start) * max(0.0, percent) / 100)
+                self._highest = mapped
+            callback(mapped)
 
         return report
+
+
+_PROCESS_OWNERSHIP_ERROR_CODES = frozenset({"process_ownership_unavailable", "process_cleanup_failed"})
 
 
 def _generate_thumbnail_base64(video_path: str) -> str | None:
@@ -252,6 +258,11 @@ def _generate_thumbnail_base64(video_path: str) -> str | None:
         with open(tmp_path, "rb") as f:
             data = f.read()
         return base64.b64encode(data).decode("ascii")
+    except MCPVideoError as exc:
+        if exc.code in _PROCESS_OWNERSHIP_ERROR_CODES:
+            raise
+        logger.warning("Thumbnail generation failed: %s", exc)
+        return None
     except Exception as exc:
         logger.warning("Thumbnail generation failed: %s", exc)
         return None

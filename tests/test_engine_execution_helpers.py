@@ -2,12 +2,15 @@
 
 import base64
 import os
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from kinocut import bounded_process, engine_runtime_utils as runtime
+from kinocut.errors import MCPVideoError
+from kinocut.ffmpeg_progress import run_progress
 from kinocut.models import EditResult
 
 
@@ -39,9 +42,45 @@ def test_weighted_progress_maps_stage_boundaries_and_clamps():
     first, second = progress.stage(0), progress.stage(1)
     for percent in (-1, 50, 101):
         first(percent)
+    for percent in (-1, 50, 101):
         second(percent)
-    assert values == [0, 25, 12.5, 62.5, 25, 100]
+    assert values == [0, 12.5, 25, 25, 62.5, 100]
     assert runtime.StagedProgress(None, 1, 3).stage(0) is None
+
+
+def test_weighted_progress_never_moves_backward_on_regressing_timestamps():
+    values: list[float] = []
+    progress = runtime.StagedProgress(values.append, 1, 3)
+    script = "import sys; sys.stderr.write('time=00:00:08.00\\ntime=00:00:04.00\\n'); sys.stderr.flush()"
+
+    def parse_time(ts: str) -> float:
+        h, m, s = ts.split(":")
+        return int(h) * 3600 + int(m) * 60 + float(s)
+
+    run_progress([sys.executable, "-c", script], 10.0, progress.stage(0), parse_time)
+    run_progress([sys.executable, "-c", script], 10.0, progress.stage(1), parse_time)
+
+    assert values == [20.0, 20.0, 25.0, 85.0, 85.0, 100.0]
+    assert values == sorted(values)
+
+
+@pytest.mark.parametrize("code", ["process_cleanup_failed", "process_ownership_unavailable"])
+def test_thumbnail_base64_propagates_process_ownership_and_cleanup_failures(monkeypatch, code):
+    def fail_bounded(*args, **kwargs):
+        raise MCPVideoError(f"injected {code}", code=code)
+
+    monkeypatch.setattr(runtime, "run_bounded", fail_bounded)
+    with pytest.raises(MCPVideoError) as exc:
+        runtime._generate_thumbnail_base64("dummy.mp4")
+    assert exc.value.code == code
+
+
+def test_thumbnail_base64_still_swallows_ordinary_failures(monkeypatch):
+    def fail_bounded(*args, **kwargs):
+        raise RuntimeError("corrupt frame")
+
+    monkeypatch.setattr(runtime, "run_bounded", fail_bounded)
+    assert runtime._generate_thumbnail_base64("dummy.mp4") is None
 
 
 def test_transaction_finalizes_path_and_elapsed_only_after_publish(tmp_path, monkeypatch):

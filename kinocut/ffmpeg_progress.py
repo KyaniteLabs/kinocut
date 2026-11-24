@@ -20,6 +20,7 @@ class _Diagnostics:
         self.head_limit = FFMPEG_PROGRESS_STDERR_BYTES // 2
         self.tail_limit = FFMPEG_PROGRESS_STDERR_BYTES - self.head_limit
         self.prefix, self.tail, self.pending = bytearray(), bytearray(), bytearray()
+        self.callback_error: BaseException | None = None
 
     def write(self, chunk: memoryview, /) -> int:
         space = max(0, self.head_limit - len(self.prefix))
@@ -53,7 +54,11 @@ class _Diagnostics:
         match = _TIME_RE.search(line.decode("utf-8", errors="replace"))
         if match:
             percent = min(100.0, self.parse_time(match.group(1)) / self.duration * 100)
-            self.callback(percent)
+            try:
+                self.callback(percent)
+            except BaseException as exc:
+                self.callback_error = exc
+                raise
 
 
 def run_progress(
@@ -73,7 +78,9 @@ def run_progress(
         result = run_bounded(
             cmd, timeout=effective_timeout, pass_fds=pass_fds, discard_stdout=True, stderr_sink=diagnostics
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        if exc is diagnostics.callback_error:
+            raise
         raise ProcessingError(
             " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {effective_timeout}s"
         ) from None
