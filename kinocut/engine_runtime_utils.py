@@ -237,26 +237,26 @@ _AUDIO_COPY_MUX_REJECT_MARKERS = (
 )
 
 
-_NON_CODEC_IO_MARKERS = (
-    "no space left on device",
-    "permission denied",
-    "read-only file system",
-    "input/output error",
-    "broken pipe",
-    "disk quota exceeded",
+_AVI_CODEC_HEADER_REASONS = (
+    "invalid argument",
+    "not implemented",
+    "invalid data found when processing input",
+    "operation not permitted",
 )
 
 
 def _is_audio_copy_mux_rejection(stderr_lower: str) -> bool:
-    if any(marker in stderr_lower for marker in _NON_CODEC_IO_MARKERS):
-        return False
     if any(marker in stderr_lower for marker in _AUDIO_COPY_MUX_REJECT_MARKERS):
         return True
-    return (
-        "could not write header" in stderr_lower
-        and "out#0/avi" in stderr_lower
-        and any(tok in stderr_lower for tok in ("codec", "invalid argument", "not implemented"))
-    )
+    if "out#0/avi" not in stderr_lower:
+        return False
+    for line in stderr_lower.splitlines():
+        if "could not write header" not in line:
+            continue
+        reason = line.rsplit(":", 1)[-1].strip()
+        if any(marker in reason for marker in _AVI_CODEC_HEADER_REASONS):
+            return True
+    return False
 
 
 def _command_has_audio_input(args: list[str]) -> bool:
