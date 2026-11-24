@@ -34,10 +34,10 @@ the sampled frames; it is not export approval.
 
 ## Transcription and local weights
 
-- **Whisper:** Install `kinocut[transcribe]` and stage the requested `<model>.pt`
+- **Whisper:** Install `kinocut[transcribe]==2.0.1` and stage the requested `<model>.pt`
   in `${XDG_CACHE_HOME:-$HOME/.cache}/whisper/`. Single-pass, long-form and rescue
   use local paths when offline. Rescue remains pinned to Whisper `base`.
-- **LFM3-Audio-2B:** Install `kinocut[lfm3-audio]` and copy a complete, trusted
+- **LFM3-Audio-2B:** Install `kinocut[lfm3-audio]==2.0.1` and copy a complete, trusted
   `LiquidAI/LFM3-Audio-2B` safetensors snapshot (including its bundled Python
   model code and `audio_tokenizer/`) to a local directory. Set
   `KINOCUT_LFM3_AUDIO_DIR` to that directory and `KINOCUT_ASR_BACKEND=lfm3-audio`,
@@ -46,10 +46,10 @@ the sampled frames; it is not export approval.
   emits one coarse subtitle segment per 30-second audio chunk with speech;
   use Whisper for word timings or the dedicated long-form planning workflow.
 - **Upscale:** Stage `FSRCNN_x2.pb` and/or `FSRCNN_x4.pb` in the model cache and
-  install `kinocut[upscale]`. Offline upscale uses OpenCV FSRCNN, not the
+  install `kinocut[upscale]==2.0.1`. Offline upscale uses OpenCV FSRCNN, not the
   automatic Real-ESRGAN loader.
 - **Object matte:** Stage the pinned BiRefNet-general ONNX file in the same
-  model cache and install `kinocut[object-matte]`.
+  model cache and install `kinocut[object-matte]==2.0.1`.
 - **Fonts and NIMA:** Supply a local font path or install a system font. Copy
   NIMA weights to the exact path reported by the scorer if weights are missing.
 
