@@ -4,68 +4,37 @@ from __future__ import annotations
 
 import re
 import subprocess
-import threading
 from collections.abc import Callable
 
-from .defaults import DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT
-from .errors import MCPVideoError, ProcessingError, parse_ffmpeg_error
-from .bounded_process import output_limit_error
-from .process_tree import ProcessTree
-from .limits import (
-    DEFAULT_FFMPEG_TIMEOUT,
-    MAX_SUBPROCESS_STDERR_BYTES,
-    FFMPEG_PROGRESS_LINE_BYTES,
-    FFMPEG_PROGRESS_READ_BYTES,
-    FFMPEG_PROGRESS_STDERR_BYTES,
-)
+from .bounded_process import run_bounded
+from .errors import ProcessingError, parse_ffmpeg_error
+from .limits import DEFAULT_FFMPEG_TIMEOUT, FFMPEG_PROGRESS_LINE_BYTES, FFMPEG_PROGRESS_STDERR_BYTES
+from .limits import resolve_ffmpeg_timeout
 
 _TIME_RE = re.compile(r"time=(\d+:\d+:\d+\.\d+)")
 
 
 class _Diagnostics:
-    def __init__(self, tree, duration, callback, parse_time):
-        self.tree, self.proc, self.duration, self.callback, self.parse_time = (
-            tree,
-            tree.process,
-            duration,
-            callback,
-            parse_time,
-        )
-        self.total = 0
+    def __init__(self, duration: float, callback: Callable[[float], None], parse_time: Callable[[str], float]):
+        self.duration, self.callback, self.parse_time = duration, callback, parse_time
         self.head_limit = FFMPEG_PROGRESS_STDERR_BYTES // 2
         self.tail_limit = FFMPEG_PROGRESS_STDERR_BYTES - self.head_limit
-        self.prefix, self.tail, self.pending, self.errors = bytearray(), bytearray(), bytearray(), []
+        self.prefix, self.tail, self.pending = bytearray(), bytearray(), bytearray()
 
-    def read(self):
-        try:
-            while self.proc.stderr is not None:
-                chunk = self.proc.stderr.read1(FFMPEG_PROGRESS_READ_BYTES)
-                if not chunk:
-                    break
-                self.total += len(chunk)
-                if self.total > MAX_SUBPROCESS_STDERR_BYTES:
-                    raise output_limit_error("stderr")
-                if len(self.prefix) < self.head_limit:
-                    space = self.head_limit - len(self.prefix)
-                    self.prefix.extend(chunk[:space])
-                    overflow = chunk[space:]
-                else:
-                    overflow = chunk
-                if overflow:
-                    self.tail.extend(overflow)
-                    if len(self.tail) > self.tail_limit:
-                        del self.tail[: -self.tail_limit]
-                self.pending.extend(chunk)
-                self._lines()
-                if len(self.pending) > FFMPEG_PROGRESS_LINE_BYTES:
-                    del self.pending[:-FFMPEG_PROGRESS_LINE_BYTES]
-            self._progress(bytes(self.pending))
-        except BaseException as exc:
-            self.errors.append(exc)
-            try:
-                self.tree.kill()
-            except BaseException as cleanup:
-                self.errors.append(cleanup)
+    def write(self, chunk: memoryview, /) -> int:
+        space = max(0, self.head_limit - len(self.prefix))
+        self.prefix.extend(chunk[:space])
+        self.tail.extend(chunk[space:])
+        if len(self.tail) > self.tail_limit:
+            del self.tail[: -self.tail_limit]
+        self.pending.extend(chunk)
+        self._lines()
+        if len(self.pending) > FFMPEG_PROGRESS_LINE_BYTES:
+            del self.pending[:-FFMPEG_PROGRESS_LINE_BYTES]
+        return len(chunk)
+
+    def flush(self) -> None:
+        self._progress(bytes(self.pending))
 
     def captured_stderr(self) -> str:
         raw = bytes(self.prefix) + bytes(self.tail)
@@ -91,43 +60,25 @@ def run_progress(
     cmd: list[str],
     duration: float,
     callback: Callable[[float], None],
-    parse_time,
+    parse_time: Callable[[str], float],
     *,
-    pass_fds=(),
-    timeout=DEFAULT_FFMPEG_TIMEOUT,
-):
+    pass_fds: tuple[int, ...] = (),
+    timeout: float | None = None,
+    default_timeout: float = DEFAULT_FFMPEG_TIMEOUT,
+) -> subprocess.CompletedProcess[str]:
     """Do not return from cancellation while an owned process can still write."""
-    tree = ProcessTree(cmd, stdout=subprocess.DEVNULL, pass_fds=pass_fds)
-    proc = tree.process
-    diagnostics = _Diagnostics(tree, duration, callback, parse_time)
-    reader = threading.Thread(target=diagnostics.read, name="kinocut-ffmpeg-progress")
-    started = False
+    diagnostics = _Diagnostics(duration, callback, parse_time)
+    effective_timeout = resolve_ffmpeg_timeout(timeout, default=default_timeout)
     try:
-        reader.start()
-        started = True
-        try:
-            returncode = tree.wait(timeout=timeout)
-        except MCPVideoError:
-            if diagnostics.errors:
-                raise diagnostics.errors[0] from None
-            raise
-        except subprocess.TimeoutExpired:
-            raise ProcessingError(" ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {timeout}s") from None
-    except BaseException:
-        tree.close()
-        raise
-    finally:
-        tree.close()
-        if started:
-            reader.join(timeout=DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT)
-        if proc.stderr is not None and not reader.is_alive():
-            proc.stderr.close()
-    if reader.is_alive():
-        raise ProcessingError(" ".join(cmd), -1, "", reason="FFmpeg diagnostic reader did not stop")
-    if diagnostics.errors:
-        raise diagnostics.errors[0] from None
-    stderr = diagnostics.captured_stderr()
-    if returncode != 0:
-        raise parse_ffmpeg_error(stderr, command=cmd)
+        result = run_bounded(
+            cmd, timeout=effective_timeout, pass_fds=pass_fds, discard_stdout=True, stderr_sink=diagnostics
+        )
+    except subprocess.TimeoutExpired:
+        raise ProcessingError(
+            " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {effective_timeout}s"
+        ) from None
+    result.stderr = diagnostics.captured_stderr()
+    if result.returncode != 0:
+        raise parse_ffmpeg_error(result.stderr, command=cmd)
     callback(100.0)
-    return subprocess.CompletedProcess(cmd, returncode, "", stderr)
+    return result

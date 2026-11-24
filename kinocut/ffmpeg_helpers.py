@@ -189,6 +189,7 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
     """
 
     from .engine_runtime_utils import _ffmpeg
+    from .limits import resolve_ffmpeg_timeout
 
     if not args or args[-1] != "pipe:1":
         raise MCPVideoError(
@@ -197,16 +198,17 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
             code="invalid_ffmpeg_pipe",
         )
     cmd = [_ffmpeg(), "-y", *args]
+    effective_timeout = resolve_ffmpeg_timeout(default=DEFAULT_FFMPEG_TIMEOUT)
     try:
         from .bounded_process import run_bounded
 
-        proc = run_bounded(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT, text=False, stdout_limit=MAX_FFMPEG_PIPE_BYTES)
+        proc = run_bounded(cmd, timeout=effective_timeout, text=False, stdout_limit=MAX_FFMPEG_PIPE_BYTES)
     except subprocess.TimeoutExpired as exc:
         raise ProcessingError(
             " ".join(cmd),
             -1,
             "",
-            reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
+            reason=f"FFmpeg command timed out after {effective_timeout}s",
         ) from exc
     stderr = proc.stderr.decode("utf-8", errors="replace")
     if proc.returncode != 0:
@@ -247,7 +249,7 @@ def _run_ffmpeg_with_progress(
             on_progress,
             _parse_ffmpeg_time,
             pass_fds=pass_fds,
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
+            default_timeout=DEFAULT_FFMPEG_TIMEOUT,
         )
     if args and not _staging.is_staged_output(args[-1]) and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])

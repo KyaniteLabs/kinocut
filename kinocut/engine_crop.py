@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 from .engine_probe import probe
-from .engine_runtime_utils import (
-    _build_edit_result,
-    _timed_operation,
-)
+from .engine_runtime_utils import _transactional_edit
 from .paths import (
     _auto_output,
 )
-from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
@@ -98,7 +94,7 @@ def crop(
     safe_y = _escape_ffmpeg_filter_value(str(y))
     crop_filter = f"crop={safe_w}:{safe_h}:{safe_x}:{safe_y}:exact=1"
 
-    with _timed_operation() as timing, _atomic_output(output) as staged:
+    def render(staged: str) -> None:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 input_path,
@@ -108,11 +104,4 @@ def crop(
             )
         )
 
-        result = _build_edit_result(
-            staged,
-            "crop",
-            timing,
-        )
-    result.output_path = output
-    result.elapsed_ms = timing["elapsed_ms"]
-    return result
+    return _transactional_edit(output, "crop", render)

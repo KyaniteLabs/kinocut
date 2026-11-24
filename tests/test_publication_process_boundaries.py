@@ -329,7 +329,6 @@ def test_no_newline_diagnostics_have_bounded_parent_memory_and_still_report_prog
 
 
 def test_progress_diagnostics_hard_cap_rejects_overflow_and_reaps(monkeypatch):
-    import kinocut.ffmpeg_progress as progress
     from kinocut.errors import MCPVideoError
 
     processes = []
@@ -341,9 +340,8 @@ def test_progress_diagnostics_hard_cap_rejects_overflow_and_reaps(monkeypatch):
         return process
 
     monkeypatch.setattr(subprocess, "Popen", spawn)
-    monkeypatch.setattr(progress, "MAX_SUBPROCESS_STDERR_BYTES", 1024)
     with pytest.raises(MCPVideoError) as error:
-        run_progress([sys.executable, "-c", "import os;os.write(2,b'x'*2000000)"], 1, lambda _: None, float)
+        run_progress([sys.executable, "-c", "import os\nwhile True: os.write(2,b'x'*65536)"], 1, lambda _: None, float)
     assert error.value.code == "command_stderr_limit_exceeded"
     assert processes[0].returncode is not None
     assert processes[0].stderr.closed
