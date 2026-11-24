@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import threading
-from typing import BinaryIO, Literal, overload
+from typing import Literal, Protocol, overload
 
 from .defaults import DEFAULT_RENDER_STOP_TIMEOUT
 from .errors import MCPVideoError
@@ -14,6 +14,12 @@ from .process_tree import ProcessTree
 
 #: The stream's own name. The label is ours, so the message can name it.
 _STREAM_LABELS = {"stdout": "standard output", "stderr": "standard error"}
+
+
+class _PipeSink(Protocol):
+    def write(self, chunk: memoryview, /) -> int: ...
+
+    def flush(self) -> None: ...
 
 
 def output_limit_error(stream: str) -> MCPVideoError:
@@ -77,8 +83,9 @@ def run_bounded(
     timeout: float,
     text: Literal[True] = True,
     pass_fds: tuple[int, ...] = (),
-    stdout_sink: BinaryIO | None = None,
-    stderr_sink: BinaryIO | None = None,
+    stdout_sink: _PipeSink | None = None,
+    stderr_sink: _PipeSink | None = None,
+    discard_stdout: bool = False,
     stdout_limit: int = MAX_SUBPROCESS_STDOUT_BYTES,
     stderr_limit: int = MAX_SUBPROCESS_STDERR_BYTES,
 ) -> subprocess.CompletedProcess[str]: ...
@@ -91,8 +98,9 @@ def run_bounded(
     timeout: float,
     text: Literal[False],
     pass_fds: tuple[int, ...] = (),
-    stdout_sink: BinaryIO | None = None,
-    stderr_sink: BinaryIO | None = None,
+    stdout_sink: _PipeSink | None = None,
+    stderr_sink: _PipeSink | None = None,
+    discard_stdout: bool = False,
     stdout_limit: int = MAX_SUBPROCESS_STDOUT_BYTES,
     stderr_limit: int = MAX_SUBPROCESS_STDERR_BYTES,
 ) -> subprocess.CompletedProcess[bytes]: ...
@@ -105,8 +113,9 @@ def run_bounded(
     timeout: float,
     text: bool,
     pass_fds: tuple[int, ...] = (),
-    stdout_sink: BinaryIO | None = None,
-    stderr_sink: BinaryIO | None = None,
+    stdout_sink: _PipeSink | None = None,
+    stderr_sink: _PipeSink | None = None,
+    discard_stdout: bool = False,
     stdout_limit: int = MAX_SUBPROCESS_STDOUT_BYTES,
     stderr_limit: int = MAX_SUBPROCESS_STDERR_BYTES,
 ) -> subprocess.CompletedProcess[str] | subprocess.CompletedProcess[bytes]: ...
@@ -118,8 +127,9 @@ def run_bounded(
     timeout: float,
     text: bool = True,
     pass_fds: tuple[int, ...] = (),
-    stdout_sink: BinaryIO | None = None,
-    stderr_sink: BinaryIO | None = None,
+    stdout_sink: _PipeSink | None = None,
+    stderr_sink: _PipeSink | None = None,
+    discard_stdout: bool = False,
     stdout_limit: int = MAX_SUBPROCESS_STDOUT_BYTES,
     stderr_limit: int = MAX_SUBPROCESS_STDERR_BYTES,
 ) -> subprocess.CompletedProcess[str] | subprocess.CompletedProcess[bytes]:
@@ -127,11 +137,15 @@ def run_bounded(
     for limit in (stdout_limit, stderr_limit):
         if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
             raise MCPVideoError("Command byte limits must be positive integers", code="invalid_command_limit")
-    tree = ProcessTree(cmd, pass_fds=pass_fds)
+    if discard_stdout and stdout_sink is not None:
+        raise ValueError("Cannot discard standard output and write it to a sink")
+    tree = ProcessTree(cmd, stdout=subprocess.DEVNULL if discard_stdout else subprocess.PIPE, pass_fds=pass_fds)
     process = tree.process
     if process is None:
         raise MCPVideoError("Owned child was not created", code="process_ownership_unavailable")
-    drains = [_Drain(tree, "stdout", stdout_limit, stdout_sink), _Drain(tree, "stderr", stderr_limit, stderr_sink)]
+    stdout = None if discard_stdout else _Drain(tree, "stdout", stdout_limit, stdout_sink)
+    stderr = _Drain(tree, "stderr", stderr_limit, stderr_sink)
+    drains = [stderr] if stdout is None else [stdout, stderr]
     started = []
     try:
         for drain in drains:
@@ -152,14 +166,18 @@ def run_bounded(
         finally:
             for drain in started:
                 drain.thread.join(timeout=DEFAULT_RENDER_STOP_TIMEOUT)
-            for pipe in (process.stdout, process.stderr):
-                if pipe is not None and not any(d.thread.is_alive() for d in started):
-                    pipe.close()
+            for drain in drains:
+                if not drain.thread.is_alive():
+                    getattr(process, drain.stream).close()
     for drain in drains:
         if drain.thread.is_alive():
             raise MCPVideoError("Command pipe reader did not stop", code="process_cleanup_failed")
         if drain.errors:
             raise drain.errors[0] from None
     if text:
-        return subprocess.CompletedProcess(cmd, returncode, drains[0].result(True), drains[1].result(True))
-    return subprocess.CompletedProcess(cmd, returncode, drains[0].result(False), drains[1].result(False))
+        return subprocess.CompletedProcess(
+            cmd, returncode, "" if stdout is None else stdout.result(True), stderr.result(True)
+        )
+    return subprocess.CompletedProcess(
+        cmd, returncode, b"" if stdout is None else stdout.result(False), stderr.result(False)
+    )

@@ -10,15 +10,15 @@ from collections.abc import Callable
 from .defaults import DEFAULT_AUDIO_BITRATE
 from .engine_probe import probe
 from .engine_runtime_utils import (
+    StagedProgress,
     _generate_thumbnail_base64,
     _movflags_args,
-    _timed_operation,
+    _transactional_edit,
 )
 from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
-    _atomic_output,
     _run_ffmpeg,
     _run_ffmpeg_with_progress,
     _sanitize_ffmpeg_number,
@@ -53,29 +53,25 @@ def convert(
     _validate_output_path(output)
     input_info = probe(input_path)
 
-    with _atomic_output(output) as staged:
-        # Declare the staging write before postflight probing records operation inputs.
-        _validate_output_path(staged)
-        with _timed_operation() as timing:
-            if two_pass and target_bitrate is not None:
-                _convert_two_pass(input_path, staged, target_bitrate, preset["preset"])
-            elif format == "mp4":
-                _convert_mp4(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
-            elif format == "webm":
-                _convert_webm(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
-            elif format == "mov":
-                _convert_mov(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
-            elif format == "gif":
-                _convert_gif(input_path, staged, quality, input_info.duration, on_progress)
-            elif format == "hevc":
-                _convert_hevc(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
-            elif format == "av1":
-                _convert_av1(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
-            elif format == "prores":
-                _convert_prores(input_path, staged, preset, input_info.duration, on_progress)
-        result = _convert_result(staged, format, timing["elapsed_ms"])
+    def render(staged: str) -> None:
+        if two_pass and target_bitrate is not None:
+            _convert_two_pass(input_path, staged, target_bitrate, preset["preset"])
+        elif format == "mp4":
+            _convert_mp4(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+        elif format == "webm":
+            _convert_webm(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+        elif format == "mov":
+            _convert_mov(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+        elif format == "gif":
+            _convert_gif(input_path, staged, quality, input_info.duration, on_progress)
+        elif format == "hevc":
+            _convert_hevc(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+        elif format == "av1":
+            _convert_av1(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+        elif format == "prores":
+            _convert_prores(input_path, staged, preset, input_info.duration, on_progress)
 
-    return result.model_copy(update={"output_path": output})
+    return _transactional_edit(output, "convert", render, build_result=lambda staged: _convert_result(staged, format))
 
 
 def _validate_convert_options(format: str, quality: str, two_pass: bool, target_bitrate: int | None) -> None:
@@ -265,10 +261,11 @@ def _convert_gif(
     gif_fps = {"low": 10, "medium": 12, "high": 15, "ultra": 20}
     width = gif_scale.get(quality, 480)
     fps = gif_fps.get(quality, 15)
+    progress = StagedProgress(on_progress, 1, 3)
     tmpdir = tempfile.mkdtemp(prefix="mcp_video_gif_")
     try:
         palette = os.path.join(tmpdir, "palette.png")
-        _run_ffmpeg(
+        _run_ffmpeg_with_progress(
             [
                 "-i",
                 input_path,
@@ -276,7 +273,9 @@ def _convert_gif(
                 f"fps={fps},scale={width}:-1:flags=lanczos,palettegen=max_colors=128",
                 "-y",
                 palette,
-            ]
+            ],
+            estimated_duration=duration,
+            on_progress=progress.stage(0),
         )
         _run_ffmpeg_with_progress(
             [
@@ -290,7 +289,7 @@ def _convert_gif(
                 output,
             ],
             estimated_duration=duration,
-            on_progress=on_progress,
+            on_progress=progress.stage(1),
         )
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
@@ -395,7 +394,7 @@ def _convert_prores(
     )
 
 
-def _convert_result(output: str, format: ExportFormat, elapsed_ms: float | None = None) -> EditResult:
+def _convert_result(output: str, format: ExportFormat) -> EditResult:
     info = probe(output)
     thumb_b64 = _generate_thumbnail_base64(output) if format != "gif" else None
     if os.path.isfile(output):
@@ -410,7 +409,6 @@ def _convert_result(output: str, format: ExportFormat, elapsed_ms: float | None 
                 operation="convert",
                 progress=100.0,
                 thumbnail_base64=thumb_b64,
-                elapsed_ms=elapsed_ms,
             )
     else:
         size_mb = None
@@ -422,5 +420,4 @@ def _convert_result(output: str, format: ExportFormat, elapsed_ms: float | None 
         operation="convert",
         progress=100.0,
         thumbnail_base64=thumb_b64,
-        elapsed_ms=elapsed_ms,
     )

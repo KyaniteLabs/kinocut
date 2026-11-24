@@ -13,7 +13,7 @@ import kinocut
 from kinocut.doctor import _check_workspace
 from kinocut.errors import HyperframesRenderError, MCPVideoError, ProcessingError
 from kinocut.ffmpeg_progress import _Diagnostics
-from kinocut.limits import FFMPEG_PROGRESS_STDERR_BYTES
+from kinocut.limits import FFMPEG_PROGRESS_STDERR_BYTES, SUBPROCESS_READ_CHUNK_BYTES
 from kinocut.rescue import verifier
 from kinocut.te.init_project import init_project
 from kinocut.workflow.executor import render_workflow
@@ -141,23 +141,11 @@ def test_ffmpeg_progress_diagnostics_keeps_stderr_tail():
     """B-DR2: fatal errors printed after >64 KiB of banner/progress must survive in captured stderr."""
     filler = b"frame=1 fps=30 time=00:00:01.00\n" * (FFMPEG_PROGRESS_STDERR_BYTES // 10)
     fatal = b"Conversion failed! Invalid data found when processing input\n"
-    payload = filler + fatal
-
-    class FakeStderr:
-        def __init__(self, data: bytes):
-            self._view = memoryview(data)
-            self._pos = 0
-
-        def read1(self, n: int) -> bytes:
-            if self._pos >= len(self._view):
-                return b""
-            chunk = bytes(self._view[self._pos : self._pos + n])
-            self._pos += len(chunk)
-            return chunk
-
-    tree = SimpleNamespace(process=SimpleNamespace(stderr=FakeStderr(payload)), kill=lambda: None)
-    diag = _Diagnostics(tree, 10.0, lambda pct: None, lambda ts: 1.0)
-    diag.read()
+    payload = memoryview(filler + fatal)
+    diag = _Diagnostics(10.0, lambda pct: None, lambda ts: 1.0)
+    for start in range(0, len(payload), SUBPROCESS_READ_CHUNK_BYTES):
+        diag.write(payload[start : start + SUBPROCESS_READ_CHUNK_BYTES])
+    diag.flush()
     captured = diag.captured_stderr()
     assert "Conversion failed!" in captured
     assert len(captured.encode("utf-8")) <= FFMPEG_PROGRESS_STDERR_BYTES + 16
@@ -173,7 +161,7 @@ def test_check_filter_available_wraps_timeout_in_processing_error(monkeypatch):
     def boom(*args, **kwargs):
         raise subprocess.TimeoutExpired(cmd=["ffmpeg", "-filters"], timeout=10)
 
-    monkeypatch.setattr(rt.subprocess, "run", boom)
+    monkeypatch.setattr(rt, "run_bounded", boom)
     with pytest.raises(ProcessingError, match="timed out"):
         rt._check_filter_available("drawtext")
 

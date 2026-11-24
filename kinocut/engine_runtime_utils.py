@@ -4,22 +4,24 @@ from __future__ import annotations
 
 import base64
 import logging
+import math
 import os
 import shutil
 import subprocess
 import tempfile
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 
+from .bounded_process import run_bounded
 from .errors import (
     FFmpegNotFoundError,
     FFprobeNotFoundError,
     MCPVideoError,
     ProcessingError,
 )
-from .limits import DEFAULT_CRF, DEFAULT_PRESET, DOCTOR_COMMAND_TIMEOUT
+from .limits import DEFAULT_CRF, DEFAULT_PRESET, DOCTOR_COMMAND_TIMEOUT, resolve_ffmpeg_timeout
 from .models import EditResult
 
 logger = logging.getLogger(__name__)
@@ -73,16 +75,13 @@ def _check_filter_available(name: str) -> bool:
     """Check if an FFmpeg filter is available."""
     global _AVAILABLE_FILTERS
     if _AVAILABLE_FILTERS is None:
+        timeout = resolve_ffmpeg_timeout(default=10)
         try:
-            proc = subprocess.run(  # noqa: S603
-                [_ffmpeg(), "-filters"],
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
+            proc = run_bounded([_ffmpeg(), "-filters"], timeout=timeout)
         except subprocess.TimeoutExpired:
-            raise ProcessingError("ffmpeg -filters", -1, "", reason="FFmpeg filter probe timed out after 10s") from None
+            raise ProcessingError(
+                "ffmpeg -filters", -1, "", reason=f"FFmpeg filter probe timed out after {timeout:g}s"
+            ) from None
         if proc.returncode != 0:
             return False
         parsed = set()
@@ -172,6 +171,60 @@ def _build_edit_result(
     )
 
 
+def _transactional_edit(
+    output: str,
+    operation: str,
+    render: Callable[[str], None],
+    *,
+    build_result: Callable[[str], EditResult] | None = None,
+) -> EditResult:
+    """Render and probe the staged media before publishing a finalized result."""
+    from .ffmpeg_helpers import _atomic_output, _validate_output_path
+
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+        _validate_output_path(staged)
+        render(staged)
+        result = _build_edit_result(staged, operation, timing) if build_result is None else build_result(staged)
+    return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})
+
+
+class StagedProgress:
+    """Map local 0-100 percentages onto weighted parts of an operation."""
+
+    def __init__(self, callback: Callable[[float], None] | None, *weights: float):
+        total = sum(weights)
+        if not weights or not math.isfinite(total) or any(weight <= 0 for weight in weights):
+            raise ValueError("Progress stages need positive, finite weights")
+        self._callback = callback
+        self._bounds = [0.0]
+        self._highest = 0.0
+        cumulative = 0.0
+        for weight in weights:
+            cumulative += weight
+            self._bounds.append(100 * (cumulative / total))
+
+    def stage(self, index: int) -> Callable[[float], None] | None:
+        if not 0 <= index < len(self._bounds) - 1:
+            raise IndexError("Progress stage out of range")
+        callback = self._callback
+        if callback is None:
+            return None
+        start, end = self._bounds[index : index + 2]
+
+        def report(percent: float) -> None:
+            mapped = end if percent >= 100 else start + (end - start) * max(0.0, percent) / 100
+            if mapped < self._highest:
+                mapped = self._highest
+            else:
+                self._highest = mapped
+            callback(mapped)
+
+        return report
+
+
+_PROCESS_OWNERSHIP_ERROR_CODES = frozenset({"process_ownership_unavailable", "process_cleanup_failed"})
+
+
 def _generate_thumbnail_base64(video_path: str) -> str | None:
     """Generate a base64-encoded JPEG thumbnail from the first frame of a video.
 
@@ -182,7 +235,7 @@ def _generate_thumbnail_base64(video_path: str) -> str | None:
         with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
             tmp_path = tmp.name
 
-        proc = subprocess.run(  # noqa: S603
+        proc = run_bounded(
             [
                 _ffmpeg(),
                 "-y",
@@ -196,10 +249,7 @@ def _generate_thumbnail_base64(video_path: str) -> str | None:
                 "scale=320:-1",
                 tmp_path,
             ],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=DOCTOR_COMMAND_TIMEOUT,
+            timeout=resolve_ffmpeg_timeout(default=DOCTOR_COMMAND_TIMEOUT),
         )
 
         if proc.returncode != 0 or not os.path.isfile(tmp_path):
@@ -208,6 +258,11 @@ def _generate_thumbnail_base64(video_path: str) -> str | None:
         with open(tmp_path, "rb") as f:
             data = f.read()
         return base64.b64encode(data).decode("ascii")
+    except MCPVideoError as exc:
+        if exc.code in _PROCESS_OWNERSHIP_ERROR_CODES:
+            raise
+        logger.warning("Thumbnail generation failed: %s", exc)
+        return None
     except Exception as exc:
         logger.warning("Thumbnail generation failed: %s", exc)
         return None

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _format_ffmpeg_number, _sanitize_ffmpeg_number
+from .ffmpeg_helpers import _build_ffmpeg_cmd, _format_ffmpeg_number, _sanitize_ffmpeg_number
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
-from .engine_runtime_utils import _build_edit_result, _movflags_args, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _movflags_args, _transactional_edit
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
 from .errors import CodecError, MCPVideoError, ProcessingError
@@ -155,33 +155,31 @@ def trim(
 
         clip_seconds = probe(input_path).duration - start_sec
 
-    with _atomic_output(output) as staged:
-        _validate_output_path(staged)
+    def render(staged: str) -> None:
         encode = (
             ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", *_movflags_args(staged), staged]
             if stream_copy
             else _build_ffmpeg_cmd(output_path=staged)
         )
-        with _timed_operation() as timing:
-            try:
-                if on_progress is None:
-                    _run_ffmpeg(prefix + encode)
-                else:
-                    _run_ffmpeg_with_progress(prefix + encode, clip_seconds, on_progress)
-            except (CodecError, ProcessingError) as exc:
-                if not stream_copy or (isinstance(exc, ProcessingError) and exc.returncode == -1):
-                    raise
-                raise MCPVideoError(
-                    "Trim stream copy failed. Use a container compatible with the source codecs, "
-                    "or retry with stream_copy=False to re-encode.",
-                    error_type="processing_error",
-                    code="trim_stream_copy_failed",
-                ) from None
-        result = _build_edit_result(staged, "trim", timing)
+        try:
+            if on_progress is None:
+                _run_ffmpeg(prefix + encode)
+            else:
+                _run_ffmpeg_with_progress(prefix + encode, clip_seconds, on_progress)
+        except (CodecError, ProcessingError) as exc:
+            if not stream_copy or (isinstance(exc, ProcessingError) and exc.returncode == -1):
+                raise
+            raise MCPVideoError(
+                "Trim stream copy failed. Use a container compatible with the source codecs, "
+                "or retry with stream_copy=False to re-encode.",
+                error_type="processing_error",
+                code="trim_stream_copy_failed",
+            ) from None
 
-    warnings = list(result.warnings)
+    result = _transactional_edit(
+        output, "trim", render, build_result=lambda staged: _build_edit_result(staged, "trim", {"elapsed_ms": None})
+    )
     if stream_copy:
-        warnings.append(
-            "Stream copy can snap cuts to nearby keyframes; the output may not match the requested boundaries."
-        )
-    return result.model_copy(update={"output_path": output, "warnings": warnings})
+        warning = "Stream copy can snap cuts to nearby keyframes; the output may not match the requested boundaries."
+        return result.model_copy(update={"warnings": [*result.warnings, warning]})
+    return result

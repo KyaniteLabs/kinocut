@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd
+from .ffmpeg_helpers import _build_ffmpeg_cmd
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_probe import probe
-from .engine_runtime_utils import _build_edit_result, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _transactional_edit
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg, _sanitize_ffmpeg_number
 from .errors import MCPVideoError
@@ -57,34 +57,33 @@ def speed(
         )
     has_audio = info.audio_codec is not None
 
-    with _atomic_output(output) as staged:
-        _validate_output_path(staged)
-        with _timed_operation() as timing:
-            if has_audio:
-                _run_ffmpeg(
-                    _build_ffmpeg_cmd(
-                        input_path,
-                        output_path=staged,
-                        extra=[
-                            "-filter_complex",
-                            f"[0:v]{video_filter}[v];[0:a]{audio_filter}[a]",
-                            "-map",
-                            "[v]",
-                            "-map",
-                            "[a]",
-                        ],
-                    )
+    def render(staged: str) -> None:
+        if has_audio:
+            _run_ffmpeg(
+                _build_ffmpeg_cmd(
+                    input_path,
+                    output_path=staged,
+                    extra=[
+                        "-filter_complex",
+                        f"[0:v]{video_filter}[v];[0:a]{audio_filter}[a]",
+                        "-map",
+                        "[v]",
+                        "-map",
+                        "[a]",
+                    ],
                 )
-            else:
-                _run_ffmpeg(
-                    _build_ffmpeg_cmd(
-                        input_path,
-                        output_path=staged,
-                        video_filter=video_filter,
-                        audio_codec=None,
-                        extra=["-an"],
-                    )
+            )
+        else:
+            _run_ffmpeg(
+                _build_ffmpeg_cmd(
+                    input_path,
+                    output_path=staged,
+                    video_filter=video_filter,
+                    audio_codec=None,
+                    extra=["-an"],
                 )
-        result = _build_edit_result(staged, "speed", timing)
+            )
 
-    return result.model_copy(update={"output_path": output})
+    return _transactional_edit(
+        output, "speed", render, build_result=lambda staged: _build_edit_result(staged, "speed", {"elapsed_ms": None})
+    )
