@@ -277,5 +277,9 @@ def check_sphere_director() -> dict[str, Any]:
             "category": "optional",
             "required": False,
             "ok": False,
+            "path": None,
+            "version": None,
+            "install_hint": None,
+            "details": {"available": False, "kind": "unresolved"},
             "reason": type(exc).__name__,
         }
