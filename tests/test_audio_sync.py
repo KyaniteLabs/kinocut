@@ -90,6 +90,30 @@ def test_masking_checks_other_transients_and_boundaries():
     assert len(receipt["unresolved_overlaps"]) == 1
 
 
+def test_zero_movement_budgets_do_not_move_even_with_sub_picosecond_offsets():
+    events = [{"time_s": 0.125}]
+    almost = math.nextafter(0.125, math.inf)
+    locked, pocket = pocket_lock(events, [Onset(almost, "hat", 1, 1)], max_window_ms=0)
+    nudged, masking = nudge_off_transients(
+        events, [Onset(0.125, "kick", 1, 1)], clearance_ms=(almost - 0.125) * 1000, max_shift_ms=0
+    )
+    assert locked == nudged == events
+    assert pocket["unmatched_events"] == [0]
+    assert masking["events"][0]["shift_ms"] == 0.0
+    assert masking["unresolved_overlaps"] == [{"event_index": 0, "onset_times_s": [0.125]}]
+
+
+@pytest.mark.parametrize("confidence", [True, False, math.nan, math.inf, -math.inf, -0.01, 1.01])
+def test_placement_rejects_invalid_confidence(confidence):
+    events = [{"time_s": 0.1}]
+    with pytest.raises(MCPVideoError, match="Confidence"):
+        pocket_lock(events, [], min_confidence=confidence)
+    with pytest.raises(MCPVideoError, match="Confidence"):
+        pocket_lock(events, [Onset(0.1, "hat", 1, confidence)])
+    with pytest.raises(MCPVideoError, match="Confidence"):
+        nudge_off_transients(events, [Onset(0.1, "kick", 1, confidence)])
+
+
 def test_stack_aligns_samples_flips_polarity_and_limits_peak(tmp_path):
     hit = [0.72 * math.cos(math.tau * 70 * index / RATE) for index in range(2400)]
     kick = _wav(tmp_path / "kick.wav", [0] * 37 + hit)
@@ -102,7 +126,9 @@ def test_stack_aligns_samples_flips_polarity_and_limits_peak(tmp_path):
     assert receipt["combined_peak_dbfs"] > 0 > receipt["applied_gain_db"]
     with wave.open(str(output), "rb") as stream:
         pcm = [value / 32768 for (value,) in struct.iter_unpack("<h", stream.readframes(stream.getnframes()))]
-    assert detect_sample_onset(pcm) <= 1
+    onset = detect_sample_onset(pcm)
+    assert onset is not None
+    assert onset <= 1
     assert 20 * math.log10(max(map(abs, pcm))) == pytest.approx(-0.5, abs=0.002)
     second = tmp_path / "again.wav"
     align_hit_stack([kick, sub], second)
@@ -111,6 +137,17 @@ def test_stack_aligns_samples_flips_polarity_and_limits_peak(tmp_path):
     with pytest.raises(MCPVideoError, match="peak"):
         align_hit_stack([kick, sub], failed, on_clip="fail")
     assert not failed.exists()
+
+
+def test_stack_compares_full_low_band_response_of_unequal_hits(tmp_path):
+    long_hit = _wav(tmp_path / "long.wav", [-0.05] + [0.1] * 511)
+    impulse = _wav(tmp_path / "impulse.wav", [0.5])
+    output = tmp_path / "stack.wav"
+    receipt = align_hit_stack([long_hit, impulse], output)
+    assert [layer["polarity_inverted"] for layer in receipt["layers"]] == [False, False]
+    with wave.open(str(output), "rb") as stream:
+        assert stream.getnframes() == 512
+        assert struct.unpack("<h", stream.readframes(1))[0] / 32768 == pytest.approx(0.45, abs=0.0001)
 
 
 def _command(*args):
@@ -123,12 +160,60 @@ def _video_hash(path):
     return _command("ffmpeg", "-v", "error", "-i", path, "-map", "0:v:0", "-c", "copy", "-f", "hash", "-")
 
 
+def _stream_types(path):
+    streams = json.loads(_command("ffprobe", "-v", "error", "-show_streams", "-of", "json", path))["streams"]
+    return [stream["codec_type"] for stream in streams]
+
+
+def _rendered_levels(path, stream=0):
+    result = run_bounded(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostats",
+            "-i",
+            str(path),
+            "-map",
+            f"0:a:{stream}",
+            "-af",
+            "aformat=sample_fmts=dbl,astats=measure_perchannel=none:measure_overall=Peak_level,"
+            "loudnorm=print_format=json",
+            "-f",
+            "null",
+            "-",
+        ],
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    peak = re.search(r"Peak level dB: ([-\d.]+)", result.stderr)
+    lufs = re.search(r'"input_i"\s*:\s*"([-\d.]+)"', result.stderr)
+    assert peak is not None and lufs is not None, result.stderr
+    return float(lufs[1]), float(peak[1])
+
+
 @pytest.fixture
 def audition_inputs(tmp_path):
     if not all(shutil.which(tool) for tool in ("ffmpeg", "ffprobe")):
         pytest.skip("FFmpeg and FFprobe are required")
     video = tmp_path / "source.mp4"
-    _command("ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=96x64:r=30:d=1", "-c:v", "mpeg4", video)
+    _command(
+        "ffmpeg",
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc2=s=96x64:r=30:d=1",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=300:duration=1",
+        "-c:v",
+        "mpeg4",
+        "-c:a",
+        "aac",
+        video,
+    )
     mixes = []
     for index, (label, amplitude) in enumerate([("<Straight & loud>", 0.3), ("Swung", 0.075)]):
         audio = _wav(
@@ -162,11 +247,66 @@ def test_audition_review_is_offline_and_blind(tmp_path, audition_inputs):
     assert "Mix A" in page and "Mix B" in page
     assert all(mix["label"] not in page for mix in mixes)
     assert "https://" not in page and "fetch(" not in page
-    assert (folder / "picture.mp4").read_bytes() == video.read_bytes()
+    picture = folder / "picture.mp4"
+    assert _stream_types(video) == ["video", "audio"]
+    assert _stream_types(picture) == ["video"]
+    assert _video_hash(picture) == _video_hash(video)
+    assert _command("ffmpeg", "-v", "error", "-i", picture, "-f", "framemd5", "-") == _command(
+        "ffmpeg", "-v", "error", "-i", video, "-an", "-f", "framemd5", "-"
+    )
     payloads = re.findall(r'<script class="track" type="application/octet-stream">(.*?)</script>', page)
     files = [(folder / f"mix-{index:03}.wav").read_bytes() for index in (1, 2)]
     assert [base64.b64decode(payload) for payload in payloads] == files
     assert json.loads((folder / "receipt.json").read_text()) == receipt
+
+
+@pytest.mark.parametrize("kind", ["audio", "text", "symlink", "directory"])
+def test_audition_review_rejects_invalid_picture(tmp_path, audition_inputs, kind):
+    video, mixes = audition_inputs
+    invalid = tmp_path / "invalid.mp4"
+    if kind == "audio":
+        shutil.copyfile(mixes[0]["audio_path"], invalid)
+    elif kind == "text":
+        invalid.write_text("Not a video")
+    elif kind == "symlink":
+        invalid.symlink_to(video)
+    else:
+        invalid.mkdir()
+    folder = tmp_path / "review"
+    with pytest.raises(MCPVideoError, match="Picture"):
+        build_ab_audition(invalid, mixes, folder, mode="review_page")
+    assert not folder.exists()
+
+
+@pytest.mark.parametrize("mode", ["review_page", "multi_audio"])
+def test_audition_matches_rendered_high_crest_factor_mix_without_clipping(tmp_path, audition_inputs, mode):
+    video, mixes = audition_inputs
+    impulse = [0.0] * RATE
+    impulse[RATE // 2] = 0.85
+    audio = _wav(tmp_path / "impulse.wav", impulse)
+    mixes = [mixes[0], {"label": "Transient", "audio_path": str(audio)}]
+    output = tmp_path / ("review" if mode == "review_page" else "audition.mkv")
+    with pytest.raises(ValueError, match=r"unreachable.*sample-peak ceiling"):
+        build_ab_audition(video, mixes, output, mode=mode, target_lufs=-16.0)
+    assert not output.exists()
+    receipt = build_ab_audition(video, mixes, output, mode=mode)
+    assert receipt["headroom_limited"] is True
+    assert receipt["effective_target_lufs"] < -35
+    transient = receipt["mixes"][1]
+    assert transient["measured_lufs"] == pytest.approx(-42, abs=2)
+    assert receipt["effective_target_lufs"] == pytest.approx(
+        transient["measured_lufs"] - transient["measured_sample_peak_dbfs"] - 1.0, abs=1.0
+    )
+    tracks = (
+        [(output / "mix-001.wav", 0), (output / "mix-002.wav", 0)]
+        if mode == "review_page"
+        else [(output, 0), (output, 1)]
+    )
+    levels = [_rendered_levels(path, stream) for path, stream in tracks]
+    assert levels[0][0] == pytest.approx(levels[1][0], abs=0.15)
+    for lufs, peak in levels:
+        assert lufs == pytest.approx(receipt["effective_target_lufs"], abs=0.075)
+        assert peak <= -1.0
 
 
 def test_audition_short_mix_uses_rms_and_no_match_keeps_gain(tmp_path, audition_inputs):

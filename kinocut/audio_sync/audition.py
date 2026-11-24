@@ -7,34 +7,50 @@ import html
 import json
 import math
 import re
-import shutil
+import stat
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 from ..errors import MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import _run_ffmpeg
+from ..ffmpeg_helpers import _run_ffmpeg, _run_ffprobe_json
 from ..publication import anchored_tree, atomic_output, record_operation_input
 from .onsets import _nonnegative
 
 _LOUDNESS = re.compile(r'"input_i"\s*:\s*"(-?(?:\d+(?:\.\d+)?|inf))"')
 _RMS = re.compile(r"RMS level dB:\s*(-?(?:\d+(?:\.\d+)?|inf))")
+_PEAK = re.compile(r"Peak level dB:\s*(-?(?:\d+(?:\.\d+)?|inf))")
+_STATS = "aformat=sample_fmts=dbl,astats=measure_perchannel=none:measure_overall=Peak_level+RMS_level"
+_SAMPLE_PEAK_CEILING = -1.0
+_PEAK_MARGIN = 0.002
+_MATCH_TOLERANCE = 0.075
 
 
-def _measure_loudness(source: str) -> tuple[float | None, str]:
-    measure = ["-nostdin", "-hide_banner", "-nostats", "-v", "info", "-i", source, "-map", "0:a:0", "-vn"]
+@dataclass(frozen=True)
+class _AudioLevels:
+    lufs: float | None
+    rms_dbfs: float | None
+    peak_dbfs: float
+
+    def level(self, method: str) -> float | None:
+        return self.lufs if method == "lufs" else self.rms_dbfs
+
+
+def _measure_audio(source: str, stream: int = 0) -> _AudioLevels:
+    measure = ["-nostdin", "-hide_banner", "-nostats", "-v", "info", "-i", source, "-map", f"0:a:{stream}", "-vn"]
     try:
-        log = _run_ffmpeg([*measure, "-af", "loudnorm=print_format=json", "-f", "null", "-"]).stderr
+        log = _run_ffmpeg([*measure, "-af", f"{_STATS},loudnorm=print_format=json", "-f", "null", "-"]).stderr
     except ProcessingError:
-        log = ""
-    lufs = _LOUDNESS.search(log)
-    if lufs and math.isfinite(integrated := float(lufs[1])):
-        return integrated, "lufs"
-    log = _run_ffmpeg(
-        [*measure, "-af", "astats=measure_perchannel=none:measure_overall=RMS_level", "-f", "null", "-"]
-    ).stderr
-    rms = _RMS.search(log)
-    if rms and math.isfinite(level := float(rms[1])):
-        return level, "rms_dbfs"
-    return None, "unmeasurable"
+        log = _run_ffmpeg([*measure, "-af", _STATS, "-f", "null", "-"]).stderr
+    peak = _PEAK.search(log)
+    if peak is None:
+        raise MCPVideoError("Could not measure audition audio sample peak", code="audio_measurement_failed")
+    return _AudioLevels(_finite_level(_LOUDNESS, log), _finite_level(_RMS, log), float(peak[1]))
+
+
+def _finite_level(pattern: re.Pattern[str], log: str) -> float | None:
+    match = pattern.search(log)
+    return value if match and math.isfinite(value := float(match[1])) else None
 
 
 def _blind_label(index: int) -> str:
@@ -46,36 +62,100 @@ def _blind_label(index: int) -> str:
     return f"Mix {letters}"
 
 
-def _mix_receipts(mixes, *, blind: bool, loudness_match: bool, target: float) -> list[dict]:
+def _mix_receipts(mixes, *, blind: bool) -> tuple[list[dict], list[_AudioLevels]]:
     entries = []
+    measurements = []
     for index, mix in enumerate(mixes):
         label = mix["label"]
         if not isinstance(label, str) or not label.strip() or "\x00" in label:
             raise MCPVideoError("Mix labels must be nonempty text", code="invalid_parameter")
         source = str(Path(mix["audio_path"]).absolute())
         record_operation_input(source)
-        level, method = _measure_loudness(source)
+        levels = _measure_audio(source)
+        measurements.append(levels)
         entries.append(
             {
                 "label": label,
                 "display_label": _blind_label(index) if blind else label,
                 "source": source,
-                "measured_lufs": level if method == "lufs" else None,
-                "measured_rms_dbfs": level if method == "rms_dbfs" else None,
-                "measurement": method,
-                "applied_gain_db": target - level if loudness_match and level is not None else 0.0,
+                "measured_lufs": levels.lufs,
+                "measured_rms_dbfs": levels.rms_dbfs if levels.lufs is None else None,
+                "measurement": "lufs"
+                if levels.lufs is not None
+                else ("rms_dbfs" if levels.rms_dbfs is not None else "unmeasurable"),
+                "measured_sample_peak_dbfs": levels.peak_dbfs if math.isfinite(levels.peak_dbfs) else None,
+                "applied_gain_db": 0.0,
             }
         )
     if not entries:
         raise MCPVideoError("Provide at least one audition mix", code="invalid_parameter")
-    return entries
+    return entries, measurements
+
+
+def _headroom_target(requested: float, ceiling: float, *, explicit: bool) -> float:
+    if requested > ceiling and explicit:
+        raise ValueError("Requested loudness target is unreachable without exceeding the sample-peak ceiling")
+    return min(requested, ceiling)
+
+
+def _render_matched(
+    render: Callable[[], list[tuple[str, int]]],
+    entries: list[dict],
+    sources: list[_AudioLevels],
+    receipt: dict,
+    *,
+    explicit: bool,
+) -> None:
+    if not receipt["loudness_match"]:
+        render()
+        return
+    method = "rms_dbfs" if any(level.lufs is None and level.rms_dbfs is not None for level in sources) else "lufs"
+    audible = [(index, level) for index, source in enumerate(sources) if (level := source.level(method)) is not None]
+    if not audible:
+        render()
+        return
+    ceiling = _SAMPLE_PEAK_CEILING - _PEAK_MARGIN
+    gain_limits = {index: ceiling - sources[index].peak_dbfs for index, _ in audible}
+    target = _headroom_target(
+        receipt["target_lufs"], min(level + gain_limits[index] for index, level in audible), explicit=explicit
+    )
+    for index, level in audible:
+        entries[index]["applied_gain_db"] = target - level
+
+    for _ in range(6):
+        tracks = render()
+        corrections = {}
+        next_target = target
+        for index, _ in audible:
+            source, stream = tracks[index]
+            rendered = _measure_audio(source, stream)
+            level = rendered.level(method)
+            if level is None:
+                raise ValueError("Rendered mix could not be measured at the common loudness target")
+            error = target - level
+            if abs(error) <= _MATCH_TOLERANCE and rendered.peak_dbfs <= _SAMPLE_PEAK_CEILING:
+                continue
+            gain = entries[index]["applied_gain_db"]
+            corrections[index] = error
+            next_target = min(next_target, level + min(ceiling - rendered.peak_dbfs, gain_limits[index] - gain))
+        if not corrections:
+            receipt["matching_measurement"] = method
+            receipt["effective_target_lufs"] = target if method == "lufs" else None
+            receipt["effective_target_rms_dbfs"] = target if method == "rms_dbfs" else None
+            receipt["headroom_limited"] = target < receipt["target_lufs"]
+            return
+        next_target = _headroom_target(target, next_target, explicit=explicit)
+        for index, _ in audible:
+            entries[index]["applied_gain_db"] += corrections.get(index, 0.0) + next_target - target
+        target = next_target
+    raise ValueError("Could not match rendered mixes to a common loudness without exceeding the sample-peak ceiling")
 
 
 def _volume(entry: dict) -> str:
-    return f"volume={entry['applied_gain_db']:.12g}dB"
+    return f"volume={entry['applied_gain_db']:.12g}dB:precision=double"
 
 
-def _mux(video: Path, entries: list[dict], output: Path) -> None:
+def _mux(video: Path, entries: list[dict], stage: str) -> list[tuple[str, int]]:
     args = ["-nostdin", "-v", "error", "-i", str(video)]
     for entry in entries:
         args.extend(["-i", entry["source"]])
@@ -113,8 +193,8 @@ def _mux(video: Path, entries: list[dict], output: Path) -> None:
                 "default" if index == 0 else "0",
             ]
         )
-    with atomic_output(str(output)) as stage:
-        _run_ffmpeg([*args, stage])
+    _run_ffmpeg([*args, stage])
+    return [(stage, index) for index in range(len(entries))]
 
 
 _PLAYER = """
@@ -238,32 +318,84 @@ label,button{margin-inline-end:1rem} select,button{font:inherit}
         page.write(f"<script>{_PLAYER}</script></html>\n")
 
 
-def _review(video: Path, entries: list[dict], output: Path, receipt: dict, loop: list) -> None:
+def _picture_stream(video: Path) -> int:
+    try:
+        if not stat.S_ISREG(video.lstat().st_mode):
+            raise MCPVideoError("Picture must be a non-symlink regular file", code="invalid_picture")
+    except OSError:
+        raise MCPVideoError("Picture must be a non-symlink regular file", code="invalid_picture") from None
+    try:
+        streams = _run_ffprobe_json(str(video)).get("streams", [])
+    except ProcessingError:
+        streams = []
+    for stream in streams:
+        if (
+            stream.get("codec_type") == "video"
+            and not stream.get("disposition", {}).get("attached_pic")
+            and stream.get("width", 0) > 0
+            and stream.get("height", 0) > 0
+        ):
+            return stream["index"]
+    raise MCPVideoError("Picture must contain a video stream", code="invalid_picture")
+
+
+def _render_wavs(entries: list[dict], tracks: list[Path]) -> list[tuple[str, int]]:
+    for entry, audio in zip(entries, tracks, strict=True):
+        _run_ffmpeg(
+            [
+                "-nostdin",
+                "-v",
+                "error",
+                "-i",
+                entry["source"],
+                "-map",
+                "0:a:0",
+                "-map_metadata",
+                "-1",
+                "-af",
+                _volume(entry),
+                "-c:a",
+                "pcm_s16le",
+                str(audio),
+            ]
+        )
+    return [(str(track), 0) for track in tracks]
+
+
+def _review(
+    video: Path,
+    picture_stream: int,
+    entries: list[dict],
+    sources: list[_AudioLevels],
+    output: Path,
+    receipt: dict,
+    loop: list[float | None],
+    *,
+    explicit: bool,
+) -> None:
     with anchored_tree(output) as stage:
         picture = f"picture{video.suffix.lower()}"
-        shutil.copyfile(video, stage / picture)
-        tracks = []
-        for index, entry in enumerate(entries, 1):
-            audio = stage / f"mix-{index:03}.wav"
-            _run_ffmpeg(
-                [
-                    "-nostdin",
-                    "-v",
-                    "error",
-                    "-i",
-                    entry["source"],
-                    "-map",
-                    "0:a:0",
-                    "-map_metadata",
-                    "-1",
-                    "-af",
-                    _volume(entry),
-                    "-c:a",
-                    "pcm_s16le",
-                    str(audio),
-                ]
-            )
-            tracks.append(audio)
+        _run_ffmpeg(
+            [
+                "-nostdin",
+                "-v",
+                "error",
+                "-i",
+                str(video),
+                "-map",
+                f"0:{picture_stream}",
+                "-c:v",
+                "copy",
+                "-an",
+                "-map_metadata",
+                "-1",
+                "-map_chapters",
+                "-1",
+                str(stage / picture),
+            ]
+        )
+        tracks = [stage / f"mix-{index:03}.wav" for index in range(1, len(entries) + 1)]
+        _render_matched(lambda: _render_wavs(entries, tracks), entries, sources, receipt, explicit=explicit)
         _write_page(stage / "index.html", picture, entries, tracks, loop)
         (stage / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -275,37 +407,48 @@ def build_ab_audition(
     *,
     mode="multi_audio",
     loudness_match=True,
-    target_lufs=-16.0,
+    target_lufs: float | None = None,
     blind=False,
-    loop_start_s=None,
-    loop_end_s=None,
+    loop_start_s: float | None = None,
+    loop_end_s: float | None = None,
 ):
     """Package premixed, picture-aligned audio alternatives and return an audition receipt."""
     video, output = Path(video_path).absolute(), Path(output_path).absolute()
-    if mode not in ("multi_audio", "review_page") or not math.isfinite(target_lufs) or not -70 <= target_lufs <= 0:
+    target = -16.0 if target_lufs is None else target_lufs
+    if mode not in ("multi_audio", "review_page") or not math.isfinite(target) or not -70 <= target <= 0:
         raise MCPVideoError("Invalid audition mode or loudness target", code="invalid_parameter")
     if mode == "multi_audio" and output.suffix.lower() not in (".mp4", ".mkv"):
         raise MCPVideoError("Multi-audio audition output must be MP4 or MKV", code="invalid_parameter")
     loop = [loop_start_s, loop_end_s]
-    if loop != [None, None] and (
-        None in loop or _nonnegative(loop_start_s, "loop_start_s") >= _nonnegative(loop_end_s, "loop_end_s")
+    if (loop_start_s is not None or loop_end_s is not None) and (
+        loop_start_s is None
+        or loop_end_s is None
+        or _nonnegative(loop_start_s, "loop_start_s") >= _nonnegative(loop_end_s, "loop_end_s")
     ):
         raise MCPVideoError("Supply an increasing loop start and end in seconds", code="invalid_parameter")
+    picture_stream = _picture_stream(video) if mode == "review_page" else None
     record_operation_input(str(video))
-    entries = _mix_receipts(mixes, blind=blind, loudness_match=loudness_match, target=target_lufs)
+    entries, sources = _mix_receipts(mixes, blind=blind)
     receipt = {
         "mode": mode,
         "output_path": str(output),
         "video_source": str(video),
         "mixes": entries,
         "loudness_match": loudness_match,
-        "target_lufs": target_lufs,
+        "target_lufs": target,
+        "effective_target_lufs": None,
+        "effective_target_rms_dbfs": None,
+        "matching_measurement": None,
+        "headroom_limited": False,
+        "sample_peak_ceiling_dbfs": _SAMPLE_PEAK_CEILING,
         "blind_key": {entry["display_label"]: entry["label"] for entry in entries} if blind else {},
         "loop_start_s": loop_start_s,
         "loop_end_s": loop_end_s,
     }
-    if mode == "multi_audio":
-        _mux(video, entries, output)
+    explicit = target_lufs is not None
+    if picture_stream is None:
+        with atomic_output(str(output)) as stage:
+            _render_matched(lambda: _mux(video, entries, stage), entries, sources, receipt, explicit=explicit)
     else:
-        _review(video, entries, output, receipt, loop)
+        _review(video, picture_stream, entries, sources, output, receipt, loop, explicit=explicit)
     return receipt

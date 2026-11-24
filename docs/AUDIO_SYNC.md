@@ -36,8 +36,8 @@ placed, receipt = place_events_with_stem(events, onsets, fine_grid_step_ms=2)
 - `place_events_with_stem` accepts either a stem path or detected onsets. It runs
   pocket lock **before** masking for `both` (the default). Masking may therefore move
   a snapped event off its onset or fine grid. Each pass enforces its own budget from
-  that pass's starting time. `fixed=True` prevents both moves; if masking is enabled
-  for the event, it still checks for overlap.
+  that pass's starting time; a zero budget allows no movement. `fixed=True` prevents
+  both moves; if masking is enabled for the event, it still checks for overlap.
 
 Placement functions return `(copied_events, receipt)` without changing caller
 dictionaries. Receipts use input order, include every original and final time, and
@@ -59,10 +59,11 @@ to its detected onset, so place sample zero of the rendered WAV at the event tim
 using an audio sample offset, not a frame-rounded video offset.
 
 Polarity is tested in input order against the sum so far, using a cascaded low-pass
-at 250 Hz. A layer is inverted only if it increases that low-band energy. The receipt
+at 250 Hz, over the full stack duration plus the filter's decay. A layer is inverted
+only if it increases that low-band energy. The receipt
 records the original onset, signed offset, inversion, pre-gain peak in dBFS (`null`
 for complete cancellation), and applied gain. Output is 16-bit PCM; the default
-−0.5 dBFS sample peak limit attenuates the whole stack as needed. Specify
+−0.5 dBFS ceiling is a **sample-peak** limit (not true peak) and attenuates the whole stack as needed. Specify
 `on_clip="fail"` to refuse publication instead.
 
 ## Compare alternate mixes
@@ -82,21 +83,24 @@ build_ab_audition(
 ```
 
 Export all mixes from the same picture zero point; the builder does not infer
-offsets or extend a short mix. Loudness matching defaults to −16 LUFS using
-FFmpeg's integrated measurement and a constant gain. For very short or ungated
-audio it falls back to RMS dBFS as a rough estimate, reporting the measurement
-method and value separately; silence receives no gain. This is not a limiter:
-use a lower target or prepare mixes with headroom if gain would clip.
+offsets or extend a short mix. Loudness matching uses FFmpeg's integrated measurement
+and constant gain. If any audible mix is too short or ungated for LUFS measurement,
+all audible mixes are matched using RMS dBFS instead; silence receives no gain.
+The default target of −16 is lowered if any mix would exceed the −1 dBFS sample-peak
+ceiling. The receipt records the effective target and whether headroom limited it.
+An explicit target that cannot be reached safely raises `ValueError`. The builder
+checks the rendered audio before publishing; it does not apply a limiter.
 
 - **Multi-audio:** MKV or MP4 with one stream-copied picture and one AAC stream per
   mix. Switch tracks in the player. The first is selected by default. Loop times
   are receipt metadata in this mode; track switching and looping depend on the player.
 - **Review page:** Open `index.html` directly from the new folder and click
   **Enable audio and play**. Use a picture format the browser already supports.
-  The page mutes the picture's own sound and schedules all mixes on a shared audio
+  The builder requires a non-symlink video file and stream-copies the picture without
+  its source audio. The page schedules all mixes on a shared audio
   clock. Selecting another mix changes gains without restarting the audio or
   seeking the video. Supply both loop endpoints to enable the loop toggle.
-  The video is copied once. The folder includes both WAVs and embedded copies of
+  The folder includes both WAVs and embedded copies of
   their bytes for playback without a server or local-file fetch permissions; use
   short comparison clips to keep browser memory and package size manageable.
 

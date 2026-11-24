@@ -4,7 +4,7 @@ from bisect import bisect_left, bisect_right
 from pathlib import Path
 
 from ..errors import MCPVideoError
-from .onsets import _nonnegative, detect_onsets, pocket_lock
+from .onsets import _movement_bounds, _nonnegative, _validate_confidence, detect_onsets, pocket_lock
 
 
 def _clearance_zones(times: list[float], clearance: float) -> list[tuple[float, float]]:
@@ -18,11 +18,12 @@ def _clearance_zones(times: list[float], clearance: float) -> list[tuple[float, 
     return zones
 
 
-def _escape(original, zone, max_shift, prefer):
+def _escape(original, zone, max_shift_ms, prefer):
+    lower, upper = _movement_bounds(original, max_shift_ms)
     candidates = [
         (target, direction)
         for target, direction in zip(zone, ("early", "late"), strict=True)
-        if target >= 0 and abs(target - original) <= max_shift + 1e-12
+        if lower <= target <= upper
     ]
     if not candidates:
         return original
@@ -36,9 +37,14 @@ def nudge_off_transients(
     if prefer not in ("late", "early", "nearest"):
         raise MCPVideoError("prefer must be late, early, or nearest", code="invalid_parameter")
     clearance = _nonnegative(clearance_ms, "clearance_ms") / 1000
-    max_shift = _nonnegative(max_shift_ms, "max_shift_ms") / 1000
+    _nonnegative(max_shift_ms, "max_shift_ms")
     selected = set(bands)
-    times = sorted({_nonnegative(onset.time_s, "onset time_s") for onset in transients if onset.band in selected})
+    selected_times = set()
+    for onset in transients:
+        _validate_confidence(onset.confidence)
+        if onset.band in selected:
+            selected_times.add(_nonnegative(onset.time_s, "onset time_s"))
+    times = sorted(selected_times)
     zones = _clearance_zones(times, clearance)
     starts = [start for start, _ in zones]
     placed, decisions, unresolved = [], [], []
@@ -51,7 +57,7 @@ def nudge_off_transients(
             if overlaps:
                 triggering = min(overlaps, key=lambda time: (abs(time - original), time))
                 if not event.get("fixed", False):
-                    final = _escape(original, zones[zone_index], max_shift, prefer)
+                    final = _escape(original, zones[zone_index], max_shift_ms, prefer)
                 if final == original:
                     remaining = overlaps
                     unresolved.append({"event_index": index, "onset_times_s": remaining})

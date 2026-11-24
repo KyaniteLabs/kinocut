@@ -8,6 +8,7 @@ import wave
 from array import array
 from bisect import bisect_left
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
 from ..bounded_process import run_bounded
@@ -150,6 +151,25 @@ def _nonnegative(value: float, name: str) -> float:
     return value
 
 
+def _validate_confidence(value: float) -> None:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not 0 <= value <= 1
+        or not math.isfinite(value)
+    ):
+        raise MCPVideoError("Confidence must be a finite number between 0 and 1", code="invalid_parameter")
+
+
+def _movement_bounds(original: float, budget_ms: float) -> tuple[float, float]:
+    """Keep decimal millisecond boundaries inclusive without expanding a zero budget."""
+    if not budget_ms:
+        return original, original
+    start = Decimal(str(float(original)))
+    budget = Decimal(str(float(budget_ms))).scaleb(-3)
+    return max(0.0, float(start - budget)), float(start + budget)
+
+
 def _closest_onset(time_s, times, best_at):
     index = bisect_left(times, time_s)
     candidates = times[max(0, index - 1) : index + 1]
@@ -162,14 +182,14 @@ def _closest_onset(time_s, times, best_at):
 
 def pocket_lock(events, onsets, *, band="hat", max_window_ms=25.0, min_confidence=0.35, fine_grid_step_ms=None):
     """Copy events and return placement decisions; equal-distance matches favor earlier hits."""
-    window = _nonnegative(max_window_ms, "max_window_ms") / 1000
-    if not 0 <= min_confidence <= 1:
-        raise MCPVideoError("min_confidence must be between 0 and 1", code="invalid_parameter")
+    _nonnegative(max_window_ms, "max_window_ms")
+    _validate_confidence(min_confidence)
     if fine_grid_step_ms is not None and not _nonnegative(fine_grid_step_ms, "fine_grid_step_ms"):
         raise MCPVideoError("fine_grid_step_ms must be positive", code="invalid_parameter")
     step = None if fine_grid_step_ms is None else fine_grid_step_ms / 1000
     best_at = {}
     for onset in onsets:
+        _validate_confidence(onset.confidence)
         if onset.band == band and onset.confidence >= min_confidence:
             previous = best_at.get(onset.time_s)
             if previous is None or (onset.confidence, onset.strength) > (previous.confidence, previous.strength):
@@ -178,10 +198,10 @@ def pocket_lock(events, onsets, *, band="hat", max_window_ms=25.0, min_confidenc
     placed, decisions, unmatched = [], [], []
     for index, event in enumerate(events):
         original = _nonnegative(event["time_s"], "event time_s")
-        lower, upper = max(0, original - window), original + window
+        lower, upper = _movement_bounds(original, max_window_ms)
         onset = _closest_onset(original, times, best_at) if not event.get("fixed", False) else None
         final = original
-        if onset is not None and lower - 1e-12 <= onset.time_s <= upper + 1e-12:
+        if onset is not None and lower <= onset.time_s <= upper:
             final = onset.time_s
             if step:
                 quantized = round(final / step) * step

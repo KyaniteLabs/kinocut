@@ -13,6 +13,8 @@ from ..errors import MCPVideoError
 from ..publication import atomic_output, open_staged_writer
 from .onsets import _biquad, _read_mono
 
+_LOW_BAND_TAIL_S = 0.05
+
 
 def detect_sample_onset(samples: Sequence[float]) -> int | None:
     """Return the first sample at or above -60 dB relative to the layer peak, or None for silence."""
@@ -22,19 +24,25 @@ def detect_sample_onset(samples: Sequence[float]) -> int | None:
 
 
 def _mix_layers(layers, rate: int, check_polarity: bool):
-    mixed = array("d")
-    low_sum = array("d")
-    decisions = []
+    """Compare low-band energy over the full mix and the 250 Hz filter's decay."""
+    aligned_layers = []
     for layer in layers:
         samples = _read_mono(layer, rate)
         onset = detect_sample_onset(samples)
         if onset is None:
             raise MCPVideoError("A stack layer has no detectable onset", code="silent_stack_layer")
-        aligned = samples[onset:]
+        aligned_layers.append((layer, onset, samples[onset:]))
+    duration = max(len(samples) for _, _, samples in aligned_layers)
+    analysis_length = duration + math.ceil(rate * _LOW_BAND_TAIL_S)
+    mixed = array("d")
+    low_sum = array("d", [0.0]) * analysis_length if check_polarity else array("d")
+    decisions = []
+    for layer, onset, aligned in aligned_layers:
         inverted = False
         if check_polarity:
-            low = _biquad(_biquad(aligned, rate, 250), rate, 250)
-            inverted = math.fsum(prior * sample for prior, sample in zip(low_sum, low, strict=False)) < 0
+            padded = aligned + array("f", [0.0]) * (analysis_length - len(aligned))
+            low = _biquad(_biquad(padded, rate, 250), rate, 250)
+            inverted = math.fsum(prior * sample for prior, sample in zip(low_sum, low, strict=True)) < 0
             _accumulate(low_sum, low, -1 if inverted else 1)
         _accumulate(mixed, aligned, -1 if inverted else 1)
         decisions.append(
