@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import Any
 
+from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_artifact_location, _validate_artifact_path
 
 _HTML = """<!doctype html>
 <html lang="en">
@@ -26,8 +30,11 @@ _HTML = """<!doctype html>
   <pre id="out">{}</pre>
   <script>
     const params = new URLSearchParams(location.search);
-    const timelineUrl = params.get('timeline') || 'timeline.json';
-    const mediaUrl = params.get('media') || '';
+    function safeFilename(value) {
+      return value && /^[a-z0-9]/i.test(value) && !/[^a-z0-9._-]/i.test(value) ? value : null;
+    }
+    const timelineUrl = safeFilename(params.get('timeline')) || __DEFAULT_TIMELINE__;
+    const mediaUrl = safeFilename(params.get('media'));
     const status = document.getElementById('status');
     const out = document.getElementById('out');
     const player = document.getElementById('player');
@@ -53,13 +60,19 @@ _HTML = """<!doctype html>
 def write_review_surface(output_dir: str, *, timeline_name: str = "timeline.json") -> dict[str, Any]:
     """Write a static hot-reloading review HTML page into output_dir."""
     root = Path(output_dir)
-    root.mkdir(parents=True, exist_ok=True)
+    if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._-]*", timeline_name):
+        raise MCPVideoError(
+            "Expected a relative timeline filename", error_type="validation_error", code="invalid_parameter"
+        )
+    _validate_artifact_location(str(root), "Review directory")
     html_path = root / "review.html"
-    html_path.write_text(_HTML, encoding="utf-8")
+    payload = _HTML.replace("__DEFAULT_TIMELINE__", json.dumps(timeline_name)).encode("utf-8")
+    with _atomic_artifact(_validate_artifact_path(str(html_path))) as staged, _open_staged_writer(staged) as stream:
+        stream.write(payload)
     return {
         "artifact_kind": "review_surface",
         "html_path": str(html_path.resolve()),
         "timeline_filename": timeline_name,
         "hot_reload_ms": 2000,
-        "notes": "Open review.html next to timeline.json; polls every 2s.",
+        "notes": "Open review.html next to the timeline file; polls every 2s.",
     }

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import logging
 import math
+import os
+import struct
+from fractions import Fraction
 
 from .defaults import (
     DEFAULT_AUDIO_BITRATE,
@@ -13,7 +16,7 @@ from .defaults import (
     DEFAULT_DUCK_ATTACK_MS,
     DEFAULT_DUCK_RELEASE_MS,
 )
-from .engine_probe import probe, probe_audio_input
+from .engine_probe import _build_audio_input_info, _build_video_info, _read_input_metadata
 from .engine_runtime_utils import (
     _build_edit_result,
     _has_audio,
@@ -221,7 +224,7 @@ def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
         )
 
 
-def _add_audio_guardrail_warnings(video_info, audio_path: str, volume: float, start_time: float | None) -> list[str]:
+def _add_audio_guardrail_warnings(video_info, audio_path, audio_probe, volume, start_time) -> list[str]:
     """Guardrail messages for the result envelope: clipping, mix and timing risks.
 
     They travel in ``EditResult.warnings`` so the calling agent sees them;
@@ -238,7 +241,7 @@ def _add_audio_guardrail_warnings(video_info, audio_path: str, volume: float, st
     # so probe it with an audio-aware probe — otherwise a valid WAV is misreported
     # as "No video stream found" (issue #7).
     try:
-        audio_info = probe_audio_input(audio_path)
+        audio_info = _build_audio_input_info(audio_path, audio_probe)
         messages.extend(
             f"[AUDIO GUARDRAIL] {message}"
             for message in validate_audio_mix(video_info, audio_info, volume=volume, start_time=start_time or 0.0)
@@ -285,8 +288,154 @@ def _render_audio_edit(args: list[str], output: str, operation: str) -> EditResu
     return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})
 
 
+def _parse_rate(value: object) -> Fraction | None:
+    if not isinstance(value, str) or "/" not in value:
+        return None
+    num, den = value.split("/", 1)
+    if not (num.isdigit() and den.isdigit()):
+        return None
+    n, d = int(num), int(den)
+    return Fraction(n, d) if n > 0 and d > 0 else None
+
+
+def _iter_iso_boxes(buf: bytes, start: int, end: int):
+    pos = start
+    while pos + 8 <= end:
+        size, kind = struct.unpack(">I4s", buf[pos : pos + 8])
+        hdr = 8
+        if size == 1:
+            if pos + 16 > end:
+                return
+            size = struct.unpack(">Q", buf[pos + 8 : pos + 16])[0]
+            hdr = 16
+        elif size == 0:
+            size = end - pos
+        if size < hdr or pos + size > end:
+            return
+        yield kind, pos + hdr, pos + size
+        pos += size
+
+
+def _read_mp4_moov(path: str) -> bytes | None:
+    try:
+        with open(path, "rb") as fh:
+            fh.seek(0, os.SEEK_END)
+            file_size = fh.tell()
+            pos = 0
+            for _ in range(256):
+                if pos + 8 > file_size:
+                    return None
+                fh.seek(pos)
+                hdr = fh.read(8)
+                if len(hdr) < 8:
+                    return None
+                size, kind = struct.unpack(">I4s", hdr)
+                hdr_len = 8
+                if size == 1:
+                    ext = fh.read(8)
+                    if len(ext) < 8:
+                        return None
+                    size = struct.unpack(">Q", ext)[0]
+                    hdr_len = 16
+                elif size == 0:
+                    size = file_size - pos
+                if size < hdr_len or pos + size > file_size:
+                    return None
+                if kind == b"moov":
+                    return None if size - hdr_len > 16 * 1024 * 1024 else fh.read(size - hdr_len)
+                pos += size
+    except OSError:
+        return None
+    return None
+
+
+def _elst_exceeds_bframe_reorder(elst: bytes, max_allowed_media_time: int) -> bool:
+    if len(elst) < 8:
+        return True
+    ver = elst[0]
+    count = struct.unpack(">I", elst[4:8])[0]
+    if count != 1:
+        return True
+    if ver == 1:
+        if len(elst) < 24:
+            return True
+        _, media_time = struct.unpack(">Qq", elst[8:24])
+    elif ver == 0:
+        if len(elst) < 16:
+            return True
+        _, media_time = struct.unpack(">Ii", elst[8:16])
+    else:
+        return True
+    return media_time < 0 or media_time > max_allowed_media_time
+
+
+def _mp4_has_nontrivial_video_edit_list(path: str, stream: dict, fps: Fraction) -> bool:
+    """Fail closed to packet scan if MP4/MOV video tracks carry trimming edit lists."""
+    tb = _parse_rate(stream.get("time_base"))
+    if tb is None:
+        return True
+    try:
+        max_b = max(int(stream.get("has_b_frames") or 0), 0)
+    except (TypeError, ValueError):
+        return True
+    frame_ticks = round(float(1 / (fps * tb)))
+    max_allowed = max_b * max(frame_ticks, 0)
+    moov = _read_mp4_moov(path)
+    if moov is None:
+        return True
+    for kind, s, e in _iter_iso_boxes(moov, 0, len(moov)):
+        if kind != b"trak":
+            continue
+        is_video = False
+        elsts: list[bytes] = []
+        for tk, ts, te in _iter_iso_boxes(moov, s, e):
+            if tk == b"mdia":
+                for mk, ms, me in _iter_iso_boxes(moov, ts, te):
+                    if mk == b"hdlr" and me - ms >= 12 and moov[ms + 8 : ms + 12] == b"vide":
+                        is_video = True
+            elif tk == b"edts":
+                for ek, es, ee in _iter_iso_boxes(moov, ts, te):
+                    if ek == b"elst":
+                        elsts.append(moov[es:ee])
+        if is_video and any(_elst_exceeds_bframe_reorder(elst, max_allowed) for elst in elsts):
+            return True
+    return False
+
+
+def _picture_extent(path: str, metadata: dict) -> tuple[float, float]:
+    """Trust matching CFR headers; measure packets for VFR, edit lists, or ambiguous timelines."""
+    container = metadata.get("format", {})
+    stream = next(stream for stream in metadata["streams"] if stream.get("codec_type") == "video")
+    duration, total = _timestamp(stream.get("duration")), _timestamp(container.get("duration"))
+    start, origin = _timestamp(stream.get("start_time")), _timestamp(container.get("start_time"))
+    fps = _parse_rate(stream.get("avg_frame_rate"))
+    nb_frames_raw = stream.get("nb_frames")
+    try:
+        nb_frames = int(nb_frames_raw) if nb_frames_raw is not None else 0
+    except (TypeError, ValueError):
+        nb_frames = 0
+    fmt_names = {part.strip().lower() for part in str(container.get("format_name") or "").split(",")}
+    is_isobmff = bool(fmt_names & {"mov", "mp4", "m4a", "3gp", "3g2", "mj2"})
+    if (
+        duration is not None
+        and duration > 0
+        and total is not None
+        and abs(duration - total) <= 0.001
+        and start is not None
+        and origin is not None
+        and abs(start - origin) <= 0.001
+        and fps is not None
+        and stream.get("avg_frame_rate") == stream.get("r_frame_rate")
+        and nb_frames > 0
+        and abs((nb_frames / float(fps)) - duration) <= 0.001
+        and (not is_isobmff or not _mp4_has_nontrivial_video_edit_list(path, stream, fps))
+    ):
+        return start, duration
+    return _packet_extent(path, "v:0")
+
+
 def _attachment_window(video_path, audio_path, video_probe, audio_probe, start_time, duration_policy, mix):
-    picture_start, picture_duration = _packet_extent(video_path, "v:0")
+    picture_start, picture_duration = _picture_extent(video_path, video_probe)
     picture_origin = _timestamp(video_probe.get("format", {}).get("start_time")) or 0.0
     picture_end = picture_start - picture_origin + picture_duration
     audio_start, audio_duration = _primary_audio_timeline(audio_path, audio_probe)
@@ -327,13 +476,14 @@ def add_audio(
     output = output_path or _auto_output(video_path, "audio")
     _validate_output_path(output)
 
-    video_info = probe(video_path)
-    video_probe, audio_probe = _run_ffprobe_json(video_path), _run_ffprobe_json(audio_path)
+    video_probe = _read_input_metadata(video_path, require_video=True)
+    video_info = _build_video_info(video_path, video_probe)
+    audio_probe = video_probe if audio_path == video_path else _read_input_metadata(audio_path)
     source_has_audio = _has_audio(video_probe)
     audible_start, audible_duration, picture_end = _attachment_window(
         video_path, audio_path, video_probe, audio_probe, start_time, duration_policy, mix
     )
-    guardrails = _add_audio_guardrail_warnings(video_info, audio_path, volume, start_time)
+    guardrails = _add_audio_guardrail_warnings(video_info, audio_path, audio_probe, volume, start_time)
 
     filters = [
         "aresample=async=1:first_pts=0",

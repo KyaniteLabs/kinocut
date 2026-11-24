@@ -16,10 +16,8 @@ def median_window(masks: list[Image.Image], window: int = DEFAULT_OBJECT_MATTE_M
     radius = window // 2
     stack = np.stack([np.asarray(mask, dtype=np.uint8) for mask in masks], axis=0)
     smoothed: list[Image.Image] = []
-    last = len(masks) - 1
     for index in range(len(masks)):
-        lo = max(0, index - radius)
-        hi = min(last, index + radius) + 1
-        med = np.median(stack[lo:hi], axis=0).astype(np.uint8)
+        lo = max(0, min(index - radius, len(masks) - window))
+        med = np.median(stack[lo : lo + window], axis=0).astype(np.uint8)
         smoothed.append(Image.fromarray(med, mode="L"))
     return smoothed

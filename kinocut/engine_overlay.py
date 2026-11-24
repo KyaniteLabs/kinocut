@@ -7,6 +7,7 @@ import warnings as _warnings
 
 from .engine_runtime_utils import (
     _build_edit_result,
+    _run_video_only,
     _require_filter,
     _timed_operation,
 )
@@ -86,15 +87,17 @@ def overlay_video(
     )
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
-        _run_ffmpeg(
+        _run_video_only(
+            _run_ffmpeg,
             _build_ffmpeg_cmd(
                 background_path,
                 overlay_path,
                 output_path=staged,
+                audio_codec="copy",
                 crf=crf,
                 preset=preset,
                 extra=["-filter_complex", filter_complex],
-            )
+            ),
         )
 
         result = _build_edit_result(

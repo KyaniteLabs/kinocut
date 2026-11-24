@@ -18,6 +18,9 @@ from kinocut.server_tool_contracts import _ContractFastMCP
 
 def test_all_registered_argument_models_and_schemas_reject_extras():
     from kinocut.server import mcp
+    from kinocut.tool_families import FAMILY_OF_OPERATION
+
+    family_tools = set(FAMILY_OF_OPERATION.values())
 
     async def check():
         tools = await mcp.list_tools()
@@ -25,7 +28,8 @@ def test_all_registered_argument_models_and_schemas_reject_extras():
         for tool in tools:
             model = mcp._tool_manager.get_tool(tool.name).fn_metadata.arg_model
             assert model.model_config["extra"] == "forbid", tool.name
-            assert tool.inputSchema["additionalProperties"] is False, tool.name
+            expected = tool.name in family_tools
+            assert tool.inputSchema["additionalProperties"] is expected, tool.name
 
     asyncio.run(check())
 

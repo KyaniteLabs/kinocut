@@ -80,13 +80,18 @@ def _run_cost_ledger(project_dir: str) -> dict[str, Any]:
 
 
 def _run_recipe_capture(project_dir: str, recipe: dict[str, Any]) -> dict[str, Any]:
+    from pydantic import ValidationError
+
     from ..contracts.learning import WorkflowRecipe
     from .learning.recipes import record_workflow_recipe
 
     project = _existing_project(project_dir)
     payload = dict(recipe)
     payload.setdefault("project_id", project.project_id)
-    contract = WorkflowRecipe.model_validate(payload)
+    try:
+        contract = WorkflowRecipe.model_validate(payload)
+    except ValidationError:
+        raise _error("Workflow recipe payload failed schema validation", "invalid_workflow_recipe") from None
     stored = record_workflow_recipe(project, contract)  # idempotent by canonical digest
     return {"success": True, "operation": "recipe_capture", "workflow_recipe": _dump(stored)}
 

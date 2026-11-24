@@ -343,3 +343,67 @@ def _resolve_render_resolution(width: int | None, height: int | None, resolution
         )
 
     return resolution or dimension_resolution
+
+
+def _invalid_post(message: str) -> None:
+    raise MCPVideoError(message, error_type="validation_error", code="invalid_parameter")
+
+
+def _validate_post_step_values(op_type: str, params: dict[str, Any]) -> None:
+    """Reject invalid post-processing parameter values before starting a Hyperframes render."""
+    import math
+    from typing import get_args
+
+    from .models import ASPECT_RATIOS, QUALITY_PRESETS, ExportFormat
+    from .validation import DURATION_POLICIES
+
+    def _check_positive_int(key: str) -> None:
+        val = params.get(key)
+        if val is not None and (isinstance(val, bool) or not isinstance(val, int) or val <= 0):
+            _invalid_post(f"{key} must be a positive integer")
+
+    def _check_nonneg_num(key: str) -> None:
+        val = params.get(key)
+        if val is not None and (
+            isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val) or val < 0
+        ):
+            _invalid_post(f"{key} must be a finite non-negative number")
+
+    if op_type == "resize":
+        ratio = params.get("aspect_ratio")
+        if ratio is not None and (not isinstance(ratio, str) or ratio not in ASPECT_RATIOS):
+            _invalid_post(f"Unknown aspect ratio: {rejected_value(ratio)}")
+        _check_positive_int("width")
+        _check_positive_int("height")
+        quality = params.get("quality")
+        if quality is not None and (not isinstance(quality, str) or quality not in QUALITY_PRESETS):
+            _invalid_post("Unknown resize quality preset")
+    elif op_type == "convert":
+        fmt = params.get("format")
+        if fmt is not None and (not isinstance(fmt, str) or fmt not in get_args(ExportFormat)):
+            _invalid_post("Unknown convert format")
+        quality = params.get("quality")
+        if quality is not None and (not isinstance(quality, str) or quality not in QUALITY_PRESETS):
+            _invalid_post("Unknown convert quality preset")
+    elif op_type == "fade":
+        _check_nonneg_num("fade_in")
+        _check_nonneg_num("fade_out")
+    elif op_type == "add_audio":
+        audio_path = params.get("audio_path")
+        if audio_path is not None:
+            _validate_input_path(str(audio_path))
+        policy = params.get("duration_policy")
+        if policy is not None and (not isinstance(policy, str) or policy not in DURATION_POLICIES):
+            _invalid_post("Invalid duration_policy")
+        for key in ("volume", "fade_in", "fade_out", "start_time"):
+            _check_nonneg_num(key)
+    elif op_type == "watermark":
+        wm = params.get("image_path")
+        if not isinstance(wm, str) or not wm:
+            _invalid_post("watermark image_path is required")
+        _validate_input_path(wm)
+        opacity = params.get("opacity")
+        if opacity is not None and (
+            isinstance(opacity, bool) or not isinstance(opacity, (int, float)) or not (0.0 <= float(opacity) <= 1.0)
+        ):
+            _invalid_post("opacity must be between 0 and 1")

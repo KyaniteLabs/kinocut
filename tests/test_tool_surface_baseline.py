@@ -160,9 +160,11 @@ def test_headline_baseline_numbers_are_pinned():
     video_add_generated_audio (full waveform/effect/preset lists, honest
     intensity semantics, the real mix behaviour) then grew all to 120,942 B and
     editor to 82,441 B; tool counts and the default surface are unchanged.
+    Shorts crop help and removal of the packaging QC bypass changed the totals
+    to 15,357 B, 121,009 B and 82,508 B, respectively.
     """
-    assert BASELINE["captured"]["git_commit"] == "e55450574c3597f830c6a400e17ba961b146a70b"
-    for mode, count, total in (("default", 18, 15_242), ("all", 208, 120_942), ("profile:editor", 115, 82_441)):
+    assert BASELINE["captured"]["git_commit"] == "1f87d401bb2ed10bc88c99ab7df48fa559d14f38"
+    for mode, count, total in (("default", 18, 15_349), ("all", 208, 121_009), ("profile:editor", 115, 82_500)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -232,7 +234,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_242), ("all", 208, 120_942)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_349), ("all", 208, 121_009)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
