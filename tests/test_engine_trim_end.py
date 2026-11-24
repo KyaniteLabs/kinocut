@@ -50,17 +50,15 @@ class TestTrimEndFFmpegArgs:
 
     @staticmethod
     def _capture_trim(monkeypatch, tmp_path, **kwargs):
-        from kinocut import engine_edit, engine_runtime_utils
+        from kinocut import engine_edit
 
         source = tmp_path / "in.mp4"
         source.write_bytes(b"\x00")
         calls: list[list[str]] = []
-        monkeypatch.setattr(engine_edit, "_run_ffmpeg_with_progress", lambda cmd, *args: calls.append(cmd))
+        monkeypatch.setattr(engine_edit, "_run_ffmpeg", lambda cmd: calls.append(cmd))
         from kinocut.models import EditResult
 
-        monkeypatch.setattr(
-            engine_runtime_utils, "_build_edit_result", lambda output, *a, **k: EditResult(output_path=output)
-        )
+        monkeypatch.setattr(engine_edit, "_build_edit_result", lambda output, *a, **k: EditResult(output_path=output))
         engine_edit.trim(str(source), output_path=str(tmp_path / "out.mp4"), **kwargs)
         return calls[0]
 

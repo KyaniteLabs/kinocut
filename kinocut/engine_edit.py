@@ -6,9 +6,9 @@ from collections.abc import Callable
 
 from .ffmpeg_helpers import _build_ffmpeg_cmd, _format_ffmpeg_number, _sanitize_ffmpeg_number
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
-from .engine_runtime_utils import _movflags_args, _transactional_edit
+from .engine_runtime_utils import _build_edit_result, _movflags_args, _transactional_edit
 from .paths import _auto_output
-from .ffmpeg_helpers import _run_ffmpeg_with_progress
+from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
 from .errors import CodecError, MCPVideoError, ProcessingError
 from .models import EditResult
 from .validation import MAX_TRIM_TIME_TEXT_LENGTH
@@ -162,7 +162,10 @@ def trim(
             else _build_ffmpeg_cmd(output_path=staged)
         )
         try:
-            _run_ffmpeg_with_progress(prefix + encode, clip_seconds, on_progress)
+            if on_progress is None:
+                _run_ffmpeg(prefix + encode)
+            else:
+                _run_ffmpeg_with_progress(prefix + encode, clip_seconds, on_progress)
         except (CodecError, ProcessingError) as exc:
             if not stream_copy or (isinstance(exc, ProcessingError) and exc.returncode == -1):
                 raise
@@ -173,7 +176,9 @@ def trim(
                 code="trim_stream_copy_failed",
             ) from None
 
-    result = _transactional_edit(output, "trim", render)
+    result = _transactional_edit(
+        output, "trim", render, build_result=lambda staged: _build_edit_result(staged, "trim", {"elapsed_ms": None})
+    )
     if stream_copy:
         warning = "Stream copy can snap cuts to nearby keyframes; the output may not match the requested boundaries."
         return result.model_copy(update={"warnings": [*result.warnings, warning]})
