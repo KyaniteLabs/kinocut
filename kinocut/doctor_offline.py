@@ -9,11 +9,9 @@ installed package's metadata on disk.
 
 from __future__ import annotations
 
-import functools
-import hashlib
+from .host_probes import HostProbes
 import os
 import json
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -149,55 +147,19 @@ def offline_probe_refusal(prefix: list[str], command: list[str], env_name: str) 
     return None
 
 
-def offline_probe_environment() -> dict[str, str]:
-    """The environment a version probe runs in, with a malformed setting handled.
-    A malformed optional setting must not abort the whole report: telemetry off
-    is the conservative reading of an invalid value.
-
-    The process environment is never changed. The doctor's probes run in
-    parallel, and a temporary write to ``os.environ`` could be observed by
-    another probe halfway through.
-    """
-    # The only variables a version probe may see. It reads a version and
-    # exits: it needs to find the program and a locale, and nothing else.
-    # Everything the operator has — a token, a proxy, NODE_OPTIONS pointing
-    # at a hook — is theirs, and a probe that inherits it is neither
-    # credential-free nor offline.
-    allowed = (
-        "PATH",
-        "HOME",
-        "LANG",
-        "LC_ALL",
-        "LC_CTYPE",
-        "TMPDIR",
-        "TEMP",
-        "TMP",
-        "SYSTEMROOT",
-        "WINDIR",
-        "PATHEXT",
-        "COMSPEC",
-    )
-    environment = {key: os.environ[key] for key in allowed if key in os.environ}
-    environment.update(
-        {
-            "HYPERFRAMES_SKIP_SKILLS": "1",
-            "HYPERFRAMES_NO_UPDATE_CHECK": "1",
-            "HYPERFRAMES_NO_TELEMETRY": "1",
-            "VITE_HYPERFRAMES_NO_TELEMETRY": "1",
-            "DO_NOT_TRACK": "1",
-        }
-    )
-    return environment
-
-
-def report_resolved_hyperframes(path: str) -> dict[str, Any]:
+def report_resolved_hyperframes(path: str, *, probes: HostProbes | None = None) -> dict[str, Any]:
     """Report the resolved Hyperframes executable without running it.
 
     A resolved script can reach the network whatever its source says, and
     the doctor cannot prove otherwise, so it does not run one. The version
     comes from the installed package's metadata, read from disk.
     """
-    version = hyperframes_version_from_metadata(path)
+    metadata_reader = (
+        probes.hyperframes_metadata
+        if probes is not None and probes.hyperframes_metadata is not None
+        else hyperframes_version_from_metadata
+    )
+    version = metadata_reader(path)
     if version:
         return {
             "hyperframes_version": version,
@@ -212,14 +174,14 @@ def report_resolved_hyperframes(path: str) -> dict[str, Any]:
 
 
 def check_hyperframes_cli(
-    which: Callable[[str], str | None],
+    probes: HostProbes,
 ) -> dict[str, Any]:
     """Report the Hyperframes CLI without running anything that can phone home."""
     from .errors import HyperframesNotFoundError
     from .hyperframes_engine import HYPERFRAMES_COMMAND_ENV, _hyperframes_command_prefix
 
     try:
-        prefix = _hyperframes_command_prefix(which=which)
+        prefix = _hyperframes_command_prefix(which=probes.which, env=probes.environ, cwd=probes.cwd())
     except HyperframesNotFoundError:
         prefix = ["hyperframes"]
     command = [*prefix, "--version"]
@@ -229,9 +191,10 @@ def check_hyperframes_cli(
     # The executable is the first element of the prefix. A bare name is
     # looked up on PATH, the way a shell would; a path is resolved as one.
     executable = prefix[0]
-    located = executable if ("/" in executable or os.sep in executable) else which(executable)
-    path = resolve_executable(located)
-    extra = report_resolved_hyperframes(path) if path else {}
+    located = executable if ("/" in executable or os.sep in executable) else probes.which(executable)
+    resolver = probes.resolve_executable if probes.resolve_executable is not None else resolve_executable
+    path = resolver(located)
+    extra = report_resolved_hyperframes(path, probes=probes) if path else {}
     version = extra.get("hyperframes_version")
     ok = path is not None
     return {
@@ -249,28 +212,10 @@ def check_hyperframes_cli(
     }
 
 
-@functools.lru_cache(maxsize=16)
-def _sha256_file_stat_cached(path_str: str, dev: int, ino: int, size: int, mtime_ns: int) -> str:
-    del dev, ino, size, mtime_ns
-    digest = hashlib.sha256()
-    with Path(path_str).open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def cached_sha256_file(path: Path) -> str:
-    """SHA-256 of ``path``, cached by filesystem identity so doctor avoids re-hashing ~1 GB weights."""
-    st = path.stat()
-    return _sha256_file_stat_cached(str(path), st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
-
-
-def check_sphere_director() -> dict[str, Any]:
+def check_sphere_director(probes: HostProbes) -> dict[str, Any]:
     """Run the optional sphere_director doctor check without crashing doctor on import errors."""
     try:
-        from .te.sphere_director import doctor_check
-
-        return doctor_check()
+        return probes.import_module("kinocut.te.sphere_director").doctor_check()
     except Exception as exc:
         return {
             "name": "sphere_director",

@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path, PureWindowsPath
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -205,9 +205,3 @@ class SelectionPlan(CreativeModel):
     selections: tuple[AssetSelection, ...]
     abstentions: tuple[SelectionAbstention, ...]
     selection_sha256: Sha256 = Field(pattern=_SHA256_PATTERN)
-
-
-def dump_contract(model: BaseModel) -> dict[str, Any]:
-    """Return the JSON-compatible contract payload for callers and receipts."""
-
-    return model.model_dump(mode="json")
