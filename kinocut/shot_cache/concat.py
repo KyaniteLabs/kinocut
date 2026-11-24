@@ -1,6 +1,7 @@
 """Strict, video-only stream-copy assembly."""
 
 import json
+import unicodedata
 from fractions import Fraction
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -33,6 +34,19 @@ def _mismatch(field):
     raise MCPVideoError(_MESSAGES[field], code="concat_stream_mismatch")
 
 
+_UNSPECIFIED_SAR = (None, "unknown", "N/A", "", 0, "0/0", "0:0", "0/1", "0:1")
+
+
+def _parse_ratio(value: object, field: str) -> Fraction:
+    try:
+        ratio = Fraction(str(value).replace(":", "/"))
+    except (ValueError, ZeroDivisionError):
+        _mismatch(field)
+    if ratio <= 0:
+        _mismatch(field)
+    return ratio
+
+
 def _probe(path):
     fields = ",".join(_FIELDS)
     result = run_bounded(
@@ -57,13 +71,14 @@ def _probe(path):
         _mismatch("stream layout")
     stream = streams[0]
     for field in _FIELDS:
+        if field == "sample_aspect_ratio":
+            continue
         if stream.get(field) in (None, "unknown", "N/A", "", 0, "0/0"):
             _mismatch(field)
-    for field in ("r_frame_rate", "avg_frame_rate", "sample_aspect_ratio", "time_base"):
-        try:
-            stream[field] = Fraction(stream[field].replace(":", "/"))
-        except (ValueError, ZeroDivisionError):
-            _mismatch(field)
+    for field in ("r_frame_rate", "avg_frame_rate", "time_base"):
+        stream[field] = _parse_ratio(stream[field], field)
+    sar = stream.get("sample_aspect_ratio")
+    stream["sample_aspect_ratio"] = None if sar in _UNSPECIFIED_SAR else _parse_ratio(sar, "sample_aspect_ratio")
     return stream, int(stream.pop("nb_read_frames"))
 
 
@@ -91,8 +106,8 @@ def verify_concat_compatibility(clip_paths, expected_frame_counts=None) -> int:
 
 def _checked_path(path: str | Path) -> Path:
     def check(name: str) -> None:
-        if any(ord(char) < 32 or ord(char) == 127 for char in name):
-            raise ValueError("Concat filenames cannot contain ASCII control characters")
+        if any(unicodedata.category(char) == "Cc" for char in name):
+            raise ValueError("Concat filenames cannot contain control characters")
 
     check(str(path))
     resolved = Path(path).resolve()

@@ -188,19 +188,56 @@ def test_symlinked_cache_entry_refused(tmp_path, name):
     assert target.read_bytes() == b"keep" and not (tmp_path / "second.mp4").exists()
 
 
-@pytest.mark.parametrize("char", [chr(i) for i in (*range(32), 127)])
+@pytest.mark.parametrize("char", [chr(i) for i in (*range(32), 127, *range(0x80, 0xA0))])
 def test_control_character_rejected_before_any_probe(tmp_path, monkeypatch, char):
     monkeypatch.setattr(concat, "_probe", lambda *_: pytest.fail("probed before validating all paths"))
     with pytest.raises(ValueError, match="control characters"):
         splice_shots_lossless([tmp_path / "valid", tmp_path / f"bad{char}path"], tmp_path / "out.mp4")
 
 
-def test_resolved_control_character_is_rejected(tmp_path, monkeypatch):
+@pytest.mark.parametrize("bad_name", ["bad\tname", "bad\u0085name", "bad\u009fname"])
+def test_resolved_control_character_is_rejected(tmp_path, monkeypatch, bad_name):
     link = tmp_path / "alias"
-    link.symlink_to(tmp_path / "bad\tname")
+    link.symlink_to(tmp_path / bad_name)
     monkeypatch.setattr(concat, "_probe", lambda *_: pytest.fail("probed invalid target"))
     with pytest.raises(ValueError, match="control characters"):
         splice_shots_lossless([link], tmp_path / "out.mp4")
+
+
+@pytest.mark.parametrize("missing_sar", [None, "N/A", "0:1"])
+def test_unspecified_sar_allows_matching_clips_and_rejects_conflict(tmp_path, monkeypatch, missing_sar):
+    base = dict(
+        codec_type="video",
+        codec_name="h264",
+        pix_fmt="yuv420p",
+        r_frame_rate="24/1",
+        avg_frame_rate="24/1",
+        time_base="1/12288",
+        width=32,
+        height=32,
+        nb_read_frames="4",
+    )
+
+    def make_stream(sar):
+        data = dict(base)
+        if sar is not None:
+            data["sample_aspect_ratio"] = sar
+        return data
+
+    def probe_same(argv, **kwargs):
+        return CompletedProcess(argv, 0, json.dumps({"streams": [make_stream(missing_sar)]}), "")
+
+    monkeypatch.setattr(concat, "run_bounded", probe_same)
+    assert concat.verify_concat_compatibility([tmp_path / "only"]) == 4
+    assert concat.verify_concat_compatibility([tmp_path / "first", tmp_path / "second"]) == 8
+
+    def probe_conflict(argv, **kwargs):
+        sar = "2:1" if argv[-1].endswith("second") else missing_sar
+        return CompletedProcess(argv, 0, json.dumps({"streams": [make_stream(sar)]}), "")
+
+    monkeypatch.setattr(concat, "run_bounded", probe_conflict)
+    with pytest.raises(MCPVideoError, match="sample_aspect_ratio"):
+        concat.verify_concat_compatibility([tmp_path / "first", tmp_path / "second"])
 
 
 @pytest.mark.parametrize(
