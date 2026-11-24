@@ -188,7 +188,8 @@ class ClientBase:
                 Only the final output and the original input are kept.
         """
         self._validate_pipeline_steps(steps)
-        result, warnings, saw_quality_gate, intermediates = self._run_pipeline_steps(steps, output_path)
+        final_output = self._resolve_alias("output_path", output_path, "output", output)
+        result, warnings, saw_quality_gate, intermediates = self._run_pipeline_steps(steps, final_output)
         if cleanup and intermediates:
             warnings.extend(self._cleanup_pipeline_intermediates(intermediates))
             result.intermediates = intermediates
@@ -325,17 +326,25 @@ class ClientBase:
             )
 
 
+# Methods that validate steps or unexpected kwargs before coalescing path aliases.
+_MANUAL_PATH_ALIAS_METHODS = frozenset({"pipeline", "create_from_images"})
+
+
 def _guard_client_method(method_name: str, method: Any) -> Any:
     """Wrap public client methods once at class creation time."""
     from ..output_policy import with_output_policy
 
     signature = inspect.signature(method)
     # Explicit path aliases can also be supplied positionally; bind before coalescing them.
-    path_aliases = {
-        legacy: primary
-        for legacy, primary in CLIENT_METHOD_CONTRACTS[method_name].get("aliases", {}).items()
-        if primary in {"input_path", "output_path"} and {legacy, primary} <= signature.parameters.keys()
-    }
+    path_aliases = (
+        {}
+        if method_name in _MANUAL_PATH_ALIAS_METHODS
+        else {
+            legacy: primary
+            for legacy, primary in CLIENT_METHOD_CONTRACTS[method_name].get("aliases", {}).items()
+            if primary in {"input_path", "output_path"} and {legacy, primary} <= signature.parameters.keys()
+        }
+    )
 
     @wraps(method)
     def guarded_call(self: ClientBase, *args: Any, **kwargs: Any) -> Any:

@@ -61,7 +61,16 @@ class ClientQualityMixin:
         from ..engine_release_checkpoint import release_checkpoint
 
         return release_checkpoint(
-            input_path, output_dir, min_score, frame_count, require_audio, profile, profile_reason
+            input_path,
+            output_dir,
+            min_score,
+            frame_count,
+            require_audio,
+            profile,
+            profile_reason,
+            assert_quality_fn=self.assert_quality,
+            thumbnail_fn=lambda path, *, output_path: self.thumbnail(path, output=output_path),
+            storyboard_fn=self.storyboard,
         )
 
     def design_quality_check(

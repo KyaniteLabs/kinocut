@@ -787,7 +787,7 @@ class TestClientAgentApiConsistency:
             calls.append("quality")
             return {"overall_score": 99.0, **kwargs}
 
-        def thumbnail(path, output_path):
+        def thumbnail(path, output_path=None, timestamp=None):
             calls.append("thumbnail")
             return ThumbnailResult(frame_path=output_path, timestamp=0)
 
@@ -820,3 +820,57 @@ class TestClientAgentApiConsistency:
         with pytest.raises(MCPVideoError) as exc:
             editor.effect_glow("first.mp4", input_path="second.mp4", output_path="out.mp4")
         assert exc.value.code == "ambiguous_parameter"
+
+    def test_release_checkpoint_respects_subclass_overrides(self, tmp_path):
+        from kinocut.client import Client
+
+        video = tmp_path / "video.mp4"
+        video.write_bytes(b"placeholder")
+        review_dir = tmp_path / "rejected_review"
+
+        class RejectingClient(Client):
+            def assert_quality(self, video, **kwargs):
+                raise MCPVideoError("quality rejected by subclass", error_type="quality_error", code="quality_failed")
+
+        with pytest.raises(MCPVideoError) as exc:
+            RejectingClient().release_checkpoint(str(video), output_dir=str(review_dir))
+        assert exc.value.code == "quality_failed"
+        assert not review_dir.exists()
+
+        calls = []
+
+        class CustomArtifactClient(Client):
+            def assert_quality(self, video, **kwargs):
+                calls.append("assert_quality")
+                return {"overall_score": 97.0}
+
+            def thumbnail(self, video, timestamp=None, output=None):
+                calls.append(("thumbnail", output))
+                return self._to_edit_result(output or str(tmp_path / "custom.jpg"), operation="thumbnail")
+
+            def storyboard(self, video, output_dir=None, frame_count=8):
+                calls.append(("storyboard", output_dir, frame_count))
+                return StoryboardResult(frames=[f"{output_dir}/f1.jpg"], count=frame_count)
+
+        ok_dir = tmp_path / "custom_review"
+        result = CustomArtifactClient().release_checkpoint(str(video), output_dir=str(ok_dir), frame_count=4)
+        assert calls[0] == "assert_quality"
+        assert calls[1][0] == "thumbnail" and calls[1][1].endswith("thumbnail.jpg")
+        assert calls[2] == ("storyboard", str(ok_dir / "storyboard"), 4)
+        assert result["quality"] == {"overall_score": 97.0}
+        assert result["thumbnail"].endswith("thumbnail.jpg")
+        assert result["storyboard"]["frames"] == [f"{ok_dir / 'storyboard'}/f1.jpg"]
+        assert result["storyboard"]["count"] == 4
+
+    def test_validation_precedence_preserved_before_output_alias_conflict(self, editor):
+        with pytest.raises(MCPVideoError) as empty_exc:
+            editor.pipeline([], output_path="a.mp4", output="b.mp4")
+        assert empty_exc.value.code == "empty_pipeline"
+
+        with pytest.raises(MCPVideoError) as wrong_name_exc:
+            editor.create_from_images(inputs=["a.png"], output_path="a.mp4", output="b.mp4")
+        assert wrong_name_exc.value.code == "wrong_parameter_name"
+
+        with pytest.raises(MCPVideoError) as ambiguous_exc:
+            editor.create_from_images(images=["a.png"], output_path="a.mp4", output="b.mp4")
+        assert ambiguous_exc.value.code == "ambiguous_parameter"

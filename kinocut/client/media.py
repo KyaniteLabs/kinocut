@@ -30,10 +30,8 @@ from ..engine import (
     rotate as _rotate,
     split_screen as _split_screen,
     stabilize as _stabilize,
-    storyboard as _storyboard,
     subtitles as _subtitles,
     speed as _speed,
-    thumbnail as _thumbnail,
     trim as _trim,
     watermark as _watermark,
     write_metadata as _write_metadata,
@@ -289,6 +287,8 @@ class ClientMediaMixin(ClientMasksMixin):
         output: str | None = None,
     ) -> ThumbnailResult:
         """Extract a frame from a video."""
+        from ..engine_thumbnail import thumbnail as _thumbnail
+
         return _thumbnail(video, timestamp=timestamp, output_path=output)
 
     def extract_frame(
@@ -298,6 +298,8 @@ class ClientMediaMixin(ClientMasksMixin):
         output: str | None = None,
     ) -> ThumbnailResult:
         """Extract a frame from a video. Alias for thumbnail()."""
+        from ..engine_thumbnail import thumbnail as _thumbnail
+
         return _thumbnail(video, timestamp=timestamp, output_path=output)
 
     def preview(
@@ -316,6 +318,8 @@ class ClientMediaMixin(ClientMasksMixin):
         frame_count: int = 8,
     ) -> StoryboardResult:
         """Extract key frames as storyboard for human review."""
+        from ..engine_storyboard import storyboard as _storyboard
+
         return _storyboard(video, output_dir=output_dir, frame_count=frame_count)
 
     def subtitles(
@@ -638,9 +642,10 @@ class ClientMediaMixin(ClientMasksMixin):
                 error_type="validation_error",
                 code="unexpected_parameter",
             )
+        output = self._resolve_alias("output_path", output_path, "output", output)
         if not images and not list_file:
             raise MCPVideoError("images cannot be empty", error_type="validation_error", code="empty_images")
-        return _create_from_images(images, output_path=output_path, fps=fps, list_file=list_file)
+        return _create_from_images(images, output_path=output, fps=fps, list_file=list_file)
 
     def export_frames(
         self,
