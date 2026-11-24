@@ -108,6 +108,8 @@ function outputSize(result) {
   return null
 }
 
+const STALL_GAP_MS = 10_000
+
 export function estimateRemainingMs(previous, percent, now) {
   if (!previous || previous.percent === null || percent === null || percent >= 100) return null
   const elapsed = now - previous.at
@@ -167,12 +169,26 @@ export function reduceRenders(state, event) {
     if (percent !== null && existing?.percent != null && percent < existing.percent) return prev
     const historyId = existing ? existing.historyId : nextHistoryId
     let progressSample = existing?.progressSample ?? null
+    let lastAdvanceAt = existing?.lastAdvanceAt ?? null
     let remainingMs = existing?.remainingMs ?? null
     if (percent !== null) {
-      const estimate = estimateRemainingMs(progressSample, percent, now)
-      if (!progressSample || percent === existing?.percent || percent === 100 || estimate !== null) {
+      const advanced = existing?.percent == null || percent > existing.percent
+      const stalled = lastAdvanceAt !== null && now - lastAdvanceAt >= STALL_GAP_MS
+      if (percent === 100) {
         progressSample = { percent, at: now }
-        remainingMs = estimate
+        lastAdvanceAt = now
+        remainingMs = null
+      } else if (!progressSample || stalled) {
+        progressSample = { percent, at: now }
+        lastAdvanceAt = now
+        remainingMs = null
+      } else if (advanced) {
+        lastAdvanceAt = now
+        const estimate = estimateRemainingMs(progressSample, percent, now)
+        if (estimate !== null) {
+          progressSample = { percent, at: now }
+          remainingMs = estimate
+        }
       }
     }
     const next = {
@@ -184,6 +200,7 @@ export function reduceRenders(state, event) {
       startedAt: existing ? existing.startedAt : now,
       percent: percent !== null ? percent : existing ? existing.percent : null,
       progressSample,
+      lastAdvanceAt,
       remainingMs,
       message: typeof payload.message === 'string' && payload.message ? payload.message : existing ? existing.message : ''
     }

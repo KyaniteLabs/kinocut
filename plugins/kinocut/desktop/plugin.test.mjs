@@ -245,6 +245,26 @@ test('ETA measures resumed progress from the end of a stall', () => {
   assert.equal(state.active.p.remainingMs, 2000)
 })
 
+test('ETA drops silent stall gaps and recovers on resumed forward progress', () => {
+  let state = initialRenders()
+  for (const [percent, now] of [[10, 0], [40, 1000], [60, 62000]]) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.remainingMs, null)
+  state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent: 80 }, 63000))
+  assert.equal(state.active.p.remainingMs, 1000)
+})
+
+test('repeated percentages without a stall still accumulate enough progress for an ETA', () => {
+  let state = initialRenders()
+  const samples = [[10, 0], [10, 500], [20, 1000], [20, 1500], [30, 2000], [30, 2500], [40, 3000]]
+  for (const [percent, now] of samples) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.percent, 40)
+  assert.equal(state.active.p.remainingMs, 7000)
+})
+
 test('MiB values that overflow in bytes have no display size', () => {
   const result = { size_mb: Number.MAX_VALUE }
   const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 's', name: T, result })).recent
