@@ -16,7 +16,7 @@ from kinocut.projectstore.cas_lifecycle import cleanup_backups, restore_blob, un
 from kinocut.projectstore.ingest import _best_effort_unlink, _hash_copy_to_temp
 
 _CHUNK = 1 << 20
-_POSIX_CTIME_TRUSTED = os.name == "posix"
+_TRUSTED_LINUX_FSTYPES = frozenset({"ext2", "ext3", "ext4", "xfs", "btrfs", "tmpfs", "zfs"})
 _VERIFIED: dict[tuple[int, ...], str] = {}
 _CACHE_LOCK = Lock()
 
@@ -25,9 +25,29 @@ def _identity(info: os.stat_result) -> tuple[int, ...]:
     return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
 
 
+def _device_has_trusted_ctime(dev: int) -> bool:
+    """Return True only when the device is confirmed as a local POSIX filesystem with reliable ctime."""
+    if os.name != "posix" or not hasattr(os, "major") or not hasattr(os, "minor"):
+        return False
+    dev_id = f"{os.major(dev)}:{os.minor(dev)}"
+    try:
+        with open("/proc/self/mountinfo", encoding="utf-8") as handle:
+            for line in handle:
+                parts = line.split(" - ", 1)
+                if len(parts) != 2:
+                    continue
+                head = parts[0].split()
+                tail = parts[1].split()
+                if len(head) >= 3 and head[2] == dev_id and tail:
+                    return tail[0] in _TRUSTED_LINUX_FSTYPES
+    except OSError:
+        return False
+    return False
+
+
 def _cacheable_identity(info: os.stat_result) -> tuple[int, ...] | None:
-    """Return a cache key only when POSIX ctime/inode semantics are reliable."""
-    if not _POSIX_CTIME_TRUSTED or info.st_ino == 0 or info.st_ctime_ns <= 0:
+    """Return a cache key only when the backing filesystem reliably advances ctime on rewrites."""
+    if info.st_ino == 0 or info.st_ctime_ns <= 0 or not _device_has_trusted_ctime(info.st_dev):
         return None
     return _identity(info)
 
@@ -83,8 +103,8 @@ def ingest_blob(project: store.Project, source_path: str | Path, *, media_type: 
             _best_effort_unlink(temporary)
 
 
-def resolve_blob(project: store.Project, digest: str, *, verify_content: bool = False) -> Path:
-    """Resolve a verified blob; verify_content forces a fresh byte-for-byte hash."""
+def resolve_blob(project: store.Project, digest: str, *, verify_content: bool = True) -> Path:
+    """Resolve and integrity-check a recorded blob; set verify_content=False to opt into cached reuse."""
 
     with store._project_lock(project):
         manifest = _manifest(project, digest)
@@ -100,7 +120,7 @@ def resolve_blob(project: store.Project, digest: str, *, verify_content: bool = 
         return target
 
 
-def _blob_matches(target: Path, manifest: CASManifestRecord, *, verify_content: bool = False) -> bool:
+def _blob_matches(target: Path, manifest: CASManifestRecord, *, verify_content: bool = True) -> bool:
     try:
         if not target.is_file():
             return False

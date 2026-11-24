@@ -176,7 +176,7 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
         raise
     except Exception as exc:
         raise ProcessingError("ffmpeg-lut3d", 1, "", reason=exception_kind(exc)) from exc
-    if not dest.is_file():
+    if not dest.is_file() or dest.stat().st_size == 0:
         raise ProcessingError("ffmpeg-lut3d", 1, "", reason="the LUT pass produced no output")
 
 

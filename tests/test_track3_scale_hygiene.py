@@ -15,25 +15,30 @@ from kinocut.errors import MCPVideoError
 from kinocut.projectstore import cas, open_project
 
 
-def test_resolve_reuses_verified_identity_but_forced_verification_reads_bytes(tmp_path, monkeypatch):
+def test_resolve_reuses_verified_identity_when_opted_in_and_verifies_by_default(tmp_path, monkeypatch):
     project = open_project(tmp_path / "project")
     source = tmp_path / "source"
     source.write_bytes(b"abc")
     record = cas.ingest_blob(project, source)
     hasher = Mock(wraps=hashlib.sha256)
     monkeypatch.setattr(cas, "hashlib", SimpleNamespace(sha256=hasher))
+    # Default verify_content=True always hashes fresh bytes.
     blob = cas.resolve_blob(project, record.digest)
     assert cas.resolve_blob(project, record.digest) == blob
-    assert hasher.call_count == 1
-    assert cas.resolve_blob(project, record.digest, verify_content=True) == blob
     assert hasher.call_count == 2
+    # Opt-in verify_content=False reuses verified identity on trusted local POSIX filesystems.
+    monkeypatch.setattr(cas, "_device_has_trusted_ctime", lambda _dev: True)
+    assert cas.resolve_blob(project, record.digest, verify_content=False) == blob
+    assert hasher.call_count == 2
+    assert cas.resolve_blob(project, record.digest, verify_content=True) == blob
+    assert hasher.call_count == 3
     old = blob.stat()
     blob.write_bytes(b"bad")
     if os.name == "posix":
         os.utime(blob, ns=(old.st_atime_ns, old.st_mtime_ns))
     with pytest.raises(MCPVideoError):
         cas.resolve_blob(project, record.digest)
-    assert hasher.call_count == 3
+    assert hasher.call_count == 4
 
 
 def test_project_maintenance_limits_evictions_and_records_progress(tmp_path):
@@ -172,7 +177,7 @@ def test_still_grade_preflights_destination_input_alias_without_overwriting(tmp_
     assert second.read_bytes() == before
 
 
-def test_cas_and_ledger_bypass_cache_without_posix_ctime(tmp_path, monkeypatch):
+def test_cas_and_ledger_detect_tampering_even_with_frozen_stat(tmp_path, monkeypatch):
     from kinocut import output_ledger as ledger
 
     project = open_project(tmp_path / "project")
@@ -180,13 +185,16 @@ def test_cas_and_ledger_bypass_cache_without_posix_ctime(tmp_path, monkeypatch):
     source.write_bytes(b"abc")
     record = cas.ingest_blob(project, source)
     blob = cas.resolve_blob(project, record.digest)
-    # Emulate non-POSIX platform where st_ctime_ns is creation time (unchanged on rewrite).
-    monkeypatch.setattr(cas, "_POSIX_CTIME_TRUSTED", False)
-    old_stat = blob.stat()
+    frozen_blob_stat = blob.stat()
     blob.write_bytes(b"xyz")
-    os.utime(blob, ns=(old_stat.st_atime_ns, old_stat.st_mtime_ns))
+    # Even if an untrusted filesystem reports identical stat metadata, default resolve_blob rejects tampering,
+    # and opt-in verify_content=False rejects tampering when device ctime isn't trusted.
+    monkeypatch.setattr(cas, "_device_has_trusted_ctime", lambda _dev: False)
+    monkeypatch.setattr(cas.os, "fstat", lambda _fd: frozen_blob_stat)
     with pytest.raises(MCPVideoError):
         cas.resolve_blob(project, record.digest)
+    with pytest.raises(MCPVideoError):
+        cas.resolve_blob(project, record.digest, verify_content=False)
 
     monkeypatch.setenv("KINOCUT_STATE_DIR", str(tmp_path / "state"))
     out = tmp_path / "out.mp4"
@@ -194,11 +202,29 @@ def test_cas_and_ledger_bypass_cache_without_posix_ctime(tmp_path, monkeypatch):
     ledger.record_output(str(out))
     assert ledger.owns(str(out))
     lpath = Path(ledger._ledger_path())
-    monkeypatch.setattr(ledger, "_POSIX_CTIME_TRUSTED", False)
     old_lstat = lpath.stat()
     lpath.write_text(lpath.read_text().replace("out.mp4", "alt.mp4"))
     os.utime(lpath, ns=(old_lstat.st_atime_ns, old_lstat.st_mtime_ns))
     assert not ledger.owns(str(out))
+
+
+def test_still_grade_rejects_zero_byte_lut_output(tmp_path, monkeypatch):
+    image = pytest.importorskip("PIL.Image")
+    pytest.importorskip("numpy")
+    from kinocut.errors import ProcessingError
+    from kinocut.still_plates import grade
+
+    src = tmp_path / "plate.png"
+    lut = tmp_path / "look.cube"
+    out_dir = tmp_path / "out"
+    image.new("RGB", (8, 8), color=(100, 110, 120)).save(src)
+    lut.write_text("LUT_3D_SIZE 2\n", encoding="utf-8")
+    # Simulate FFmpeg succeeding without writing bytes into the pre-created atomic stage file.
+    monkeypatch.setattr(grade, "_run_ffmpeg", lambda _args: None)
+    with pytest.raises(ProcessingError):
+        grade.still_grade(inputs=[src], output_dir=out_dir, lut_path=lut)
+    assert not (out_dir / "plate_graded.png").exists()
+    assert not (out_dir / "still_grade_receipt.json").exists()
 
 
 def test_receipt_witness_prune_eio_is_best_effort(tmp_path, monkeypatch):
