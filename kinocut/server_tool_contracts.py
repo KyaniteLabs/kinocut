@@ -18,6 +18,7 @@ from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import PydanticCustomError
 
 from .errors import MCPVideoError
+from .request_log import log_invocation
 from .tool_docstrings import fold_args
 from .tool_families import DESCRIBE_TOOL_NAME, FAMILY_OF_OPERATION
 
@@ -198,6 +199,27 @@ def _flag_failure(result: Any) -> Any:
     return CallToolResult(isError=True, content=list(unstructured), structuredContent=structured)
 
 
+def _log_request_pair(name: str, arguments: dict[str, Any]) -> None:
+    """Feed the opt-in routing corpus for real operation invocations.
+
+    Family dispatch arrives as ``name=<family>`` with ``arguments`` holding
+    ``operation`` and ``params``; direct calls arrive as ``name=<operation>``.
+    Discovery and core infrastructure tools (``list_operations``,
+    ``describe_operation``, ``search_tools``) are not operations and are not
+    logged.  ``log_invocation`` is best effort and never raises; when the log
+    is disabled (the default) this returns after the membership checks.
+    """
+    if name in _FAMILY_TOOL_NAMES:
+        operation = arguments.get("operation")
+        if not isinstance(operation, str) or FAMILY_OF_OPERATION.get(operation) != name:
+            return
+    elif name in FAMILY_OF_OPERATION:
+        operation = name
+    else:
+        return
+    log_invocation(operation, arguments)
+
+
 def _offload_sync_tool(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Run synchronous MCP tool handlers on a worker thread so FastMCP's event loop stays responsive."""
 
@@ -248,6 +270,7 @@ class _ContractFastMCP(FastMCP):
             self._raise_if_unlisted_operation(name)
             return await super().call_tool(name, arguments)
         arguments = _fold_family_arguments(name, forgive_argument_aliases(tool, arguments))
+        _log_request_pair(name, arguments)
         try:
             validate_tool_arguments(name, tool, arguments)
         except MCPVideoError as error:

@@ -229,6 +229,7 @@ def render_cutfile(
     output_path: str | None = None,
     save_receipt: str | None = None,
     keep_intermediates: bool = False,
+    allow_external_producers: bool = False,
 ) -> dict[str, Any]:
     """Load a cutfile, compile to workflow, and render via the workflow engine.
 
@@ -250,6 +251,12 @@ def render_cutfile(
                 "output_path must be inside the cutfile workspace",
                 "cutfile_output_invalid",
             ) from exc
+
+    if any(op["op"] == "cached_shots" for op in cf.ops):
+        from .cutfile_shots import render_cached_cutfile
+
+        _validate_output_relpath(rel_out)
+        return render_cached_cutfile(cf, cutfile_path, rel_out, save_receipt, allow_external_producers)
 
     (workspace / "out").mkdir(parents=True, exist_ok=True)
     spec = compile_cutfile_to_workflow(cf, output_relpath=rel_out)

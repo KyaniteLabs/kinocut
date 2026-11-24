@@ -1,0 +1,89 @@
+{
+  "generic": {
+    "schema_version": 1,
+    "record_kind": "parsed_script",
+    "record_id": null,
+    "project_id": "project_alpha",
+    "created_at": null,
+    "created_by": "agent:worker_1",
+    "supersedes": null,
+    "source_record_ids": [],
+    "episode_id": "episode_review",
+    "source_hash": "sha256:9f003b6b421d1f545b292526a0ab90dd1ec01ad121e4ff298482c51e39d9f05a",
+    "scenes": [
+      {"scene_id": "scene_review", "line_ids": ["line_0001_0001", "line_0001_0002"], "event_ids": ["line_0001_0001", "beat_0001_0001", "beat_0001_0002", "line_0001_0002", "beat_0001_0003"], "pause_after_seconds": 0.0}
+    ],
+    "parsed_lines": [
+      {"scene_id": "scene_review", "line_index": 1, "cue_id": "cue_0001_0001", "pause_after_seconds": 0.0, "performance_kind": "action", "line": {"line_id": "line_0001_0001", "character_id": "narrator", "profile": {"profile_id": "voice_narrator", "version": 1}, "text_hash": "sha256:c84ab15c217d928f458a6f6c0012fc9198b1d3a2a10b552eadab9a2b17f56436", "text_length_chars": 25, "prosody": {"rate": 1.0, "pitch": 0.0, "volume_db": 0.0, "emphasis": 0.0}, "emotion": {"label": "neutral", "intensity": 0.0}, "spatial_preset": "medium_room", "pronunciation_overrides": [], "inherit_loudness": true}},
+      {"scene_id": "scene_review", "line_index": 2, "cue_id": "cue_0001_0002", "pause_after_seconds": 0.0, "performance_kind": "voiceover", "line": {"line_id": "line_0001_0002", "character_id": "actor_a", "profile": {"profile_id": "voice_a", "version": 1}, "text_hash": "sha256:b80e954bbf1b61e5a37eaedbd367917924a473c5d918fc1c79897bf253d3d412", "text_length_chars": 22, "prosody": {"rate": 1.0, "pitch": 0.0, "volume_db": 0.0, "emphasis": 0.0}, "emotion": {"label": "neutral", "intensity": 0.0}, "spatial_preset": "medium_room", "pronunciation_overrides": [], "inherit_loudness": true}}
+    ],
+    "cue_order": ["cue_0001_0001", "cue_0001_0002"],
+    "beats": [
+      {"beat_id": "beat_0001_0001", "scene_id": "scene_review", "kind": "foley", "text_hash": "sha256:1e1443ea7783c83d27add85951e6a72749a6f55b5a808823602045364d5d2903", "text_length_chars": 10, "duration_seconds": 0.4, "after_line_id": "line_0001_0001", "asset_ref": "foley/door_latch.wav", "asset_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "silence_quality": null},
+      {"beat_id": "beat_0001_0002", "scene_id": "scene_review", "kind": "designed_silence", "text_hash": "sha256:bd9d5403077e3d97145160c4284ecfc3c59a2441e2d8cb532a93f3dbab7df4b6", "text_length_chars": 11, "duration_seconds": 0.3, "after_line_id": "line_0001_0001", "asset_ref": null, "asset_hash": null, "silence_quality": "held_breath"},
+      {"beat_id": "beat_0001_0003", "scene_id": "scene_review", "kind": "pace", "text_hash": "sha256:a251c8737c190636beec3554371614d024ef1af71e39f30ee2d27dca3c6e978a", "text_length_chars": 14, "duration_seconds": 0.2, "after_line_id": "line_0001_0002", "asset_ref": null, "asset_hash": null, "silence_quality": null}
+    ],
+    "chapter_cards": [],
+    "events": [
+      {"event_id": "line_0001_0001", "scene_id": "scene_review", "kind": "line"},
+      {"event_id": "beat_0001_0001", "scene_id": "scene_review", "kind": "beat"},
+      {"event_id": "beat_0001_0002", "scene_id": "scene_review", "kind": "beat"},
+      {"event_id": "line_0001_0002", "scene_id": "scene_review", "kind": "line"},
+      {"event_id": "beat_0001_0003", "scene_id": "scene_review", "kind": "beat"}
+    ]
+  },
+  "two_scene": {
+    "schema_version": 1,
+    "record_kind": "parsed_script",
+    "record_id": null,
+    "project_id": "project_alpha",
+    "created_at": null,
+    "created_by": "agent:worker_1",
+    "supersedes": null,
+    "source_record_ids": [],
+    "episode_id": "episode_review",
+    "source_hash": "sha256:5ddd0721b0ed6d658568b224049fc6e71193ea71db87f9f689d1e53062089faa",
+    "scenes": [
+      {"scene_id": "scene_review", "line_ids": ["line_0001_0001"], "event_ids": ["line_0001_0001", "beat_0001_0001"], "pause_after_seconds": 0.0},
+      {"scene_id": "scene_other", "line_ids": ["line_0002_0001"], "event_ids": ["line_0002_0001"], "pause_after_seconds": 0.0}
+    ],
+    "parsed_lines": [
+      {"scene_id": "scene_review", "line_index": 1, "cue_id": "cue_0001_0001", "pause_after_seconds": 0.0, "performance_kind": "action", "line": {"line_id": "line_0001_0001", "character_id": "narrator", "profile": {"profile_id": "voice_narrator", "version": 1}, "text_hash": "sha256:c84ab15c217d928f458a6f6c0012fc9198b1d3a2a10b552eadab9a2b17f56436", "text_length_chars": 25, "prosody": {"rate": 1.0, "pitch": 0.0, "volume_db": 0.0, "emphasis": 0.0}, "emotion": {"label": "neutral", "intensity": 0.0}, "spatial_preset": "medium_room", "pronunciation_overrides": [], "inherit_loudness": true}},
+      {"scene_id": "scene_other", "line_index": 1, "cue_id": "cue_0002_0001", "pause_after_seconds": 0.0, "performance_kind": "dialogue", "line": {"line_id": "line_0002_0001", "character_id": "actor_a", "profile": {"profile_id": "voice_a", "version": 1}, "text_hash": "sha256:0b5e9b3abc7f422a421148d2893a68c3eaf04ff94b783ed0a38693065b577968", "text_length_chars": 16, "prosody": {"rate": 1.0, "pitch": 0.0, "volume_db": 0.0, "emphasis": 0.0}, "emotion": {"label": "neutral", "intensity": 0.0}, "spatial_preset": "medium_room", "pronunciation_overrides": [], "inherit_loudness": true}}
+    ],
+    "cue_order": ["cue_0001_0001", "cue_0002_0001"],
+    "beats": [
+      {"beat_id": "beat_0001_0001", "scene_id": "scene_review", "kind": "foley", "text_hash": "sha256:1e1443ea7783c83d27add85951e6a72749a6f55b5a808823602045364d5d2903", "text_length_chars": 10, "duration_seconds": 0.4, "after_line_id": "line_0001_0001", "asset_ref": "foley/door_latch.wav", "asset_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "silence_quality": null}
+    ],
+    "chapter_cards": [],
+    "events": [
+      {"event_id": "line_0001_0001", "scene_id": "scene_review", "kind": "line"},
+      {"event_id": "beat_0001_0001", "scene_id": "scene_review", "kind": "beat"},
+      {"event_id": "line_0002_0001", "scene_id": "scene_other", "kind": "line"}
+    ]
+  },
+  "chapter_only": {
+    "schema_version": 1,
+    "record_kind": "parsed_script",
+    "record_id": null,
+    "project_id": "project_alpha",
+    "created_at": null,
+    "created_by": "agent:worker_1",
+    "supersedes": null,
+    "source_record_ids": [],
+    "episode_id": "wf_chapter_review",
+    "source_hash": "sha256:1d26b65f367b76f356cba6df7a613e6a977895eb820418a768fd735916945f3c",
+    "scenes": [
+      {"scene_id": "wf_scene", "line_ids": [], "event_ids": ["chapter_0001_0001"], "pause_after_seconds": 0.0}
+    ],
+    "parsed_lines": [],
+    "cue_order": [],
+    "beats": [],
+    "chapter_cards": [
+      {"chapter_id": "chapter_0001_0001", "scene_id": "wf_scene", "text_hash": "sha256:5fe85990ce7373028becd382ff07745296ace7fbc4c9fa4a146ef6b2e6b52ebf", "text_length_chars": 11}
+    ],
+    "events": [
+      {"event_id": "chapter_0001_0001", "scene_id": "wf_scene", "kind": "chapter_card"}
+    ]
+  }
+}

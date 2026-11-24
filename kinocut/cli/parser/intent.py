@@ -68,6 +68,9 @@ def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None
     cfr.add_argument("-o", "--output", default=None, help="Output path relative to cutfile workspace")
     cfr.add_argument("--receipt", default=None, help="Receipt JSON path")
     cfr.add_argument("--keep-intermediates", action="store_true")
+    cfr.add_argument(
+        "--allow-external-producers", action="store_true", help="Trust and execute shot commands in this Cutfile"
+    )
 
     mqc = subparsers.add_parser("metric-qc", help="Offline metric floor (duration/black/loudness)")
     mqc.add_argument("input", help="Media path")

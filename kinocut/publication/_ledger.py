@@ -27,7 +27,7 @@ _Snapshot = frozenset[tuple[str, tuple[int, ...]]]
 _cached: tuple[bytes, _Snapshot] | None = None
 
 
-def _state_dir() -> str:
+def state_dir() -> str:
     explicit = os.environ.get("KINOCUT_STATE_DIR")
     if explicit:
         return os.path.expanduser(explicit)
@@ -36,7 +36,7 @@ def _state_dir() -> str:
 
 
 def _ledger_path() -> str:
-    return os.path.join(_state_dir(), _LEDGER_NAME)
+    return os.path.join(state_dir(), _LEDGER_NAME)
 
 
 def _identity(st: os.stat_result) -> list[int]:
@@ -44,7 +44,7 @@ def _identity(st: os.stat_result) -> list[int]:
 
 
 def _open_ledger(flags: int) -> int:
-    directory = _state_dir()
+    directory = state_dir()
     os.makedirs(directory, mode=0o700, exist_ok=True)
     return os.open(_ledger_path(), flags | _NOFOLLOW | getattr(os, "O_CLOEXEC", 0), 0o600)
 

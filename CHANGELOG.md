@@ -13,6 +13,7 @@ This project follows a simple release-note style:
 
 ### Added
 
+- Opt-in local request log of `(request → chosen operation)` pairs for routing-corpus work: `KINOCUT_REQUEST_LOG=1` (or a path) records every MCP operation invocation as a redacted JSONL record (paths, URL queries and credential-shaped strings stripped); harvest with `python -m kinocut.request_log`. Off by default, local only, no telemetry.
 - Turn plain spoken direction into a deterministic, reviewable edit plan with `video_direct`, then explicitly execute it with `video_direct_apply(confirm=true)` or `kino direct "WORDS" -i INPUT --apply` (#458). Plans disclose defaults, unknown phrases and at most one question; voice memos reuse optional local transcription. Apply validates the entire tool/path/argument chain before rendering and returns per-step receipts on success or failure.
 - Support trims, silence removal, pacing, delivery formats, center reframing, -14 LUFS loudness, synchronized captions, muting and final-video thumbnails. Both tools live in the `intent` profile and the `video_plan_ops` family. Development now has 208 MCP tools / 178 CLI commands; published 2.0.1 counts are unchanged.
 
