@@ -288,7 +288,9 @@ def test_subtitles_aac_retry_preserves_unrelated_retry_failure(sample_video, tmp
         calls.append(list(args))
         if len(calls) == 1:
             raise ProcessingError("ffmpeg", 1, "Could not find tag for codec pcm_s16le in stream #1")
-        raise ProcessingError("ffmpeg", 1, "No space left on device")
+        raise ProcessingError(
+            "ffmpeg", 1, "[out#0/avi] Could not write header (incorrect codec parameters ?): No space left on device"
+        )
 
     monkeypatch.setattr(engine_subtitles, "_run_ffmpeg", _runner)
     with pytest.raises(ProcessingError) as caught:
