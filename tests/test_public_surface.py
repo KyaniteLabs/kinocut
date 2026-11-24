@@ -661,15 +661,14 @@ def test_public_site_matches_release_identity():
     assert "mcp-video is now Kinocut" in site
 
 
-def test_heavy_ai_extras_keep_python313_installable():
+def test_heavy_ai_extras_use_the_supported_opencv_backend():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     optional_deps = pyproject["project"]["optional-dependencies"]
 
     for extra in ("upscale", "ai", "all-ai"):
         dependencies = optional_deps[extra]
         assert "opencv-contrib-python>=4.10" in dependencies
-        assert "realesrgan>=0.3; python_version < '3.13'" in dependencies
-        assert "basicsr>=1.4; python_version < '3.13'" in dependencies
+        assert not any(dependency.startswith(("realesrgan", "basicsr", "torchvision")) for dependency in dependencies)
 
     for extra in ("audio-ai", "audio-all"):
         assert "numpy>=1.24" in optional_deps[extra]

@@ -147,7 +147,7 @@ obtain the human decision before invoking acceptance. Rendering rechecks source 
 | `shorts-plan-show` | Show proposals from a saved shorts plan (source-free) |
 | `shorts-review` | Append a human review decision to a saved shorts plan |
 | `shorts-render` | Render approved platform drafts from a saved shorts plan |
-| `shorts-package` | Package approved platform renders from a saved shorts plan. Fails closed on quality unless `--allow-fail`. |
+| `shorts-package` | Package approved platform renders from a saved shorts plan. The legacy `--allow-fail` flag no longer bypasses QC. |
 | `sound-capabilities` | Discover the bounded public sound operation set |
 | `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional); explicit empty or invalid plans fail. See [input validation](SOUND_INPUT_VALIDATION.md). |
 | `sound-voice-batch` | Retained local caption speech (`--request-json`, `--project-root`) with V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy synthetic demo (`--plan-json` optional). See [caption speech](SOUND_DUB_REQUESTS.md). |

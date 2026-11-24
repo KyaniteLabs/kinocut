@@ -24,7 +24,9 @@ above. The hot path is `video_info`, `video_trim`, `video_merge`,
    a long job.
 2. If the hot path lacks the operation, call `list_operations` with a family or a query,
    then `describe_operation` for its full schema, then call the family with
-   `{"operation": ..., "params": ...}`.
+   `{"operation": ..., "params": ...}`. A call may also put operation arguments
+   beside `operation` when it omits `params`; use `params` for names that collide
+   with the family envelope, and do not mix both forms.
 3. Write to an explicit new output path, read the result and receipt, run the quality
    checks, and ask a person to review before anything is published.
 
@@ -331,7 +333,7 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 | `video_review_decide` | Human accept/reject/revise on a `review_run` artifact. If `review_run.artifact_kind` is `360_assembly_plan`, `approve`/`accept`/`reject` that plan and optionally render when `output_path` is set. | — |
 | `video_ai_scene_detect` | ML-enhanced scene change detection (perceptual hashing) | [imagehash](https://pypi.org/project/imagehash/), Pillow |
 | `video_ai_stem_separation` | Isolate vocals, drums, bass, other instruments | [demucs](https://pypi.org/project/demucs/), Torch, TorchAudio, TorchCodec |
-| `video_ai_upscale` | AI super-resolution upscaling (2x or 4x) | [opencv-contrib-python](https://pypi.org/project/opencv-contrib-python/); Real-ESRGAN/BasicSR where supported |
+| `video_ai_upscale` | AI super-resolution upscaling (2x or 4x) | [opencv-contrib-python](https://pypi.org/project/opencv-contrib-python/) |
 | `video_ai_color_grade` | Color grading with style presets, reference matching or an explicit `lut_path` | FFmpeg |
 | `video_quality_check` | Check brightness, contrast, saturation, audio levels, color balance |
 | `video_design_quality_check` | Full design quality analysis: layout, typography, color, motion, composition |
@@ -344,7 +346,7 @@ Install only the AI dependencies you need:
 pip install "kinocut[transcribe]==2.0.1"  # Whisper transcription
 pip install "kinocut[ai-scene]==2.0.1"    # perceptual scene hashing
 pip install "kinocut[stems]==2.0.1"       # Demucs stem separation
-pip install "kinocut[upscale]==2.0.1"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
+pip install "kinocut[upscale]==2.0.1"     # OpenCV DNN upscaling
 pip install "kinocut[ai]==2.0.1"          # all AI extras, kept for compatibility
 pip install yt-dlp                   # only for downloading platform URLs (YouTube/Vimeo/...)
 ```
@@ -357,8 +359,9 @@ The default test suite verifies these admission and publication controls with
 native media and simulated inference. It does not establish model execution or
 equivalent quality between OpenCV and Real-ESRGAN. BasicSR 1.4.2 retains an
 unpatched advisory in its unused distributed initializer and a legacy import
-incompatibility with modern TorchVision; consult [fleet upgrade guidance](FLEET_UPGRADE.md)
-before enabling optional backends.
+incompatibility with modern TorchVision. Real-ESRGAN and BasicSR are not bundled
+with the extras. If you maintain a separate compatible environment, `kino doctor`
+checks the backend imports without loading model weights.
 
 ---
 
@@ -446,7 +449,7 @@ See [STREAM_SHORTS.md](STREAM_SHORTS.md).
 | `shorts_plan_show` | Load a saved plan and return source-free proposals for review |
 | `shorts_review` | Append one human decision (`approve` / `reject` / trim / title / sensitivity) |
 | `shorts_render` | Render platform drafts for an approved candidate; cache unchanged digests |
-| `shorts_package` | Write portable packages (video, SRT, thumbnail, metadata, manifest) |
+| `shorts_package` | Gate and atomically publish portable packages (video, SRT, thumbnail, metadata, manifest) |
 
 ---
 

@@ -372,7 +372,7 @@ def test_run_diagnostics_checks_optional_packages_without_importing_them():
     assert "kinocut[ai-scene]" in checks["imagehash"]["install_hint"]
 
 
-def test_run_diagnostics_explains_python313_basicsr_guard(monkeypatch):
+def test_run_diagnostics_explains_manual_upscale_backend(monkeypatch):
     import mcp_video.doctor as doctor
 
     monkeypatch.setattr(doctor.sys, "version_info", (3, 13, 12))
@@ -385,9 +385,8 @@ def test_run_diagnostics_explains_python313_basicsr_guard(monkeypatch):
     )
 
     checks = {check["name"]: check for check in report["checks"]}
-    assert "BasicSR currently fails to build" in checks["basicsr"]["install_hint"]
+    assert "removed by modern TorchVision" in checks["basicsr"]["install_hint"]
     assert "OpenCV fallback" in checks["realesrgan"]["install_hint"]
-    assert "Python 3.11 or 3.12" in checks["basicsr"]["install_hint"]
     assert "manual optional integration" in checks["basic-pitch"]["install_hint"]
     assert "Python 3.11 or 3.12" in checks["basic-pitch"]["install_hint"]
 

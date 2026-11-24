@@ -47,11 +47,16 @@ FindSpecFn = Callable[[str], Any]
 PackageVersionFn = Callable[[str], str | None]
 ImportModuleFn = Callable[[str], Any]
 
-PYTHON_313_UPSCALE_BACKEND_HINT = (
-    "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
-    f"The OpenCV fallback is still installed by: {pip_install_hint('upscale')}. "
-    "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
+LEGACY_UPSCALE_BACKEND_HINT = (
+    "Real-ESRGAN/BasicSR require a separately validated, compatible environment. "
+    "BasicSR 1.4.2 imports a module removed by modern TorchVision. "
+    f"Use the OpenCV fallback installed by: {pip_install_hint('upscale')}."
 )
+_UPSCALE_IMPORTS = {
+    "realesrgan": "from realesrgan import RealESRGANer",
+    "basicsr": "from basicsr.archs.rrdbnet_arch import RRDBNet",
+    "opencv-contrib-python": "import cv2; assert callable(cv2.dnn_superres.DnnSuperResImpl_create)",
+}
 
 BASIC_PITCH_MANUAL_HINT = (
     "BasicPitch is a manual optional integration because its TensorFlow dependency chain is not safely "
@@ -123,17 +128,11 @@ PACKAGE_CHECKS = (
         f"Install transcription extras: {pip_install_hint('transcribe')}",
     ),
     ("demucs", "demucs", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
-    ("realesrgan", "realesrgan", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
-    ("basicsr", "basicsr", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
+    ("realesrgan", "realesrgan", "ai", False, LEGACY_UPSCALE_BACKEND_HINT),
+    ("basicsr", "basicsr", "ai", False, LEGACY_UPSCALE_BACKEND_HINT),
     ("numpy", "numpy", "audio", False, f"Install audio extras: {pip_install_hint('audio')}"),
     ("opencv-contrib-python", "cv2", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
-    (
-        "torch",
-        "torch",
-        "ai",
-        False,
-        f"Install stem/upscale extras: {pip_install_hint('stems')} or {pip_install_hint('upscale')}",
-    ),
+    ("torch", "torch", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
     ("torchaudio", "torchaudio", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
     ("torchcodec", "torchcodec", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
     ("imagehash", "imagehash", "ai", False, f"Install AI scene extras: {pip_install_hint('ai-scene')}"),
@@ -200,13 +199,7 @@ def _doctor_probe_environment() -> dict[str, str]:
 
 
 def _command_version(command: list[str]) -> str | None:
-    """Run a version probe offline.
-
-    The probe inherits the caller's environment, which can carry provider
-    credentials and can point a shim at an updater that reaches the network.
-    Doctor's own comment says it must stay offline, so the probe runs with the
-    same sanitized, update-disabled environment the Hyperframes engine uses.
-    """
+    """Run a bounded probe in a sanitized, update-disabled environment."""
     try:
         result = subprocess.run(  # noqa: S603
             command,
@@ -309,9 +302,13 @@ def _check_package(
     found = find_spec(import_name) is not None
     version = package_version(distribution_name) if found else None
     ok = found and version is not None
-    if not ok and distribution_name in {"realesrgan", "basicsr"} and sys.version_info >= (3, 13):
-        install_hint = PYTHON_313_UPSCALE_BACKEND_HINT
-    elif not ok and distribution_name == "basic-pitch" and sys.version_info >= (3, 13):
+    probe = _UPSCALE_IMPORTS.get(distribution_name)
+    if ok and probe and find_spec is importlib.util.find_spec and package_version is _package_version:
+        marker = _command_version([sys.executable, "-P", "-c", f"{probe}; print('import ok')"])
+        ok = marker is not None
+        if not ok:
+            install_hint = f"Installed, but the backend import failed or timed out. {install_hint}"
+    if not ok and distribution_name == "basic-pitch" and sys.version_info >= (3, 13):
         install_hint = BASIC_PITCH_MANUAL_HINT
     return {
         "name": distribution_name,
