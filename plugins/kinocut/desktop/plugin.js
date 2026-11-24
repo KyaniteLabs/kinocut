@@ -13,8 +13,7 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 // --- reducer:begin (pure; no SDK use; keep self-contained) ---
 const MAX_RECENT = 10
 
-// Kinocut tools that never write media (no `overwrite` parameter). They show under
-// Activity, not Renders. tests/test_desktop_plugin_lookups.py keeps this in sync.
+// Inspection tools appear in Activity; tests/test_desktop_plugin_lookups.py checks this list.
 export const LOOKUP_TOOLS = new Set([
   'describe_operation',
   'list_operations',
@@ -53,6 +52,7 @@ export function isKinocutTool(name) {
 }
 
 export function clampPercent(value) {
+  if (typeof value !== 'number' && !(typeof value === 'string' && value.trim())) return null
   const n = Number(value)
   if (value === null || value === undefined || !Number.isFinite(n)) return null
   return Math.min(100, Math.max(0, Math.round(n)))
@@ -60,28 +60,35 @@ export function clampPercent(value) {
 
 // Hermes hands MCP results to tool.complete as text: `{ result: "<JSON>" }`, sometimes
 // nested once more. Unwrap up to three layers of JSON strings or `result` fields.
-export function unwrapResult(value) {
-  let r = value
-  for (let i = 0; i < 3; i++) {
-    if (typeof r === 'string') {
+function inspectResult(value) {
+  let result = value
+  let failed = false
+  let message = ''
+  for (let depth = 0; depth <= 3; depth++) {
+    if (typeof result === 'string' && depth < 3) {
       try {
-        r = JSON.parse(r)
+        result = JSON.parse(result)
+        continue
       } catch {
-        return null
+        break
       }
-      continue
     }
-    if (r && typeof r === 'object' && !('success' in r) && !('error' in r) && !('isError' in r) && 'result' in r) {
-      r = r.result
-      continue
-    }
-    break
+    if (!result || typeof result !== 'object') break
+    failed ||= failureOf(result)
+    message = errorText(result.error) || errorText(result) || message
+    if (depth === 3 || !('result' in result) || (!failed && 'success' in result)) break
+    result = result.result
   }
-  return r && typeof r === 'object' ? r : null
+  return { result, failed, message: typeof result === 'string' ? result || message : message }
+}
+
+export function unwrapResult(value) {
+  const { result } = inspectResult(value)
+  return result && typeof result === 'object' ? result : null
 }
 
 function failureOf(r) {
-  return Boolean(r && (r.error || r.ok === false || r.success === false || r.isError === true))
+  return Boolean(r && (r.error || r.ok === false || r.success === false || r.isError === true || r.is_error === true))
 }
 
 // The SDK doc does not name a failure field on tool.complete; accept the plausible ones,
@@ -89,7 +96,26 @@ function failureOf(r) {
 export function isFailedComplete(payload) {
   if (!payload) return false
   if (failureOf(payload)) return true
-  return failureOf(unwrapResult(payload.result))
+  return inspectResult(payload.result).failed
+}
+
+function outputSize(result) {
+  if (Number.isFinite(result?.size_bytes) && result.size_bytes >= 0) return result.size_bytes
+  if (Number.isFinite(result?.size_mb)) {
+    const bytes = result.size_mb * 1024 ** 2
+    if (Number.isFinite(bytes) && bytes >= 0) return bytes
+  }
+  return null
+}
+
+const STALL_GAP_MS = 10_000
+
+export function estimateRemainingMs(previous, percent, now) {
+  if (!previous || previous.percent === null || percent === null || percent >= 100) return null
+  const elapsed = now - previous.at
+  const advanced = percent - previous.percent
+  if (elapsed < 250 || advanced < 15) return null
+  return Math.round(elapsed * (100 - percent) / advanced)
 }
 
 function errorText(err) {
@@ -138,9 +164,33 @@ export function reduceRenders(state, event) {
 
   if (event.type === 'start' || event.type === 'progress') {
     if (event.type === 'progress' && finished.includes(key)) return prev
-    const existing = prev.active[key]
+    const existing = Object.hasOwn(prev.active, key) ? prev.active[key] : null
     const percent = event.type === 'progress' ? clampPercent(payload.percent) : null
+    if (percent !== null && existing?.percent != null && percent < existing.percent) return prev
     const historyId = existing ? existing.historyId : nextHistoryId
+    let progressSample = existing?.progressSample ?? null
+    let lastAdvanceAt = existing?.lastAdvanceAt ?? null
+    let remainingMs = existing?.remainingMs ?? null
+    if (percent !== null) {
+      const advanced = existing?.percent == null || percent > existing.percent
+      const stalled = lastAdvanceAt !== null && now - lastAdvanceAt >= STALL_GAP_MS
+      if (percent === 100) {
+        progressSample = { percent, at: now }
+        lastAdvanceAt = now
+        remainingMs = null
+      } else if (!progressSample || stalled) {
+        progressSample = { percent, at: now }
+        lastAdvanceAt = now
+        remainingMs = null
+      } else if (advanced) {
+        lastAdvanceAt = now
+        const estimate = estimateRemainingMs(progressSample, percent, now)
+        if (estimate !== null) {
+          progressSample = { percent, at: now }
+          remainingMs = estimate
+        }
+      }
+    }
     const next = {
       key,
       historyId,
@@ -149,6 +199,9 @@ export function reduceRenders(state, event) {
       tool,
       startedAt: existing ? existing.startedAt : now,
       percent: percent !== null ? percent : existing ? existing.percent : null,
+      progressSample,
+      lastAdvanceAt,
+      remainingMs,
       message: typeof payload.message === 'string' && payload.message ? payload.message : existing ? existing.message : ''
     }
     return {
@@ -160,19 +213,19 @@ export function reduceRenders(state, event) {
   }
 
   if (event.type === 'complete') {
-    const existing = prev.active[key]
+    const existing = Object.hasOwn(prev.active, key) ? prev.active[key] : null
     if (!existing && finished.includes(key)) return prev
     const active = { ...prev.active }
     delete active[key]
     const historyId = existing ? existing.historyId : nextHistoryId
     const historyKey = `${key}@${historyId}`
-    const failed = isFailedComplete(payload)
+    const details = inspectResult(payload.result)
+    const failed = failureOf(payload) || details.failed
     const startedAt = existing ? existing.startedAt : now
     const durationMs =
       typeof payload.duration_s === 'number' && Number.isFinite(payload.duration_s)
         ? Math.max(0, Math.round(payload.duration_s * 1000))
         : Math.max(0, now - startedAt)
-    const result = unwrapResult(payload.result)
     const done = {
       key: historyKey,
       runKey: key,
@@ -183,8 +236,9 @@ export function reduceRenders(state, event) {
       kind: runKind(tool),
       status: failed ? 'failed' : 'done',
       durationMs,
+      sizeBytes: failed ? null : outputSize(details.result),
       message: failed
-        ? errorText(payload.error || (result && result.error) || (result && result.isError ? result : null)) ||
+        ? errorText(payload.error) || details.message ||
           (existing && existing.message) ||
           ''
         : (existing && existing.message) || (typeof payload.summary === 'string' ? payload.summary : ''),
@@ -204,12 +258,46 @@ export function reduceRenders(state, event) {
 const FLASH_MS = 5000
 const PANE_ID = 'kinocut-renders'
 
+// The desktop plugin loads as a single module with no relative asset imports.
+// This 24px copy of ../icon.png keeps the mark available offline.
+const KINOCUT_MARK = 'data:image/png;base64,' + [
+  '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'
+].join('')
+
 function formatDuration(ms) {
   if (!Number.isFinite(ms) || ms < 0) return ''
   if (ms < 1000) return `${Math.round(ms)} ms`
   const s = ms / 1000
   if (s < 60) return `${s.toFixed(1)} s`
   return `${Math.floor(s / 60)} m ${Math.round(s % 60)} s`
+}
+
+function formatOutputSize(bytes) {
+  if (bytes === null) return ''
+  if (bytes < 1024) return `${Math.round(bytes)} B`
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KiB`
+  return `${(bytes / 1024 ** 2).toFixed(1)} MiB`
 }
 
 function createStore(ctx) {
@@ -262,88 +350,168 @@ function useStore(store) {
   return snap
 }
 
-function ProgressBar({ percent }) {
-  return jsx('div', {
-    style: { height: '4px', borderRadius: '2px', background: 'var(--ui-stroke-secondary)', overflow: 'hidden' },
-    children: jsx('div', {
-      style: {
-        height: '100%',
-        width: `${percent === null ? 100 : percent}%`,
-        background: 'var(--ui-accent)',
-        opacity: percent === null ? 0.4 : 1
-      }
+const PANE_STYLE = `
+.kinocut-pane .kinocut-result {
+  border: 1px solid var(--ui-stroke-secondary);
+  border-radius: 8px;
+  background: var(--ui-bg-card);
+  padding: 10px 12px;
+}
+.kinocut-pane .kinocut-result:focus-visible {
+  outline: 2px solid var(--ui-accent-secondary, Highlight);
+  outline-offset: 2px;
+}
+.kinocut-pane .kinocut-failed {
+  color: color-mix(in srgb, var(--ui-red, var(--ui-text-primary)) 82%, var(--ui-text-primary));
+}
+.kinocut-pane .kinocut-progress {
+  --kinocut-progress-track: color-mix(in srgb, var(--ui-accent-secondary, Highlight) 18%, transparent);
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin-block: 6px 2px;
+  appearance: none;
+  border: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--kinocut-progress-track);
+}
+.kinocut-pane .kinocut-progress::-webkit-progress-bar {
+  background: transparent;
+}
+.kinocut-pane .kinocut-progress::-webkit-progress-value {
+  background: var(--ui-accent-secondary, Highlight);
+  border-radius: 3px;
+}
+.kinocut-pane .kinocut-progress::-moz-progress-bar {
+  background: var(--ui-accent-secondary, Highlight);
+  border-radius: 3px;
+}
+`
+
+function ProgressBar({ tool, percent }) {
+  const label = `${tool} progress`
+  if (percent === null) {
+    return jsx('div', {
+      role: 'progressbar',
+      'aria-label': label,
+      'aria-valuetext': 'Waiting for a progress update',
+      className: 'kinocut-progress'
     })
+  }
+  return jsx('progress', {
+    'aria-label': label,
+    max: 100,
+    value: percent,
+    className: 'kinocut-progress'
   })
 }
 
-function RecentList({ items, empty, row }) {
-  if (items.length === 0) return [jsx('div', { className: 'text-(--ui-text-tertiary)', children: empty }, 'empty')]
+function renderFailureCause(message) {
+  const retryStart = message.lastIndexOf('; retry with ')
+  if (retryStart === -1) return message
+  const retry = message.slice(retryStart)
+  const hasInvocation = retry.endsWith(' (MCP)') || (retry.includes(' (MCP) / ') && retry.endsWith(' (CLI)'))
+  return hasInvocation ? jsxs('details', {
+    children: [jsx('summary', { children: message.slice(0, retryStart) }), message.slice(retryStart + 2)]
+  }) : message
+}
+
+function RecentList({ items, row }) {
   return items.map(r =>
-    row(r.key || r.tool_id, [
-      jsxs(
-        'div',
-        {
-          className: 'flex justify-between gap-2',
-          children: [
-            jsx('span', { children: `${r.status === 'failed' ? '✗' : '✓'} ${r.tool}` }),
-            jsx('span', { className: 'text-(--ui-text-secondary)', children: formatDuration(r.durationMs) })
-          ]
-        },
-        'h'
-      ),
-      r.status === 'failed' ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'failed' }, 's') : null,
-      r.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.message }, 'm') : null
-    ])
+    row(
+      r.key || r.tool_id,
+      [
+        jsxs(
+          'div',
+          {
+            className: 'flex justify-between gap-2',
+            children: [
+              jsx('span', { className: 'min-w-0 break-all font-medium', children: r.tool }),
+              jsx('span', {
+                className: 'whitespace-nowrap font-mono text-xs text-(--ui-text-secondary)',
+                children: [formatDuration(r.durationMs), formatOutputSize(r.sizeBytes)].filter(Boolean).join(' · ')
+              })
+            ]
+          },
+          'h'
+        ),
+        jsx(
+          'div',
+          {
+            className: r.status === 'failed' ? 'kinocut-failed text-xs' : 'text-xs text-(--ui-text-secondary)',
+            children: r.status === 'failed' ? 'Failed' : 'Finished'
+          },
+          's'
+        ),
+        r.message
+          ? jsx('div', {
+              className: 'break-words text-(--ui-text-secondary)',
+              children: r.status === 'failed' ? renderFailureCause(r.message) : r.message
+            }, 'm')
+          : null
+      ],
+      0
+    )
   )
 }
 
 function RendersPane({ store }) {
   const { renders } = useStore(store)
   const active = Object.values(renders.active)
-  const row = (key, children) =>
-    jsx('div', { className: 'flex flex-col gap-1 border-b border-(--ui-stroke-secondary) py-2', children }, key)
-  const heading = text => jsx('div', { className: 'font-medium', children: text })
+  const row = (key, children, tabIndex) =>
+    jsx(
+      'div',
+      {
+        className: 'kinocut-result flex flex-col gap-1',
+        tabIndex,
+        children
+      },
+      key
+    )
+  const heading = text => jsx('h3', { className: 'text-xs font-semibold text-(--ui-text-secondary)', children: text })
   const done = renders.recent.filter(r => r.kind === 'render')
   const lookups = renders.recent.filter(r => r.kind === 'activity')
 
   return jsxs('div', {
-    className: 'flex h-full flex-col gap-3 overflow-auto p-3 text-sm',
+    className: 'kinocut-pane flex h-full flex-col gap-3 overflow-auto p-3 text-sm',
     children: [
-      active.length === 0
-        ? jsxs('div', {
-            className: 'flex flex-col gap-1',
+      jsx('style', { children: PANE_STYLE }),
+      jsxs('header', {
+        className: 'flex items-center gap-2',
+        children: [
+          jsx('img', { src: KINOCUT_MARK, alt: '', width: 24, height: 24 }),
+          jsx('h2', { className: 'text-base font-semibold', children: 'Kinocut renders' })
+        ]
+      }),
+      active.length === 0 && done.length === 0 && lookups.length === 0 &&
+        jsx('p', {
+          className: 'kinocut-result text-(--ui-text-secondary)',
+          children: 'Start a Kinocut edit in chat to see its progress here.'
+        }),
+      ...active.map(a =>
+        row(a.key || a.tool_id, [
+          jsxs('div', {
+            className: 'font-semibold',
             children: [
-              jsx('div', { className: 'font-medium', children: 'Idle' }, 'h'),
-              jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'Nothing is running.' }, 't')
+              `${a.tool} is running`,
+              a.percent === null ? '.' : jsxs('span', {
+                className: 'font-mono',
+                children: [
+                  ` at ${a.percent}%`,
+                  a.remainingMs === null ? '.' : `, about ${formatDuration(a.remainingMs)} left.`
+                ]
+              })
             ]
-          })
-        : [
-            heading(active.length === 1 ? 'Running' : `Running (${active.length})`),
-            ...active.map(a =>
-              row(a.key || a.tool_id, [
-                jsxs(
-                  'div',
-                  {
-                    className: 'flex justify-between gap-2',
-                    children: [
-                      jsx('span', { children: a.tool }),
-                      jsx('span', {
-                        className: 'text-(--ui-text-secondary)',
-                        children: a.percent === null ? '...' : `${a.percent}%`
-                      })
-                    ]
-                  },
-                  'h'
-                ),
-                jsx(ProgressBar, { percent: a.percent }, 'p'),
-                a.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: a.message }, 'm') : null
-              ])
-            )
-          ],
-      heading('Renders'),
-      ...RecentList({ items: done, empty: 'No finished renders yet.', row }),
-      heading('Activity'),
-      ...RecentList({ items: lookups, empty: 'No lookups yet.', row })
+          }, 'h'),
+          jsx(ProgressBar, { tool: a.tool, percent: a.percent }, 'p'),
+          a.message ? jsx('div', { className: 'break-words text-(--ui-text-secondary)', children: a.message }, 'm') : null
+        ], 0)
+      ),
+      done.length > 0 && heading('Renders'),
+      ...RecentList({ items: done, row }),
+      lookups.length > 0 && heading('Activity'),
+      ...RecentList({ items: lookups, row })
     ]
   })
 }

@@ -32,11 +32,48 @@ test('start -> progress -> complete', () => {
 })
 
 test('failure is detected', () => {
-  for (const extra of [{ error: 'boom' }, { ok: false }, { result: { error: 'x' } }]) {
+  for (const extra of [{ error: 'boom' }, { ok: false }, { is_error: true }, { result: { error: 'x' } }]) {
     let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'f', name: T }))
     s = reduceRenders(s, ev('complete', { tool_id: 'f', name: T, ...extra }))
     assert.equal(s.recent[0].status, 'failed')
   }
+})
+
+test('running estimates use advancing progress samples', () => {
+  const progress = (percent, now) => ev('progress', { tool_id: 'eta', name: T, percent }, now)
+  let s = reduceRenders(initialRenders(), progress(20, 1000))
+  assert.equal(s.active.eta.remainingMs, null)
+  s = reduceRenders(s, progress(50, 2500))
+  assert.equal(s.active.eta.remainingMs, 2500)
+  s = reduceRenders(s, progress(100, 5000))
+  assert.equal(s.active.eta.remainingMs, null)
+})
+
+test('finished renders retain the output size reported by Kinocut', () => {
+  const result = JSON.stringify({ result: JSON.stringify({ success: true, size_bytes: 1048576 }) })
+  const s = reduceRenders(initialRenders(), ev('complete', { tool_id: 'size', name: T, result }))
+  assert.equal(s.recent[0].sizeBytes, 1048576)
+})
+
+test('message-only progress retains the last valid percentage and ETA', () => {
+  const payload = { tool_id: 'progress', name: T }
+  let state = reduceRenders(initialRenders(), ev('progress', { ...payload, percent: 10 }, 0))
+  state = reduceRenders(state, ev('progress', { ...payload, percent: 40 }, 1000))
+  for (const percent of [undefined, ' ', false, []]) {
+    state = reduceRenders(state, ev('progress', { ...payload, percent, message: 'encoding' }, 2000))
+    assert.equal(state.active.progress.percent, 40)
+    assert.equal(state.active.progress.remainingMs, 2000)
+  }
+})
+
+test('nested gateway failure retains its cause and never reports an output size', () => {
+  const result = JSON.stringify({ is_error: true, content: [{ text: 'render stopped' }], size_bytes: 16 })
+  const state = reduceRenders(initialRenders(), ev('complete', { tool_id: 'constructor', name: T, result }))
+  const [row] = state.recent
+  assert.equal(row.historyId, 1)
+  assert.equal(row.status, 'failed')
+  assert.equal(row.message, 'render stopped')
+  assert.equal(row.sizeBytes, null)
 })
 
 test('non-Kinocut tools are ignored', () => {
@@ -67,7 +104,7 @@ test('recent is capped at 10, newest first', () => {
 test('percent is clamped to 0-100', () => {
   let s = reduceRenders(initialRenders(), ev('progress', { tool_id: 'p', name: T, percent: 250 }))
   assert.equal(s.active.p.percent, 100)
-  s = reduceRenders(s, ev('progress', { tool_id: 'p', name: T, percent: -5 }))
+  s = reduceRenders(initialRenders(), ev('progress', { tool_id: 'p', name: T, percent: -5 }))
   assert.equal(s.active.p.percent, 0)
   s = reduceRenders(s, ev('progress', { tool_id: 'p', name: T, percent: null }))
   assert.equal(s.active.p.percent, 0, 'null keeps the last known percent')
@@ -180,4 +217,56 @@ test('a Hermes text-wrapped failure counts as failed', () => {
 
 test('an MCP isError result counts as failed', () => {
   assert.equal(isFailedComplete({ result: { isError: true, content: [{ type: 'text', text: 'nope' }] } }), true)
+})
+
+test('outer failure flag survives unwrapping the inner cause', () => {
+  for (const cause of ['Missing source', { message: 'Missing source' }, JSON.stringify({ error: 'Missing source' })]) {
+    const result = JSON.stringify({ is_error: true, result: cause })
+    const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 'f', name: T, result })).recent
+    assert.equal(row.status, 'failed')
+    assert.equal(row.message, 'Missing source')
+  }
+})
+
+test('regressive progress cannot undo 100% or revive an ETA', () => {
+  let state = initialRenders()
+  for (const [percent, now] of [[20, 0], [100, 1000], [95, 1500]]) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.percent, 100)
+  assert.equal(state.active.p.remainingMs, null)
+})
+
+test('ETA measures resumed progress from the end of a stall', () => {
+  let state = initialRenders()
+  for (const [percent, now] of [[10, 0], [40, 1000], [40, 61000], [60, 62000]]) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.remainingMs, 2000)
+})
+
+test('ETA drops silent stall gaps and recovers on resumed forward progress', () => {
+  let state = initialRenders()
+  for (const [percent, now] of [[10, 0], [40, 1000], [60, 62000]]) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.remainingMs, null)
+  state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent: 80 }, 63000))
+  assert.equal(state.active.p.remainingMs, 1000)
+})
+
+test('repeated percentages without a stall still accumulate enough progress for an ETA', () => {
+  let state = initialRenders()
+  const samples = [[10, 0], [10, 500], [20, 1000], [20, 1500], [30, 2000], [30, 2500], [40, 3000]]
+  for (const [percent, now] of samples) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.percent, 40)
+  assert.equal(state.active.p.remainingMs, 7000)
+})
+
+test('MiB values that overflow in bytes have no display size', () => {
+  const result = { size_mb: Number.MAX_VALUE }
+  const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 's', name: T, result })).recent
+  assert.equal(row.sizeBytes, null)
 })

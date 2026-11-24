@@ -121,14 +121,22 @@ The same package ships a Hermes Desktop half, `desktop/plugin.js`, beside
 `mcp.json`. Hermes copies it to its desktop plugin folder when the package is
 installed; there is no separate install.
 
+For Hermes Desktop Tier 2, upgrade a 1.x catalog install with
+`hermes plugins update kinocut` once the catalog offers the unified v2.0.1+
+bundle. Reopen Desktop and enable the pane. Updating a standalone MCP
+server alone does not install the Desktop plugin.
+
 It is opt-in. Turn it on under Capabilities > Plugins > Kinocut. Once on, it shows:
 
 - a status bar item with live render progress (`Kinocut video_trim 42%`, then a
   brief check mark or cross when the call finishes), and
-- a "Kinocut renders" pane with active renders and the last ten finished ones,
-  opened from the command palette with "Kinocut: Show renders".
+- a "Kinocut renders" pane with active renders, the last ten outcomes and
+  separate lookup activity. Open it from the right sidebar, render status
+  button, or "Kinocut: Show renders" command.
 
-It only reacts to Kinocut tool calls and reads no files or credentials.
+When enough progress samples arrive, the pane estimates time remaining.
+Finished rows show elapsed time and output size when reported; failed rows
+show the cause when available. The pane reads no files or credentials.
 
 ## Manual setup for any MCP client
 
