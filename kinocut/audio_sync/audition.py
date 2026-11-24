@@ -318,6 +318,15 @@ label,button{margin-inline-end:1rem} select,button{font:inherit}
         page.write(f"<script>{_PLAYER}</script></html>\n")
 
 
+_IMAGE_FORMATS = frozenset({"image2", "image2pipe", "ico", "mjpeg", "webp"})
+
+
+def _is_still_image_format(probe: dict) -> bool:
+    fmt = str(probe.get("format", {}).get("format_name") or "").lower()
+    tokens = {tok.strip() for tok in fmt.split(",") if tok.strip()}
+    return not tokens or any(tok in _IMAGE_FORMATS or tok.endswith("_pipe") for tok in tokens)
+
+
 def _picture_stream(video: Path) -> int:
     try:
         if not stat.S_ISREG(video.lstat().st_mode):
@@ -325,9 +334,12 @@ def _picture_stream(video: Path) -> int:
     except OSError:
         raise MCPVideoError("Picture must be a non-symlink regular file", code="invalid_picture") from None
     try:
-        streams = _run_ffprobe_json(str(video)).get("streams", [])
+        probe = _run_ffprobe_json(str(video))
     except ProcessingError:
-        streams = []
+        probe = {}
+    if _is_still_image_format(probe):
+        raise MCPVideoError("Picture must contain a video stream, not a still image", code="invalid_picture")
+    streams = probe.get("streams", [])
     for stream in streams:
         if (
             stream.get("codec_type") == "video"

@@ -5,6 +5,7 @@ import re
 import shutil
 import struct
 import wave
+from pathlib import Path
 
 import pytest
 
@@ -260,12 +261,14 @@ def test_audition_review_is_offline_and_blind(tmp_path, audition_inputs):
     assert json.loads((folder / "receipt.json").read_text()) == receipt
 
 
-@pytest.mark.parametrize("kind", ["audio", "text", "symlink", "directory"])
+@pytest.mark.parametrize("kind", ["audio", "png", "text", "symlink", "directory"])
 def test_audition_review_rejects_invalid_picture(tmp_path, audition_inputs, kind):
     video, mixes = audition_inputs
-    invalid = tmp_path / "invalid.mp4"
+    invalid = tmp_path / ("invalid.png" if kind == "png" else "invalid.mp4")
     if kind == "audio":
         shutil.copyfile(mixes[0]["audio_path"], invalid)
+    elif kind == "png":
+        shutil.copyfile(Path(__file__).resolve().parents[1] / "mcpb" / "icon.png", invalid)
     elif kind == "text":
         invalid.write_text("Not a video")
     elif kind == "symlink":
