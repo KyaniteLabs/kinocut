@@ -237,7 +237,7 @@ def test_resolve_ffmpeg_timeout_honours_override_and_env(monkeypatch):
 
 def test_staged_writers_find_output_start_ignores_flag_values_equal_to_minus_i():
     """B-DR12: a metadata value literally equal to '-i' must not fool _find_output_start."""
-    from kinocut.staged_writers import _find_output_start
+    from kinocut.publication._staging import _find_output_start
 
     cmd = ["ffmpeg", "-y", "-i", "in.mp4", "-metadata", "-i", "-c:v", "libx264", "out.mp4"]
     assert _find_output_start(cmd) == 4

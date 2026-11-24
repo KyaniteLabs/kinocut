@@ -77,7 +77,7 @@ def test_snapshot_append_resumes_after_short_kernel_copy(tmp_path, monkeypatch):
 
 def test_each_receipt_replacement_retains_only_its_current_witness(tmp_path):
     from kinocut.output_policy import output_operation
-    from kinocut.projectstore.receipt_ownership import durable_receipt_ownership
+    from kinocut.publication import durable_receipt_ownership
     from kinocut.workflow.receipt import _write_receipt
 
     target = tmp_path / "receipt.json"
@@ -90,7 +90,7 @@ def test_each_receipt_replacement_retains_only_its_current_witness(tmp_path):
 
 
 def test_ledger_skips_real_stage_and_invalidates_after_external_replacement(tmp_path, monkeypatch):
-    from kinocut import output_ledger as ledger
+    from kinocut.publication import _ledger as ledger
     from kinocut.ffmpeg_helpers import _atomic_output, _owns_operation_output, _open_staged_writer
 
     monkeypatch.setenv("KINOCUT_STATE_DIR", str(tmp_path / "state"))
@@ -178,7 +178,7 @@ def test_still_grade_preflights_destination_input_alias_without_overwriting(tmp_
 
 
 def test_cas_and_ledger_detect_tampering_even_with_frozen_stat(tmp_path, monkeypatch):
-    from kinocut import output_ledger as ledger
+    from kinocut.publication import _ledger as ledger
 
     project = open_project(tmp_path / "project")
     source = tmp_path / "source"
@@ -236,7 +236,7 @@ def test_still_grade_rejects_zero_byte_lut_output(tmp_path, monkeypatch):
 
 def test_receipt_witness_prune_eio_is_best_effort(tmp_path, monkeypatch):
     from kinocut.output_policy import output_operation
-    from kinocut.projectstore.receipt_ownership import durable_receipt_ownership
+    from kinocut.publication import durable_receipt_ownership
     from kinocut.workflow.receipt import _write_receipt
 
     target = tmp_path / "receipt.json"

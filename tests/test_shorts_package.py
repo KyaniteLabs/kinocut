@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -94,6 +95,16 @@ def test_package_fails_closed_without_approve(tmp_path):
 
 
 def test_package_writes_both_platform_packages(tmp_path, monkeypatch):
+    from kinocut.product import package
+
+    manifests = []
+    serialize = package.canonical_manifest_bytes
+
+    def capture(manifest):
+        manifests.append(manifest)
+        return serialize(manifest)
+
+    monkeypatch.setattr(package, "canonical_manifest_bytes", capture)
     monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda path, **kwargs: {"video": path})
     plan = _plan_with_renders(tmp_path)
     review_shorts_plan(plan, candidate_id="candidate_01", decision="approve")
@@ -103,13 +114,17 @@ def test_package_writes_both_platform_packages(tmp_path, monkeypatch):
     assert len(result["packages"]) == 2
     platforms = {item["platform"] for item in result["packages"]}
     assert platforms == {"youtube-shorts", "instagram-reel"}
+    assert {manifest.package_root for manifest in manifests} == {item["package_root"] for item in result["packages"]}
+    assert len(manifests) == 2
     for item in result["packages"]:
         root = Path(item["package_root"])
         assert (root / "vertical.mp4").is_file()
         assert (root / "captions.srt").is_file()
         assert (root / "thumbnail.jpg").is_file()
         assert (root / "metadata.json").is_file()
-        assert Path(item["manifest_path"]).is_file()
+        manifest = json.loads(Path(item["manifest_path"]).read_bytes())
+        assert manifest["package_root"] == str(root)
+        assert manifest["thumbnail"]["image_path"] == str(root / "thumbnail.jpg")
 
 
 def test_package_fails_closed_on_render_checksum_mismatch(tmp_path):

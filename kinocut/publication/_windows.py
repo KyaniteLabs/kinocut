@@ -6,7 +6,7 @@ import os
 import contextlib
 from pathlib import Path
 
-from .errors import MCPVideoError
+from ..errors import MCPVideoError
 
 
 def lock_directory_ancestry(directory: str):

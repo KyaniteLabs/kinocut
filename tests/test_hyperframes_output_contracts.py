@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from kinocut import hyperframes_ops as ops
 from kinocut.errors import HyperframesRenderError
+from kinocut.hyperframes import ops
 from kinocut.hyperframes_models import HyperframesRenderResult, HyperframesSnapshotResult
 
 

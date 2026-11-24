@@ -18,8 +18,7 @@ from ..ffmpeg_helpers import (
     _validate_artifact_input_path,
     _validate_artifact_path,
 )
-from ..output_policy import with_output_policy
-from ..projectstore.receipt_ownership import durable_receipt_ownership, witness_receipt_stage
+from ..publication import durable_receipt_ownership, with_output_policy
 from .highlight_discovery import discover_highlights
 from .models import (
     CandidateMoment,
@@ -385,7 +384,6 @@ def save_shorts_plan(plan: ShortsPlan) -> ShortsPlan:
         _open_staged_writer(staged) as stream,
     ):
         stream.write(payload)
-        witness_receipt_stage(target, staged)
     return plan
 
 

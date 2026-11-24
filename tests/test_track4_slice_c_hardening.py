@@ -216,11 +216,11 @@ def test_equipment_rejection_only_writes_diagnostic(tmp_path, monkeypatch):
     ],
 )
 def test_invalid_post_pipeline_never_starts_render(monkeypatch, bad):
-    from kinocut import hyperframes_ops
+    from kinocut.hyperframes import pipeline
 
-    monkeypatch.setattr(hyperframes_ops, "render", lambda *a, **k: pytest.fail("render started"))
+    monkeypatch.setattr(pipeline, "render", lambda *a, **k: pytest.fail("render started"))
     with pytest.raises(MCPVideoError):
-        hyperframes_ops.render_and_post("project", bad)
+        pipeline.render_and_post("project", bad)
 
 
 def test_release_recipe_redacts_invalid_payload(tmp_path):
@@ -326,25 +326,25 @@ def test_concurrent_session_step_cannot_reopen_closed_session(tmp_path, monkeypa
 
 
 def test_render_and_post_rejects_bad_values_and_output_path_before_render(tmp_path, monkeypatch):
-    from kinocut import hyperframes_ops
+    from kinocut.hyperframes import pipeline
 
-    monkeypatch.setattr(hyperframes_ops, "render", lambda *a, **k: pytest.fail("render should not run"))
+    monkeypatch.setattr(pipeline, "render", lambda *a, **k: pytest.fail("render should not run"))
     with pytest.raises(MCPVideoError):
-        hyperframes_ops.render_and_post(str(tmp_path), [{"op": "resize", "params": {"aspect_ratio": "99:1"}}])
+        pipeline.render_and_post(str(tmp_path), [{"op": "resize", "params": {"aspect_ratio": "99:1"}}])
     with pytest.raises(MCPVideoError):
-        hyperframes_ops.render_and_post(str(tmp_path), [{"op": "convert", "params": {"format": "flv"}}])
+        pipeline.render_and_post(str(tmp_path), [{"op": "convert", "params": {"format": "flv"}}])
     with pytest.raises(MCPVideoError):
-        hyperframes_ops.render_and_post(
+        pipeline.render_and_post(
             str(tmp_path), [{"op": "watermark", "params": {"image_path": str(tmp_path / "missing.png")}}]
         )
     with pytest.raises(MCPVideoError):
-        hyperframes_ops.render_and_post(
+        pipeline.render_and_post(
             str(tmp_path),
             [{"op": "resize", "params": {"aspect_ratio": "9:16"}}],
             output_path=str(tmp_path),
         )
     with pytest.raises(MCPVideoError):
-        hyperframes_ops.render_and_post(
+        pipeline.render_and_post(
             str(tmp_path),
             [{"op": "resize", "params": {"aspect_ratio": "9:16"}}],
             output_path=str(tmp_path / ".." / "x.mp4"),

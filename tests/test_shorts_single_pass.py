@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from kinocut import atomic_publication, staged_writers
 from kinocut.aivideo import subtitle_advisory
 from kinocut.engine_resize import crop_framing_filter
+from kinocut.publication import _files as atomic_publication, _staging as staged_writers
 from kinocut.errors import MCPVideoError
 from kinocut.product import shorts_flow
 

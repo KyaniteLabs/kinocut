@@ -7,17 +7,14 @@ single authoritative copy of each helper.
 from __future__ import annotations
 
 import contextlib
-import functools
 import math
 import os
 import re
 import subprocess
-from collections.abc import Callable, Iterator
-from contextvars import ContextVar
+from collections.abc import Callable
 from typing import Any, BinaryIO
 
 from .errors import InputFileError, MCPVideoError, ProcessingError, parse_ffmpeg_error
-from .agent_homes import inside_agent_scratch_or_refuse, require_absolute_under_hermes
 from .limits import (
     DEFAULT_FFMPEG_TIMEOUT,
     FFMPEG_STDERR_DIAGNOSTIC_BYTES,
@@ -26,182 +23,20 @@ from .limits import (
     MAX_SUBPROCESS_STDOUT_BYTES,
     MAX_FFMPEG_PIPE_BYTES,
 )
+from . import publication
+from .publication import _staging, note_operation_write as _note_operation_write, record_operation_input
+from .publication._operation import _reject_self_overwrite as _reject_self_overwrite
+from .publication._policy import _validate_write_path as _validate_write_path
 from .validation_errors import exception_kind, rejected_value
 
-_BLOCKED_OUTPUT_PREFIXES = (
-    "/bin",
-    "/boot",
-    "/dev",
-    "/etc",
-    "/private/etc",
-    "/private/var/db",
-    "/private/var/log",
-    "/private/var/root",
-    "/proc",
-    "/root",
-    "/sbin",
-    "/sys",
-    "/System",
-    "/usr",
-    "/var/db",
-    "/var/log",
-    "/var/root",
-)
-_SENSITIVE_HOME_PARTS = {
-    ".aws",
-    ".azure",
-    ".config",
-    ".docker",
-    ".gnupg",
-    ".kube",
-    ".ssh",
-    ".hermes",
-    ".claude",
-    ".codex",
-    ".cursor",
-    ".gemini",
-    ".kimi",
-    ".opencode",
-    ".openclaw",
-    ".clawdbot",
-    ".grok",
-    ".zcode",
-    ".continue",
-}
-_SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
-    {
-        ".aac",
-        ".aif",
-        ".aiff",
-        ".avi",
-        ".flac",
-        ".gif",
-        ".jpg",
-        ".jpeg",
-        ".m4a",
-        ".m4v",
-        ".mkv",
-        ".mov",
-        ".mp3",
-        ".mp4",
-        ".ogg",
-        ".opus",
-        ".png",
-        ".wav",
-        ".webm",
-        ".webp",
-    }
-)
-
-
-# Operation-scoped record of resolved input and written paths (self-overwrite guard).
-#
-# Every engine validates inputs through ``_validate_input_path`` and outputs
-# through ``_validate_output_path``/``_validate_artifact_path``. Recording the
-# inputs here lets the write guard reject an output that resolves to a path
-# already read *in the same operation*, so ``output_path == input_path`` gets a
-# structured guardrail error instead of silently destroying the source file.
-#
-# A ``ContextVar`` (not a module global) scopes the records safely: each MCP
-# tool call runs as its own task or ``anyio.to_thread`` copy of the caller's
-# context, so concurrent tool calls never see each other's paths, and nothing
-# leaks between calls. Direct engine callers in one process share one scope —
-# deliberately conservative (a write-back onto a previously read path is
-# blocked there too).
-#
-# Written paths are tracked alongside inputs because engines probe their own
-# render result after writing (``_build_edit_result`` → ``probe`` →
-# ``_validate_input_path``). A path this operation has actually written is
-# therefore *not* recorded as an input: re-rendering over an
-# earlier output stays legal, while destroying a declared input stays blocked.
-_OPERATION_INPUTS: ContextVar[frozenset[str]] = ContextVar("kinocut_operation_inputs", default=frozenset())
-_OPERATION_WRITES: ContextVar[dict[str, tuple[int, int]] | None] = ContextVar("kinocut_operation_writes", default=None)
-_ON_PUBLISH: ContextVar[Callable[[str], None] | None] = ContextVar("kinocut_on_publish", default=None)
-
-
-def _owns_operation_output(path: str) -> bool:
-    """A filename alone does not prove that this job created the current file."""
-    expected = (_OPERATION_WRITES.get() or {}).get(os.path.realpath(path))
-    if expected is None:
-        return False
-    try:
-        current = os.stat(path, follow_symlinks=False)
-    except OSError:
-        return False
-    return expected == (current.st_dev, current.st_ino)
-
-
-def _record_operation_input(resolved: str) -> None:
-    """Record a validated input path for the current operation scope."""
-    if _owns_operation_output(resolved):
-        return
-    _OPERATION_INPUTS.set(_OPERATION_INPUTS.get() | {resolved})
-
-
-def _note_operation_write(resolved: str) -> None:
-    """Record an owned stage or successfully written artifact, never a precheck."""
-    current = os.stat(resolved, follow_symlinks=False)
-    writes = _OPERATION_WRITES.get()
-    if writes is None:
-        writes = {}
-        _OPERATION_WRITES.set(writes)
-    writes[os.path.realpath(resolved)] = (current.st_dev, current.st_ino)
-    if os.path.basename(resolved).startswith(".kinocut_tmp_"):
-        return
-    if notify := _ON_PUBLISH.get():
-        notify(resolved)
-    from .output_ledger import record_output
-
-    record_output(resolved)
-
-
-def _reset_operation_inputs(*, preserve_writes: bool = False) -> None:
-    """Start a fresh operation scope for the self-overwrite guard.
-
-    MCP tool calls never need this (context isolation scopes them already);
-    long-running direct callers may use it between distinct operations.
-    """
-    _OPERATION_INPUTS.set(frozenset())
-    if not preserve_writes:
-        _OPERATION_WRITES.set({})
-
-
-def _reject_self_overwrite(path: str) -> None:
-    """Reject a write whose target resolves to a path read as input this operation.
-
-    Resolved-path compare (``realpath``) plus a ``samefile`` fallback for
-    hardlinked spellings — the same shape as the provenance lanes' explicit
-    ``_reject_output_alias`` guards, centralised for every media/artifact
-    writer, and using their canonical message. Without it, a media-suffix
-    output may legitimately overwrite an existing file, and when that file is
-    also the operation's input, FFmpeg's ``-y`` silently destroys the source
-    mid-render.
-    """
-    recorded = _OPERATION_INPUTS.get()
-    if not recorded:
-        return
-    resolved_output = os.path.realpath(path)
-    for input_path in recorded:
-        if resolved_output == os.path.realpath(input_path):
-            raise MCPVideoError(
-                "output path aliases an input of this operation",
-                error_type="validation_error",
-                code="invalid_output_path",
-            )
-    if not os.path.exists(path):
-        return
-    for input_path in recorded:
-        try:
-            if os.path.samefile(path, input_path):
-                raise MCPVideoError(
-                    "output path aliases an input of this operation (same file)",
-                    error_type="validation_error",
-                    code="invalid_output_path",
-                )
-        except OSError:
-            # The realpath compare above already ran; an unreadable path here
-            # cannot be proven identical, so fail open for the hardlink probe.
-            continue
+_atomic_artifact = publication.atomic_artifact
+_atomic_output = publication.atomic_output
+_open_staged_writer = publication.open_staged_writer
+_owns_operation_output = publication.owns_operation_output
+_reset_operation_inputs = publication.reset_operation_inputs
+_validate_artifact_location = publication.validate_artifact_location
+_validate_artifact_path = publication.validate_artifact_path
+_validate_output_path = publication.validate_output_path
 
 
 def _validate_input_path(path: str, *, record_operation: bool = True) -> str:
@@ -225,7 +60,7 @@ def _validate_input_path(path: str, *, record_operation: bool = True) -> str:
             f"File size ({size_mb:.1f} MB) exceeds maximum of {MAX_FILE_SIZE_MB} MB",
         )
     if record_operation:
-        _record_operation_input(resolved)
+        record_operation_input(resolved)
     return resolved
 
 
@@ -239,148 +74,10 @@ def _validate_project_path(path: str) -> str:
     return resolved
 
 
-def _validate_artifact_location(path: str, label: str) -> str:
-    """Reject unsafe locations for outputs and structured artifact inputs."""
-    if "\x00" in path:
-        raise MCPVideoError(
-            f"{label} contains null bytes",
-            error_type="validation_error",
-            code="invalid_output_path",
-        )
-    require_absolute_under_hermes(path, label)
-    raw_parts = re.split(r"[\\/]+", path)
-    if ".." in raw_parts:
-        raise MCPVideoError(
-            f"{label} contains directory traversal",
-            error_type="validation_error",
-            code="invalid_output_path",
-        )
-    if os.path.islink(path):
-        raise MCPVideoError(
-            f"{label} resolves through a symlink",
-            error_type="validation_error",
-            code="unsafe_path",
-        )
-
-    resolved = os.path.realpath(path)
-    if any(resolved == prefix or resolved.startswith(prefix + os.sep) for prefix in _BLOCKED_OUTPUT_PREFIXES):
-        raise MCPVideoError(
-            f"{label} escapes safe directory",
-            error_type="validation_error",
-            code="unsafe_path",
-        )
-
-    if inside_agent_scratch_or_refuse(resolved, label):
-        return resolved
-
-    home = os.path.realpath(os.path.expanduser("~"))
-    if resolved == home or resolved.startswith(home + os.sep):
-        rel_parts = set(os.path.relpath(resolved, home).split(os.sep))
-        if rel_parts & _SENSITIVE_HOME_PARTS:
-            raise MCPVideoError(
-                f"{label} targets a sensitive home directory",
-                error_type="validation_error",
-                code="unsafe_path",
-            )
-
-    return resolved
-
-
-def _validate_write_path(
-    path: str,
-    *,
-    allowed_existing_suffixes: frozenset[str],
-    label: str,
-    allow_recorded: bool = False,
-) -> str:
-    """Require consent and job ownership before replacing non-media outputs."""
-    if "\x00" not in path:
-        _reject_self_overwrite(path)
-    resolved = _validate_artifact_location(path, label)
-    if os.path.isdir(resolved):
-        return path
-
-    if os.path.exists(resolved):
-        from .output_policy import _OVERWRITE
-        from .staged_writers import is_staged_output
-
-        from .output_ledger import owns as owns_output
-
-        operation_owned = _owns_operation_output(resolved)
-        recorded_owned = allow_recorded and owns_output(resolved)
-        if is_staged_output(path) and operation_owned:
-            return path
-        suffix = os.path.splitext(resolved)[1].lower()
-        permitted_media = suffix in allowed_existing_suffixes and suffix in _SAFE_EXISTING_OUTPUT_SUFFIXES
-        if not permitted_media and not (operation_owned or recorded_owned):
-            raise MCPVideoError(
-                f"Refusing to overwrite an existing file at {label.lower()}",
-                error_type="validation_error",
-                code="unsafe_path",
-            )
-        if _OVERWRITE.get() is not True:
-            raise MCPVideoError(
-                f"{label} already exists; pass overwrite=true to replace permitted outputs",
-                error_type="validation_error",
-                code="output_exists",
-            )
-    return path
-
-
 def _validate_artifact_input_path(path: str) -> str:
     """Read a saved artifact without granting permission to overwrite it."""
     _validate_artifact_location(path, "Artifact path")
     return _validate_input_path(path, record_operation=False)
-
-
-def _validate_output_path(path: str) -> str:
-    """Validate an output path before FFmpeg writes with ``-y``.
-
-    Kinocut intentionally lets users write normal media artifacts around their
-    projects and temp directories. It must not overwrite system files, symlink
-    targets, sensitive home dotfiles, or obviously non-media source/config files.
-
-    This is a prospective precheck. ``_atomic_output`` binds registered producer
-    writes to an owned staging descriptor and anchors each file's publication.
-    These protections do not provide a universal integrity guarantee against
-    concurrent hostile writers in the destination directory.
-    """
-    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
-
-
-def _validate_artifact_path(path: str, *, allow_recorded: bool = False) -> str:
-    """Validate provenance writes; existing artifacts need ownership and overwrite consent."""
-    return _validate_write_path(
-        path,
-        allowed_existing_suffixes=frozenset(),
-        label="Artifact path",
-        allow_recorded=allow_recorded,
-    )
-
-
-@contextlib.contextmanager
-def _atomic_output(path: str) -> Iterator[str]:
-    """Stage and publish through an anchored output directory."""
-    from .atomic_publication import anchored_output
-
-    with anchored_output(path, _validate_output_path) as staged:
-        yield staged
-
-
-@contextlib.contextmanager
-def _atomic_artifact(path: str, *, allow_recorded: bool = False) -> Iterator[str]:
-    """Publish a provenance artifact through anchored, validated staging."""
-    from .atomic_publication import anchored_output
-
-    with anchored_output(path, functools.partial(_validate_artifact_path, allow_recorded=allow_recorded)) as staged:
-        yield staged
-
-
-def _open_staged_writer(path: str):
-    """Return a binary writer bound to the transaction's original staging inode."""
-    from .staged_writers import open_staged_writer
-
-    return open_staged_writer(path)
 
 
 def _run_command(
@@ -418,16 +115,11 @@ def _run_command(
                 os.makedirs(out_dir, exist_ok=True)
             break
     cmd_str = " ".join(cmd)
-    from .staged_writers import is_staged_output, staged_ffmpeg_command
 
     output = cmd[-1] if cmd else ""
     is_ffmpeg = bool(cmd and os.path.basename(cmd[0]).lower() in {"ffmpeg", "ffmpeg.exe"})
-    if (
-        cmd
-        and is_staged_output(output)
-        and not is_ffmpeg
-        and os.path.basename(cmd[0]).lower() not in {"ffprobe", "ffprobe.exe"}
-    ):
+    staged = bool(cmd and _staging.is_staged_output(output))
+    if staged and not is_ffmpeg and os.path.basename(cmd[0]).lower() not in {"ffprobe", "ffprobe.exe"}:
         from .errors import FFmpegNotFoundError
 
         try:
@@ -437,7 +129,7 @@ def _run_command(
     try:
         with contextlib.ExitStack() as lease:
             if is_ffmpeg:
-                cmd, pass_fds = lease.enter_context(staged_ffmpeg_command(cmd, pass_fds))
+                cmd, pass_fds = lease.enter_context(_staging.staged_ffmpeg_command(cmd, pass_fds))
             result = run_bounded(
                 cmd,
                 timeout=timeout,
@@ -455,7 +147,7 @@ def _run_command(
                 raise ProcessingError(cmd_str, result.returncode, result.stderr)
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, "", reason=f"FFmpeg command timed out after {timeout}s") from None
-    if is_ffmpeg and output != "-" and not output.startswith("pipe:") and os.path.isfile(output):
+    if is_ffmpeg and not staged and output != "-" and not output.startswith("pipe:") and os.path.isfile(output):
         _note_operation_write(output)
     return result
 
@@ -471,10 +163,9 @@ def _run_ffmpeg(
         raise ValueError("_run_ffmpeg takes raw FFmpeg arguments; use _run_command for full command lists")
     effective_timeout = resolve_ffmpeg_timeout(timeout, default=DEFAULT_FFMPEG_TIMEOUT)
     cmd = [_ffmpeg(), "-y", *args]
-    from .staged_writers import staged_ffmpeg_command
 
     try:
-        with staged_ffmpeg_command(cmd, pass_fds) as (cmd, pass_fds):
+        with _staging.staged_ffmpeg_command(cmd, pass_fds) as (cmd, pass_fds):
             from .bounded_process import run_bounded
 
             proc = run_bounded(cmd, timeout=effective_timeout, pass_fds=pass_fds)
@@ -484,7 +175,7 @@ def _run_ffmpeg(
         raise ProcessingError(
             " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {effective_timeout}s"
         ) from e
-    if args and os.path.isfile(args[-1]):
+    if args and not _staging.is_staged_output(args[-1]) and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])
     return proc
 
@@ -549,9 +240,7 @@ def _run_ffmpeg_with_progress(
 
     from .ffmpeg_progress import run_progress
 
-    from .staged_writers import staged_ffmpeg_command
-
-    with staged_ffmpeg_command([_ffmpeg(), "-y", *args]) as (cmd, pass_fds):
+    with _staging.staged_ffmpeg_command([_ffmpeg(), "-y", *args]) as (cmd, pass_fds):
         result = run_progress(
             cmd,
             estimated_duration,
@@ -560,7 +249,7 @@ def _run_ffmpeg_with_progress(
             pass_fds=pass_fds,
             timeout=DEFAULT_FFMPEG_TIMEOUT,
         )
-    if args and os.path.isfile(args[-1]):
+    if args and not _staging.is_staged_output(args[-1]) and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])
     return result
 
