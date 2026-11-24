@@ -105,6 +105,7 @@ def collect_cas_garbage(
     project: store.Project,
     *,
     budget_bytes: int = DEFAULT_GC_BUDGET_BYTES,
+    max_blobs: int | None = None,
 ) -> CASGCReceiptRecord | None:
     """Delete oldest unreachable CAS blobs over an explicit byte budget.
 
@@ -119,6 +120,8 @@ def collect_cas_garbage(
 
     if budget_bytes < 0:
         raise contract_error("CAS GC budget must be non-negative", INVALID_RECORD)
+    if max_blobs is not None and max_blobs < 1:
+        raise contract_error("CAS GC batch size must be positive", INVALID_RECORD)
     with store._project_lock(project):
         latest_gc, heads = availability(project)
         already_deleted = _deleted_digests(project)  # prior append-only GC receipts
@@ -133,7 +136,7 @@ def collect_cas_garbage(
         to_delete: list[CASManifestRecord] = []
         if total > budget_bytes:
             for manifest in unreachable:  # oldest first (manifest append order)
-                if total <= target:
+                if total <= target or len(to_delete) == max_blobs:
                     break
                 to_delete.append(manifest)
                 total -= observed[manifest.digest]

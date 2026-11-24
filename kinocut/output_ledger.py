@@ -14,6 +14,7 @@ succeeds and cleanup simply refuses to delete that file later (fail closed).
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
 
@@ -22,6 +23,8 @@ _LEDGER_NAME = "outputs.jsonl"
 _COMPACT_BYTES = 1024 * 1024
 # Windows has no O_NOFOLLOW; there the realpath() resolution is the guard.
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+_Snapshot = frozenset[tuple[str, tuple[int, ...]]]
+_cached: tuple[bytes, _Snapshot] | None = None
 
 
 def _state_dir() -> str:
@@ -48,6 +51,7 @@ def _open_ledger(flags: int) -> int:
 
 def record_output(path: str) -> None:
     """Remember that Kinocut wrote ``path`` with its current identity."""
+    global _cached
     with contextlib.suppress(OSError, ValueError):
         resolved = os.path.realpath(path)
         current = os.stat(resolved, follow_symlinks=False)
@@ -58,22 +62,33 @@ def record_output(path: str) -> None:
             size = os.fstat(fd).st_size
         finally:
             os.close(fd)
+        _cached = None
         if size > _COMPACT_BYTES:
             _compact()
 
 
-def _entries() -> list[tuple[str, list[int]]]:
+def _entries() -> _Snapshot:
+    global _cached
     try:
         fd = _open_ledger(os.O_RDONLY)
     except OSError:
-        return []
-    with os.fdopen(fd, "r", encoding="utf-8", errors="replace") as stream:
-        rows = []
-        for raw in stream:
-            with contextlib.suppress(ValueError, TypeError, KeyError):
-                row = json.loads(raw)
-                rows.append((str(row["path"]), [int(v) for v in row["id"]]))
-        return rows
+        return frozenset()
+    with os.fdopen(fd, "rb") as stream:
+        raw = stream.read()
+    digest = hashlib.blake2b(raw, digest_size=16).digest()
+    cached = _cached
+    if cached is not None and cached[0] == digest:
+        return cached[1]
+    rows = set()
+    for line in raw.decode("utf-8", errors="replace").split("\n"):
+        if not line:
+            continue
+        with contextlib.suppress(ValueError, TypeError, KeyError):
+            row = json.loads(line)
+            rows.add((str(row["path"]), tuple(int(v) for v in row["id"])))
+    snapshot = frozenset(rows)
+    _cached = digest, snapshot
+    return snapshot
 
 
 def owns(path: str) -> bool:
@@ -83,14 +98,14 @@ def owns(path: str) -> bool:
         current = _identity(os.stat(resolved, follow_symlinks=False))
     except OSError:
         return False
-    return any(p == resolved and ident == current for p, ident in _entries())
+    return (resolved, tuple(current)) in _entries()
 
 
 def _compact() -> None:
-    keep: dict[str, list[int]] = {}
+    keep: dict[str, tuple[int, ...]] = {}
     for p, ident in _entries():
         with contextlib.suppress(OSError):
-            if _identity(os.stat(p, follow_symlinks=False)) == ident:
+            if tuple(_identity(os.stat(p, follow_symlinks=False))) == ident:
                 keep[p] = ident
     staged = _ledger_path() + f".{os.getpid()}.tmp"
     with contextlib.suppress(OSError):

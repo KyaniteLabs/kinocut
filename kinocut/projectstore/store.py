@@ -19,6 +19,7 @@ filesystem/JSON errors to a stable, privacy-safe :class:`MCPVideoError`.
 from __future__ import annotations
 
 import contextlib
+import errno
 import json
 import os
 import re
@@ -129,6 +130,16 @@ class Project:
 
     root: Path
     project_id: str
+
+    def collect_cas_garbage(
+        self, *, budget_bytes: int | None = None, max_blobs: int = 128
+    ) -> CASGCReceiptRecord | None:
+        """Explicit maintenance after committing references; evict at most max_blobs per call."""
+        from .cas_gc import DEFAULT_GC_BUDGET_BYTES, collect_cas_garbage
+
+        return collect_cas_garbage(
+            self, budget_bytes=DEFAULT_GC_BUDGET_BYTES if budget_bytes is None else budget_bytes, max_blobs=max_blobs
+        )
 
 
 def open_project(project_dir: str | Path) -> Project:
@@ -521,15 +532,22 @@ def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
 
 
 def _atomic_append(path: Path, line: str) -> None:
-    """Append one JSONL ``line`` by streaming the prior file into a new temp copy."""
+    """Preserve atomic snapshots; allow the filesystem to clone prior extents."""
 
     def _fill(writer: Any) -> None:
         if path.exists():
-            with path.open("r", encoding="utf-8") as reader:
+            with path.open("rb", buffering=0) as reader:
+                if hasattr(os, "copy_file_range"):
+                    try:
+                        while os.copy_file_range(reader.fileno(), writer.fileno(), 1 << 30):
+                            pass
+                    except OSError as exc:
+                        if exc.errno not in {errno.EXDEV, errno.EINVAL, errno.ENOSYS, errno.EOPNOTSUPP}:
+                            raise
                 shutil.copyfileobj(reader, writer, _COPY_CHUNK)
-        writer.write(line + "\n")
+        writer.write((line + "\n").encode("utf-8"))
 
-    _write_atomically(path, _fill)
+    _write_atomically(path, _fill, binary=True)
 
 
 def _atomic_write(path: Path, content: str) -> None:

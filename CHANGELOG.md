@@ -16,7 +16,6 @@ This project follows a simple release-note style:
 - Turn plain spoken direction into a deterministic, reviewable edit plan with `video_direct`, then explicitly execute it with `video_direct_apply(confirm=true)` or `kino direct "WORDS" -i INPUT --apply` (#458). Plans disclose defaults, unknown phrases and at most one question; voice memos reuse optional local transcription. Apply validates the entire tool/path/argument chain before rendering and returns per-step receipts on success or failure.
 - Support trims, silence removal, pacing, delivery formats, center reframing, -14 LUFS loudness, synchronized captions, muting and final-video thumbnails. Both tools live in the `intent` profile and the `video_plan_ops` family. Development now has 208 MCP tools / 178 CLI commands; published 2.0.1 counts are unchanged.
 
-### Added
 - **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no longer scores as underexposed: `video-quality-check` and `release-checkpoint` take `--profile dark-grade`. A black or flat frame still fails. (#760)
 
 ### Changed
@@ -44,7 +43,7 @@ This project follows a simple release-note style:
 ## 2.0.0 - 2026-11-10
 
 Your agent now sees 18 tools instead of 20, and through them it reaches every one of
-Kinocut's 205 operations. In 1.16.5 the default list reached only the 20 it named. The
+Kinocut's 206 listed tools. In 1.16.5 the default list reached only the 20 it named. The
 whole tool listing is also smaller: about 21.7 KB by default (26.5 KB in 1.16.5) and about
 178 KB with `KINOCUT_TOOLS=all` (225 KB). That is less context spent before the first
 edit. Cuts also leave the terminal: a review card in Hermes chat with an Approve & export
@@ -59,7 +58,7 @@ of the twelve tools that left it, read **Breaking changes**.
 
 ### Breaking changes
 
-- **The default MCP surface is 18 tools.** An 8-tool hot path (`video_info`, `video_trim`, `video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`, `video_doctor`), eight operation families (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) that reach all 205 operations, and `list_operations` / `describe_operation` to find one and fetch its schema. Twelve tools left the default list: `search_tools`, `hyperframes_doctor`, `video_add_texts`, `video_convert`, `video_resize`, `video_speed`, `video_validate_text_layout`, `video_quality_check`, `video_review_package`, `video_workflow_inspect`, `video_rescue_inspect` and `video_project_create`. Each still works. `list_operations` replaces `search_tools`, which is still listed under `KINOCUT_TOOLS=all`; for the other eleven, call the family with `{"operation": "<name>", "params": {...}}`, or list it by name with `KINOCUT_TOOLS=all` or a profile that carries it. Family dispatch runs the same code and returns the same result as the named tool. (#663, #717)
+- **The default MCP surface is 18 tools.** An 8-tool hot path (`video_info`, `video_trim`, `video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`, `video_doctor`), eight operation families (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) that dispatch catalog operations, and `list_operations` / `describe_operation` to find one and fetch its schema. Twelve tools left the default list: `search_tools`, `hyperframes_doctor`, `video_add_texts`, `video_convert`, `video_resize`, `video_speed`, `video_validate_text_layout`, `video_quality_check`, `video_review_package`, `video_workflow_inspect`, `video_rescue_inspect` and `video_project_create`. Each still works. `list_operations` replaces `search_tools`, which is still listed under `KINOCUT_TOOLS=all`; for the other eleven, call the family with `{"operation": "<name>", "params": {...}}`, or list it by name with `KINOCUT_TOOLS=all` or a profile that carries it. Family dispatch runs the same code and returns the same result as the named tool. (#663, #717)
 - **Read-only tools no longer take `overwrite`.** `video_info`, `video_info_detailed`, `video_doctor`, `search_tools`, `list_operations` and `describe_operation` never write, so they stopped asking for permission to. A client that still passes `overwrite` gets a validation error; drop the argument. (#737, #747)
 - **Tool schemas lost their auto-generated titles.** The property titles pydantic derives from parameter names, the `<name>Arguments` / `<name>DictOutput` schema titles and annotation titles that repeated the tool title are gone. Property names, types, defaults and validation are unchanged. A client that keyed on those titles should key on property names. (#718)
 
