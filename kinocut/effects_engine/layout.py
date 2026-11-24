@@ -16,12 +16,10 @@ from ..ffmpeg_helpers import (
     _escape_ffmpeg_filter_value,
 )
 from ..engine_probe import probe as _probe
+from ..validation import VALID_GRID_LAYOUTS, VALID_PIP_POSITIONS
 from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
-
-VALID_GRID_LAYOUTS = {"2x2", "3x1", "1x3", "2x3"}
-VALID_PIP_POSITIONS = {"top-left", "top-right", "bottom-left", "bottom-right"}
 
 
 def _validate_choice(name: str, value: str, valid_values: set[str]) -> None:

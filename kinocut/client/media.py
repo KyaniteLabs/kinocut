@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any
 
 from ..engine import (
     add_audio as _add_audio,
@@ -53,7 +53,9 @@ from ..defaults import (
 )
 from ..engine_audio_bed import audio_bed as _audio_bed
 from ..errors import MCPVideoError
+from ..validation import VALID_FORMATS
 from ..models import (
+    VALID_QUALITIES,
     EditResult,
     ImageSequenceResult,
     MetadataResult,
@@ -241,11 +243,6 @@ class ClientMediaMixin(ClientMasksMixin):
             output_path=output,
         )
 
-    _VALID_FORMATS: ClassVar[set[str]] = {"mp4", "webm", "gif", "mov", "hevc", "av1", "prores"}
-    _VALID_QUALITIES: ClassVar[set[str]] = {"low", "medium", "high", "ultra"}
-    _VALID_HLS_QUALITIES: ClassVar[set[str]] = {"low", "medium", "high", "ultra"}
-    _VALID_QUALITY_METRICS: ClassVar[set[str]] = {"psnr", "ssim"}
-
     def convert(
         self,
         video: str,
@@ -268,8 +265,8 @@ class ClientMediaMixin(ClientMasksMixin):
         Raises:
             ValueError: If format or quality is invalid
         """
-        self._validate_choice("format", format, self._VALID_FORMATS)
-        self._validate_choice("quality", quality, self._VALID_QUALITIES)
+        self._validate_choice("format", format, VALID_FORMATS)
+        self._validate_choice("quality", quality, VALID_QUALITIES)
         return _convert(
             video, format=format, quality=quality, output_path=output, two_pass=two_pass, target_bitrate=target_bitrate
         )
@@ -441,8 +438,8 @@ class ClientMediaMixin(ClientMasksMixin):
         Raises:
             ValueError: If quality is invalid
         """
-        self._validate_choice("quality", quality, self._VALID_QUALITIES)
-        self._validate_choice("format", format, self._VALID_FORMATS)
+        self._validate_choice("quality", quality, VALID_QUALITIES)
+        self._validate_choice("format", format, VALID_FORMATS)
         return _export_video(
             video,
             output_path=output,
@@ -641,10 +638,9 @@ class ClientMediaMixin(ClientMasksMixin):
                 error_type="validation_error",
                 code="unexpected_parameter",
             )
-        output = self._resolve_alias("output_path", output_path, "output", output)
         if not images and not list_file:
             raise MCPVideoError("images cannot be empty", error_type="validation_error", code="empty_images")
-        return _create_from_images(images, output_path=output, fps=fps, list_file=list_file)
+        return _create_from_images(images, output_path=output_path, fps=fps, list_file=list_file)
 
     def export_frames(
         self,
@@ -763,7 +759,7 @@ class ClientMediaMixin(ClientMasksMixin):
                 code="invalid_parameter",
             )
         for quality in qualities or []:
-            self._validate_choice("qualities", quality, self._VALID_HLS_QUALITIES)
+            self._validate_choice("qualities", quality, VALID_QUALITIES)
         return _hls_segment(
             video,
             output_dir=output_dir,

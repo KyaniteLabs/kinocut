@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from ..defaults import DEFAULT_QUALITY_GATE_SCORE
+from ..models import EditResult
 
 
 class ClientQualityMixin:
@@ -58,33 +58,18 @@ class ClientQualityMixin:
         profile_reason: str | None = None,
     ) -> dict:
         """Run a hard quality gate, then create human-review artifacts."""
-        quality = self.assert_quality(
-            input_path,
-            min_score=min_score,
-            require_audio=require_audio,
-            profile=profile,
-            profile_reason=profile_reason,
+        from ..engine_release_checkpoint import release_checkpoint
+
+        return release_checkpoint(
+            input_path, output_dir, min_score, frame_count, require_audio, profile, profile_reason
         )
-        review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
-        os.makedirs(review_dir, exist_ok=True)
-        thumb = self.thumbnail(input_path, output=os.path.join(review_dir, "thumbnail.jpg"))
-        board = self.storyboard(input_path, output_dir=os.path.join(review_dir, "storyboard"), frame_count=frame_count)
-        return {
-            "video": input_path,
-            "quality": quality,
-            "quality_profile": profile,
-            "thumbnail": thumb.output_path,
-            "storyboard": board.model_dump() if hasattr(board, "model_dump") else board,
-            "review_required": True,
-            "instructions": "Open the thumbnail/storyboard and inspect the final video before publishing.",
-        }
 
     def design_quality_check(
         self,
         video: str,
         auto_fix: bool = False,
         strict: bool = False,
-    ) -> Any:  # DesignQualityReport
+    ) -> dict[str, Any]:
         """Run comprehensive design quality analysis.
 
         Checks layout, typography, color, motion, and composition.
@@ -98,7 +83,7 @@ class ClientQualityMixin:
             strict: If True, treat warnings as errors
 
         Returns:
-            DesignQualityReport with fields:
+            Serialized design quality report with fields:
                 - overall_score (float): 0-100
                 - technical_score (float): brightness, contrast, audio
                 - design_score (float): layout, typography, color, motion
@@ -116,7 +101,7 @@ class ClientQualityMixin:
         self,
         video: str,
         output: str | None = None,
-    ) -> str:
+    ) -> EditResult:
         """Auto-fix brightness and saturation in a video; audio is not changed.
 
         Args:
@@ -124,11 +109,8 @@ class ClientQualityMixin:
             output: Output path (auto-generated if None)
 
         Returns:
-            Path to fixed video
+            EditResult pointing to the fixed video
         """
         from ..design_quality import fix_design_issues
 
         return fix_design_issues(video, output=output)
-
-
-# Fix the circular import for resize

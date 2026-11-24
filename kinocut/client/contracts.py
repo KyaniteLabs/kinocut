@@ -359,7 +359,7 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "release_checkpoint": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},
     "design_quality_check": {
         "category": "report",
-        "return_type": "DesignQualityReport",
+        "return_type": "dict",
         "aliases": {"video": "input_path"},
     },
     "fix_design_issues": {

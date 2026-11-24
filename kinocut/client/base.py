@@ -50,11 +50,13 @@ class ClientBase:
             if callable(method) and not getattr(method, "_mcp_video_guarded", False):
                 setattr(cls, name, _guard_client_method(name, method))
 
-    def _normalize_kwargs_for_method(self, method_name: str, method: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
+    def _normalize_kwargs_for_method(
+        self, method_name: str, signature: inspect.Signature, kwargs: dict[str, Any]
+    ) -> dict[str, Any]:
         """Map primary/legacy aliases to the concrete method signature."""
         if not kwargs:
             return kwargs
-        params = inspect.signature(method).parameters
+        params = signature.parameters
         normalized = dict(kwargs)
         aliases = CLIENT_METHOD_CONTRACTS.get(method_name, {}).get("aliases", {})
         for legacy, primary in aliases.items():
@@ -186,8 +188,7 @@ class ClientBase:
                 Only the final output and the original input are kept.
         """
         self._validate_pipeline_steps(steps)
-        final_output = self._resolve_alias("output_path", output_path, "output", output)
-        result, warnings, saw_quality_gate, intermediates = self._run_pipeline_steps(steps, final_output)
+        result, warnings, saw_quality_gate, intermediates = self._run_pipeline_steps(steps, output_path)
         if cleanup and intermediates:
             warnings.extend(self._cleanup_pipeline_intermediates(intermediates))
             result.intermediates = intermediates
@@ -328,10 +329,27 @@ def _guard_client_method(method_name: str, method: Any) -> Any:
     """Wrap public client methods once at class creation time."""
     from ..output_policy import with_output_policy
 
+    signature = inspect.signature(method)
+    # Explicit path aliases can also be supplied positionally; bind before coalescing them.
+    path_aliases = {
+        legacy: primary
+        for legacy, primary in CLIENT_METHOD_CONTRACTS[method_name].get("aliases", {}).items()
+        if primary in {"input_path", "output_path"} and {legacy, primary} <= signature.parameters.keys()
+    }
+
     @wraps(method)
     def guarded_call(self: ClientBase, *args: Any, **kwargs: Any) -> Any:
         try:
-            result = method(self, *args, **self._normalize_kwargs_for_method(method_name, method, kwargs))
+            kwargs = self._normalize_kwargs_for_method(method_name, signature, kwargs)
+            if path_aliases:
+                bound = signature.bind(self, *args, **kwargs)
+                for legacy, primary in path_aliases.items():
+                    bound.arguments[primary] = self._resolve_alias(
+                        primary, bound.arguments.get(primary), legacy, bound.arguments.pop(legacy, None)
+                    )
+                result = method(*bound.args, **bound.kwargs)
+            else:
+                result = method(self, *args, **kwargs)
         except TypeError as exc:
             self._raise_helpful_type_error(method_name, exc)
         if CLIENT_METHOD_CONTRACTS[method_name]["return_type"] == MEDIA_RETURN:

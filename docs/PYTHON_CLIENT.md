@@ -251,9 +251,9 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | `ai_transcribe(video, output_srt?, model?, language?)` | `dict` | Speech-to-text with Whisper |
 | `ai_scene_detect(video, threshold?, use_ai?)` | `list[dict]` | Scene change detection |
 | `ai_stem_separation(video, output_dir, stems?, model?)` | `dict[str, str]` | Isolate vocals, drums, bass, other with Demucs |
-| `ai_upscale(video, output, scale?, model?)` | `str` | AI super-resolution upscaling |
-| `ai_color_grade(video, output, reference?, style?, lut_path?)` | `str` | Color grade with a style, reference or explicit `.cube` LUT |
-| `ai_remove_silence(video, output, silence_threshold?, min_silence_duration?, keep_margin?)` | `str` | Auto-remove silent sections |
+| `ai_upscale(video, output, scale?, model?)` | `EditResult` | AI super-resolution upscaling |
+| `ai_color_grade(video, output, reference?, style?, lut_path?)` | `EditResult` | Color grade with a style, reference or explicit `.cube` LUT |
+| `ai_remove_silence(video, output, silence_threshold?, min_silence_duration?, keep_margin?)` | `EditResult` | Auto-remove silent sections |
 
 ---
 
@@ -262,8 +262,8 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `quality_check(video, fail_on_warning?)` | `dict` | Check brightness, contrast, saturation, audio levels, color balance |
-| `design_quality_check(video, auto_fix?, strict?)` | `Any` | Full design quality analysis: layout, typography, color, motion, composition |
-| `fix_design_issues(video, output?)` | `str` | Auto-fix brightness and saturation issues (audio is not changed; use `normalize_audio`) |
+| `design_quality_check(video, auto_fix?, strict?)` | `dict` | Full design quality analysis: layout, typography, color, motion, composition |
+| `fix_design_issues(video, output?)` | `EditResult` | Auto-fix brightness and saturation issues (audio is not changed; use `normalize_audio`) |
 | `detect_scenes(video, threshold?, output?)` | `SceneDetectionResult` | Auto-detect scene changes |
 | `thumbnail(video, timestamp?, output?)` | `ThumbnailResult` | Extract single frame |
 | `extract_frame(video, timestamp?, output?)` | `ThumbnailResult` | Alias for `thumbnail` |

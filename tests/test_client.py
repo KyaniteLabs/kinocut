@@ -525,9 +525,12 @@ class TestClientAgentApiConsistency:
         assert public_methods == set(CLIENT_METHOD_CONTRACTS)
 
     def test_media_contracts_advertise_edit_result(self):
+        from typing import get_type_hints
+
         for name, contract in CLIENT_METHOD_CONTRACTS.items():
             if contract["category"] == "media":
                 assert contract["return_type"] == "EditResult", name
+                assert issubclass(get_type_hints(inspect.unwrap(getattr(Client, name)))["return"], EditResult), name
 
     def test_unexpected_keyword_errors_are_agent_helpful(self, editor):
         with pytest.raises(MCPVideoError, match="Valid parameters"):
@@ -774,32 +777,46 @@ class TestClientAgentApiConsistency:
         assert any("permission denied" in warning for warning in result.warnings)
 
     def test_release_checkpoint_runs_quality_then_preview_artifacts(self, editor, monkeypatch, tmp_path):
+        from kinocut.server_tools_ai import video_release_checkpoint
+
         video = tmp_path / "video.mp4"
         video.write_bytes(b"placeholder")
-        monkeypatch.setattr(
-            editor,
-            "assert_quality",
-            lambda input_path, min_score=80.0, require_audio=True, profile="default", profile_reason=None: {
-                "overall_score": 99.0
-            },
-        )
-        monkeypatch.setattr(
-            editor,
-            "thumbnail",
-            lambda input_path, output=None, **kwargs: editor._to_edit_result(
-                output or "/tmp/thumb.jpg", operation="thumbnail"
-            ),
-        )
-        monkeypatch.setattr(
-            editor,
-            "storyboard",
-            lambda input_path, output_path=None, **kwargs: editor._to_edit_result(
-                output_path or "/tmp/storyboard.jpg", operation="storyboard"
-            ),
-        )
+        calls = []
+
+        def quality(path, **kwargs):
+            calls.append("quality")
+            return {"overall_score": 99.0, **kwargs}
+
+        def thumbnail(path, output_path):
+            calls.append("thumbnail")
+            return ThumbnailResult(frame_path=output_path, timestamp=0)
+
+        def storyboard(path, output_dir, frame_count):
+            calls.append("storyboard")
+            return StoryboardResult(frames=[output_dir], count=frame_count)
+
+        monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", quality)
+        monkeypatch.setattr("kinocut.engine_thumbnail.thumbnail", thumbnail)
+        monkeypatch.setattr("kinocut.engine_storyboard.storyboard", storyboard)
 
         result = editor.release_checkpoint(str(video), output_dir=str(tmp_path / "review"))
+        assert video_release_checkpoint(str(video), output_dir=str(tmp_path / "review")) == {**result, "success": True}
+        assert calls == ["quality", "thumbnail", "storyboard"] * 2
 
         assert result["quality"]["overall_score"] == 99.0
         assert result["thumbnail"].endswith("thumbnail.jpg")
         assert result["review_required"] is True
+
+    def test_media_result_converted_once(self, editor, monkeypatch):
+        from unittest.mock import Mock
+
+        normalize = Mock(wraps=editor._to_edit_result)
+        monkeypatch.setattr(editor, "_to_edit_result", normalize)
+        monkeypatch.setattr("kinocut.effects_engine.effect_glow", lambda **kwargs: kwargs["output"])
+        assert editor.effect_glow("in.mp4", output_path="out.mp4").output_path == "out.mp4"
+        assert normalize.call_count == 1
+
+    def test_positional_and_keyword_path_aliases_conflict(self, editor):
+        with pytest.raises(MCPVideoError) as exc:
+            editor.effect_glow("first.mp4", input_path="second.mp4", output_path="out.mp4")
+        assert exc.value.code == "ambiguous_parameter"
