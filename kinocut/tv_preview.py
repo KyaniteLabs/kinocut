@@ -138,7 +138,7 @@ def _write_proxy(source: Path, target: Path, video: _Video, limit: int) -> Path:
                     "-map",
                     "0:V:0",
                     "-map",
-                    "0:a:0?",
+                    "0:a?",
                     "-vf",
                     f"scale={width}:{height},setsar=1",
                     "-c:v",

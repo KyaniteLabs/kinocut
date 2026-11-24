@@ -66,6 +66,7 @@ def test_downscale_and_build_gadget_messages(tmp_path):
     assert prepared["proxy_path"] != str(source)
     assert _height(source) == 1200
     assert _height(prepared["proxy_path"]) == 1080
+    assert [stream["codec_type"] for stream in _streams(prepared["proxy_path"])] == ["video"]
     assert _height(prepared["qc_sheet_path"]) == 360
     video_url = "https://reviews.example.test/tall-preview.mp4"
     sheet_url = "https://reviews.example.test/tall-qc.jpg"
@@ -82,6 +83,65 @@ def test_downscale_and_build_gadget_messages(tmp_path):
         "title": f"Export this cut? — {identity}",
         "options": ["Approve & export", "Try another range"],
     }
+
+
+def _streams(path):
+    probe = subprocess.check_output(
+        ["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(path)],
+        timeout=30,
+    )
+    return json.loads(probe)["streams"]
+
+
+def test_downscale_preserves_all_audio_tracks_and_tags(tmp_path):
+    video = _clip(tmp_path / "video-only.mp4", "320x180")
+    source = tmp_path / "multi_audio.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            str(video),
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=880:duration=1",
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-map",
+            "2:a:0",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-metadata:s:a:0",
+            "handler_name=Original",
+            "-metadata:s:a:0",
+            "language=eng",
+            "-metadata:s:a:1",
+            "handler_name=Alternate",
+            "-metadata:s:a:1",
+            "language=spa",
+            str(source),
+        ],
+        check=True,
+        timeout=30,
+    )
+    prepared = prepare_tv_review_payload(source, max_height=90)
+    assert _height(prepared["proxy_path"]) == 90
+    streams = _streams(prepared["proxy_path"])
+    assert [stream["codec_type"] for stream in streams] == ["video", "audio", "audio"]
+    assert [(stream["tags"]["handler_name"], stream["tags"]["language"]) for stream in streams[1:]] == [
+        ("Original", "eng"),
+        ("Alternate", "spa"),
+    ]
 
 
 def test_reuse_small_clip_and_supplied_sheet(tmp_path):
@@ -119,11 +179,7 @@ def test_reject_filesystem_urls_and_output_alias(tmp_path):
 def test_proxy_fits_display_bounds_at_original_dar(tmp_path, size, sar, expected):
     source = _clip(tmp_path / "cut.mp4", size, sar)
     review = prepare_tv_review_payload(source)
-    probe = subprocess.check_output(
-        ["ffprobe", "-v", "error", "-show_streams", "-of", "json", review["proxy_path"]],
-        timeout=30,
-    )
-    stream = json.loads(probe)["streams"][0]
+    stream = _streams(review["proxy_path"])[0]
     width, height = stream["width"], stream["height"]
     assert (width, height) == expected
     assert stream["sample_aspect_ratio"] == "1:1"

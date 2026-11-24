@@ -128,7 +128,7 @@ jobs:
       - name: Type check core modules
         run: |
           .venv/bin/pip install -e . pyright==1.1.408
-          .venv/bin/pyright
+          .venv/bin/pyright --pythonpath .venv/bin/python
 
   package-surface:
     name: Package surface
