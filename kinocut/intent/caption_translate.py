@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 from collections.abc import Callable, Mapping
@@ -30,6 +30,15 @@ _EN_ES: Mapping[str, str] = {
     "tomorrow": "mañana",
 }
 
+_WORD = re.compile(r"[A-Za-z][A-Za-z0-9'-]*")
+
+# Longest keys first so phrases win over their component words.
+# Lookaround instead of \b: \b would also match inside "don't" style tokens.
+_EN_ES_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = tuple(
+    (re.compile(r"(?<!\w)" + re.escape(en) + r"(?!\w)", re.IGNORECASE), es)
+    for en, es in sorted(_EN_ES.items(), key=lambda kv: -len(kv[0]))
+)
+
 
 @dataclass(frozen=True)
 class TranslateResult:
@@ -40,6 +49,13 @@ class TranslateResult:
     cue_count: int
     backend: str
     coverage: dict[str, Any]
+    # Offline-map bookkeeping: how much of the source the word list actually
+    # covered. ``translated_words`` stays None for external translators, whose
+    # coverage this module cannot observe.
+    translated_words: int | None = None
+    total_words: int = 0
+    untranslated_cues: int = 0
+    warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -77,12 +93,23 @@ def translate_caption_file(
         )
     fn = translator or _default_translate
     out_cues: list[tuple[str, str, str]] = []
+    translated_words: int | None = None
+    total_words = 0
+    untranslated_cues = 0
     for start, end, body in cues:
         if src_l == tgt_l:
             translated = body
             used = "identity"
         else:
-            translated = fn(body, src_l, tgt_l)
+            words_in_cue = len(_WORD.findall(body))
+            if translator is None:
+                translated, matched = _offline_map_translate(body, src_l, tgt_l)
+                translated_words = (translated_words or 0) + matched
+                total_words += words_in_cue
+                if words_in_cue and matched == 0:
+                    untranslated_cues += 1
+            else:
+                translated = fn(body, src_l, tgt_l)
             used = backend
         out_cues.append((start, end, translated))
     if output_path:
@@ -92,6 +119,14 @@ def translate_caption_file(
     out = Path(out_str)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(_render_srt(out_cues), encoding="utf-8")
+    warnings: list[str] = []
+    if translated_words is not None and total_words and translated_words < total_words:
+        percent = round(100 * translated_words / total_words)
+        warnings.append(
+            f"{backend} replaced {translated_words} of {total_words} words ({percent}%); "
+            f"{untranslated_cues} of {len(out_cues)} cues have no translation at all. "
+            "Treat this as a partial translation and review it before publishing."
+        )
     return TranslateResult(
         source_path=str(src),
         output_path=str(out.resolve()),
@@ -100,24 +135,39 @@ def translate_caption_file(
         cue_count=len(out_cues),
         backend=used if src_l != tgt_l else "identity",
         coverage=coverage,
+        translated_words=translated_words,
+        total_words=total_words,
+        untranslated_cues=untranslated_cues,
+        warnings=warnings,
     )
+
+
+def _offline_map_translate(text: str, source_lang: str, target_lang: str) -> tuple[str, int]:
+    """Replace whole words only; return the text and the number of source words replaced."""
+    if source_lang != "en" or target_lang != "es":
+        raise MCPVideoError(
+            "offline_map only supports en→es",
+            error_type="validation_error",
+            code="offline_map_pair",
+        )
+    replaced_words = 0
+    for pattern, es in _EN_ES_PATTERNS:
+
+        def _swap(match: re.Match[str], replacement: str = es) -> str:
+            nonlocal replaced_words
+            replaced_words += len(_WORD.findall(match.group(0)))
+            if match.group(0)[0].isupper():
+                return replacement[0].upper() + replacement[1:]
+            return replacement
+
+        text = pattern.sub(_swap, text)
+    return text, replaced_words
 
 
 def _default_translate(text: str, source_lang: str, target_lang: str) -> str:
     if source_lang == target_lang:
         return text
-    if source_lang != "en" or target_lang != "es":
-        raise MCPVideoError(
-            f"offline_map only supports en→es, got {source_lang}→{target_lang}",
-            error_type="validation_error",
-            code="offline_map_pair",
-        )
-    # Phrase then word replacements (deterministic, incomplete by design).
-    lower = text
-    for en, es in sorted(_EN_ES.items(), key=lambda kv: -len(kv[0])):
-        pattern = re.compile(re.escape(en), re.IGNORECASE)
-        lower = pattern.sub(es, lower)
-    return lower
+    return _offline_map_translate(text, source_lang, target_lang)[0]
 
 
 def _render_srt(cues: list[tuple[str, str, str]]) -> str:

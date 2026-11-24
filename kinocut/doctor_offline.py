@@ -9,6 +9,8 @@ installed package's metadata on disk.
 
 from __future__ import annotations
 
+import functools
+import hashlib
 import os
 import json
 from collections.abc import Callable
@@ -245,3 +247,39 @@ def check_hyperframes_cli(
         else (f"Install a pinned Hyperframes package, add hyperframes to PATH, or set {HYPERFRAMES_COMMAND_ENV}."),
         **extra,
     }
+
+
+@functools.lru_cache(maxsize=16)
+def _sha256_file_stat_cached(path_str: str, dev: int, ino: int, size: int, mtime_ns: int) -> str:
+    del dev, ino, size, mtime_ns
+    digest = hashlib.sha256()
+    with Path(path_str).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def cached_sha256_file(path: Path) -> str:
+    """SHA-256 of ``path``, cached by filesystem identity so doctor avoids re-hashing ~1 GB weights."""
+    st = path.stat()
+    return _sha256_file_stat_cached(str(path), st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
+
+
+def check_sphere_director() -> dict[str, Any]:
+    """Run the optional sphere_director doctor check without crashing doctor on import errors."""
+    try:
+        from .te.sphere_director import doctor_check
+
+        return doctor_check()
+    except Exception as exc:
+        return {
+            "name": "sphere_director",
+            "category": "optional",
+            "required": False,
+            "ok": False,
+            "path": None,
+            "version": None,
+            "install_hint": None,
+            "details": {"available": False, "kind": "unresolved"},
+            "reason": type(exc).__name__,
+        }

@@ -25,17 +25,19 @@ class _ProbeCacheEntry(NamedTuple):
     has_video: bool
 
 
-_probe_cache: dict[tuple[str, int, int, int, int, int], _ProbeCacheEntry] = {}
+_probe_cache: dict[tuple[Any, ...], _ProbeCacheEntry] = {}
 _MAX_PROBE_CACHE = 256
 _probe_cache_lock = threading.Lock()
 
 
-def _cache_key(path: str) -> tuple[str, int, int, int, int, int]:
+def _cache_key(path: str) -> tuple[Any, ...]:
     try:
         stat = os.stat(path)
     except OSError as exc:
         raise InputFileError(path, "Cannot inspect media identity") from exc
-    return (path, stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    if stat.st_ino:
+        return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    return (path, stat.st_dev, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
 
 
 def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | None:
@@ -47,7 +49,7 @@ def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | N
         raise InputFileError(path, "Media changed while reading cached metadata")
     if require_video and not cached.has_video:
         raise InputFileError(path, "No video stream found")
-    return cached.info.model_copy(deep=True)
+    return cached.info.model_copy(deep=True, update={"path": path})
 
 
 def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool) -> None:
@@ -149,6 +151,10 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
     )
 
 
+def _is_probe_timeout(exc: ProcessingError) -> bool:
+    return "timed out" in str(exc).lower() or exc.code == "timeout"
+
+
 def probe(path: str) -> VideoInfo:
     """Get metadata about a video file using ffprobe.
 
@@ -165,6 +171,8 @@ def probe(path: str) -> VideoInfo:
     try:
         data = _run_ffprobe_json(path)
     except ProcessingError as exc:
+        if _is_probe_timeout(exc):
+            raise
         raise InputFileError(path, "Not a valid video file") from exc
     info = _build_video_info(path, data)
 
@@ -217,6 +225,8 @@ def probe_exact(path: str) -> ExactVideoInfo:
     try:
         data = _run_ffprobe_json(path, count_frames=True, timeout=FFPROBE_EXACT_TIMEOUT)
     except ProcessingError as exc:
+        if _is_probe_timeout(exc):
+            raise
         raise InputFileError(path, "Not a valid video file, or decoding it for an exact probe failed") from exc
     info = _build_video_info(path, data)
     video_stream = _get_video_stream(data) or {}
@@ -245,6 +255,8 @@ def probe_audio_input(path: str) -> VideoInfo:
     try:
         data = _run_ffprobe_json(path)
     except ProcessingError as exc:
+        if _is_probe_timeout(exc):
+            raise
         raise InputFileError(path, "Not a valid media file") from exc
 
     # Try video first — reuses the same ffprobe data (no second subprocess)

@@ -21,6 +21,11 @@ from .defaults import (
     DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
     DEFAULT_AUDIO_BED_MUSIC_VOLUME,
     DEFAULT_AUDIO_BED_TARGET_LUFS,
+    DEFAULT_DUCK_ATTACK_MS,
+    DEFAULT_DUCK_MUSIC_VOLUME,
+    DEFAULT_DUCK_RATIO,
+    DEFAULT_DUCK_RELEASE_MS,
+    DEFAULT_DUCK_THRESHOLD,
     DEFAULT_PROCEDURAL_AUDIO_BED_WARNING_SECONDS,
 )
 from .limits import MAX_FREQUENCY, MIN_FREQUENCY
@@ -113,17 +118,23 @@ def audio_synthesize(
     files needed. Supports envelopes, reverb, filtering, and fade effects.
 
     Args:
-        output_path: Absolute path for the output WAV file.
-        waveform: Waveform type (sine, square, sawtooth, triangle, noise). Default sine.
-        frequency: Base frequency in Hz. Default 440 (A4 note).
+        output_path: Absolute path for the output WAV file. A secure temp path is used if omitted.
+        waveform: sine, square, sawtooth, triangle, noise, pulse, supersaw, pluck or fm. Default sine.
+        frequency: Base frequency in Hz. Default 440 (A4 note). Noise ignores it.
         duration: Duration in seconds. Default 1.0.
         volume: Amplitude 0-1. Default 0.5.
-        effects: Optional effects dict with keys:
-            - envelope: {"attack", "decay", "sustain", "release"} in seconds
-            - fade_in: Fade in duration in seconds
-            - fade_out: Fade out duration in seconds
-            - reverb: {"room_size", "damping", "wet_level"}
-            - lowpass: Cutoff frequency in Hz
+        effects: Optional effects dict. Accepted keys and parameters:
+            - envelope: {"attack", "decay", "sustain" (0-1), "release"} in seconds
+            - fade_in / fade_out: seconds (plain numbers, not dicts)
+            - reverb: {"room_size", "damping", "wet_level"}, each 0-1
+            - lowpass: cutoff Hz, or {"frequency", "type": static | sweep_up | sweep_down, "to"}
+            - highpass: cutoff Hz, or {"frequency"}
+            - delay: {"delay_time" (s), "feedback" (0-0.99), "mix" (0-1)}
+            - chorus: {"rate" (Hz), "depth" (s), "voices" (1-8), "mix" (0-1)}
+            - flanger: {"rate", "depth", "feedback", "mix"}
+            - distortion: {"drive" (0-1), "tone" (0-1), "type": soft | tube | bit}
+            - tremolo: {"rate", "depth"}; vibrato: {"rate", "depth"}
+            Unknown keys, misspelled types and out-of-range values are rejected.
 
     Returns:
         Dict with success status and output_path.
@@ -168,16 +179,18 @@ def audio_preset(
 
     Available presets:
     - UI: ui-blip, ui-click, ui-tap, ui-whoosh-up, ui-whoosh-down
-    - Ambient: drone-low, drone-mid, drone-tech
+    - Ambient: drone-low, drone-mid, drone-tech, drone-ominous
     - Notifications: chime-success, chime-error, chime-notification
-    - Data: typing, scan, processing, data-flow
+    - Percussion: bass-kick, snare, hi-hat
+    - FX: alarm, notify, confirm, cancel
+    - Data: typing, scan, processing, data-flow, upload, download
 
     Args:
         preset: Preset name from the list above.
         output_path: Absolute path for the output WAV file.
-        pitch: Pitch variation (low, mid, high). Default mid.
+        pitch: Pitch variation (low, mid, high). Default mid. Noise presets move their filter edges instead.
         duration: Override default duration (seconds).
-        intensity: Effect intensity 0-1. Default 0.5.
+        intensity: 0-1. Scales loudness and effect wetness: 0.5 is the preset as authored, 0 is half, 1 is 1.5x.
 
     Returns:
         Dict with success status and output_path.
@@ -352,12 +365,19 @@ def video_add_generated_audio(
 ) -> dict[str, Any]:
     """Add procedurally generated audio to a video.
 
-    One-shot convenience function to generate and add audio to video.
+    One-shot convenience function: synthesizes the configured drone and timed
+    events (tones, noise, sound presets) and lays the result over the video.
+    This is procedural sound design, not speech or narration.
+
+    The output keeps the video's full duration. A video that already has an
+    audio track keeps it, with the generated track mixed underneath; tracks
+    sum without loudness normalization and may clip. A silent video receives
+    the generated track as its only audio.
 
     Args:
         input_path: Absolute path to input video.
         audio_config: Configuration dict with:
-            - drone: {"frequency", "volume"} for background tone
+            - drone: {"frequency", "volume"} for background drone
             - events: List of timed sound events
         output_path: Absolute path for output video.
 
@@ -371,9 +391,17 @@ def video_add_generated_audio(
             error_type="validation_error",
             code="invalid_parameter",
         )
+    from .audio_engine import _has_audio_stream
     from .audio_engine import add_generated_audio as _add_gen_audio
 
-    return _result(_add_gen_audio(input_path, audio_config, output_path))
+    mixes_with_source = _has_audio_stream(input_path)
+    result = _result(_add_gen_audio(input_path, audio_config, output_path))
+    if result.get("success") and mixes_with_source:
+        result["warnings"] = [
+            "The generated audio is mixed under the video's existing audio track. Tracks sum without "
+            "loudness normalization and may clip; listen before publishing."
+        ]
+    return result
 
 
 @mcp.tool()
@@ -403,11 +431,11 @@ def video_duck_audio(
     input_path: str,
     music_path: str,
     output_path: str | None = None,
-    music_volume: float = 0.6,
-    threshold: float = 0.05,
-    ratio: float = 8.0,
-    attack: float = 20.0,
-    release: float = 300.0,
+    music_volume: float = DEFAULT_DUCK_MUSIC_VOLUME,
+    threshold: float = DEFAULT_DUCK_THRESHOLD,
+    ratio: float = DEFAULT_DUCK_RATIO,
+    attack: float = DEFAULT_DUCK_ATTACK_MS,
+    release: float = DEFAULT_DUCK_RELEASE_MS,
 ) -> dict[str, Any]:
     """Mix background music under a video's voice with automatic ducking.
 

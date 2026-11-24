@@ -324,20 +324,7 @@ def _parse_segments(
     return parsed, truncated_captions
 
 
-def _validate_source_duration(source: str, parsed: list[tuple[float, float, str | None]]) -> None:
-    """Refuse segments the source cannot support.
-
-    An unmeasured source cannot be checked against the requested segments, so
-    the flow refuses rather than rendering blind.
-    """
-    from ..engine_probe import probe as _probe_source
-
-    try:
-        duration = float(_probe_source(source).duration or 0.0)
-    except (OSError, ValueError, MCPVideoError) as exc:
-        raise _flow_error("could not measure the source duration") from exc
-    if duration <= 0:
-        raise _flow_error("could not measure the source duration; refusing to render segments that cannot be verified")
+def _check_segment_bounds(duration: float, parsed: list[tuple[float, float, str | None]]) -> None:
     for index, (_start, end, _text) in enumerate(parsed):
         if end > duration + _SOURCE_EOF_TOLERANCE:
             raise _flow_error(
@@ -346,18 +333,32 @@ def _validate_source_duration(source: str, parsed: list[tuple[float, float, str 
             )
 
 
-def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]]) -> bool:
-    """Whether this flow burns in captions, and whether it may be measured.
+def _validate_source_duration(
+    source: str, parsed: list[tuple[float, float, str | None]], *, require_measurable: bool = True
+) -> None:
+    """Refuse segments the source cannot support."""
+    from ..engine_probe import probe as _probe_source
 
-    Only a captioned flow needs a timeline. A render with no caption text
-    never reads a timing, so it is not blocked by a segment it cannot
-    measure — and it has no reason to measure the source either, so an
-    unmeasurable source does not fail it.
-    """
-    if not any(text for (_start, _end, text) in parsed):
-        return False
-    _validate_source_duration(source, parsed)
-    return True
+    try:
+        duration = float(_probe_source(source).duration or 0.0)
+    except (OSError, ValueError, MCPVideoError) as exc:
+        if require_measurable:
+            raise _flow_error("could not measure the source duration") from exc
+        return
+    if duration <= 0:
+        if require_measurable:
+            raise _flow_error(
+                "could not measure the source duration; refusing to render segments that cannot be verified"
+            )
+        return
+    _check_segment_bounds(duration, parsed)
+
+
+def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]]) -> bool:
+    """Whether this flow burns in captions, and validate requested segment bounds."""
+    has_captions = any(text for (_start, _end, text) in parsed)
+    _validate_source_duration(source, parsed, require_measurable=has_captions)
+    return has_captions
 
 
 def _shorts_result(

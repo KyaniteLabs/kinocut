@@ -547,7 +547,7 @@ Every entry below is generated from the code, so nothing is missing. The section
 | `audio_waveform()` | Extract audio waveform data (peaks and silence regions). |
 | `auto_chapters()` | Auto-detect scene changes and create chapters. |
 | `batch()` | Apply the same operation to multiple video files. |
-| `benchmark_run()` | See MCP `video_benchmark_run`: Run the AI-video benchmark corpus against host capabilities. |
+| `benchmark_run()` | See MCP `video_benchmark_run`: Count which AI-video corpus capabilities are available on this host. |
 | `blur()` | Apply blur effect to a video. |
 | `body_swap()` | See MCP `video_body_swap`: Replace video while preserving approved audio with explicit duration policy. |
 | `capabilities()` | See MCP `video_capabilities`: Probe host capabilities (ffmpeg, whisper, c2pa) and return a capability report. |
@@ -640,7 +640,7 @@ Every entry below is generated from the code, so nothing is missing. The section
 | `revideo_materialize()` | See MCP `revideo_materialize`: Materialize Kinocut's pinned Revideo project for a validated job. |
 | `revideo_render()` | See MCP `revideo_render`: Render and atomically publish a verified local Revideo artifact. |
 | `revideo_render_job()` | See MCP `revideo_render_job`: Materialize, install, render, and verify one local Revideo job. |
-| `review_decision()` | See MCP `video_review_decision`: Record a human review decision (writer); corrections supersede by record id. |
+| `review_decision()` | See MCP `video_review_decision`: Record a review decision (writer); corrections supersede by record id. |
 | `review_package()` | See MCP `video_review_package`: Assemble a review package and publish-gate verdict for a candidate artifact. |
 | `rotate()` | Rotate and/or flip a video. |
 | `salvage()` | See MCP `video_salvage`: Create one lineage-bound salvage derivative and a fresh review slot. |

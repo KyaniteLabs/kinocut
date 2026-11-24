@@ -10,7 +10,10 @@ Prevents common failure modes that produce unreadable or unprofessional output:
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Safe area constants (title-safe and action-safe per SMPTE standards)
@@ -271,8 +274,18 @@ def _check_contrast(
                         overlay_indices=(i,),
                     )
                 )
-        except Exception:  # noqa: S110
-            pass
+        except (ValueError, TypeError) as exc:
+            logger.debug("Invalid color in contrast check for overlay %d: %s", i, exc)
+            warnings.append(
+                LayoutWarning(
+                    code="invalid_color",
+                    message=(
+                        f"Text '{overlay.text[:30]}...' has an invalid color value; contrast could not be verified."
+                    ),
+                    severity="warning",
+                    overlay_indices=(i,),
+                )
+            )
     return warnings
 
 
@@ -387,8 +400,8 @@ def _check_shadow_effectiveness(
                             overlay_indices=(i,),
                         )
                     )
-            except Exception:  # noqa: S110
-                pass
+            except (ValueError, TypeError) as exc:
+                logger.debug("Skipping shadow contrast check for overlay %d: %s", i, exc)
     return warnings
 
 

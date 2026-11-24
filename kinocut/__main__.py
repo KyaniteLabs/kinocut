@@ -37,6 +37,52 @@ def _render_import_failure(exc: ImportError) -> str:
     return escape(text)
 
 
+@contextlib.contextmanager
+def _isolated_mcp_stdio():
+    """Redirect fd 1 / sys.stdout to stderr before server import and yield the private JSON-RPC fd."""
+    try:
+        stdout_fd = sys.stdout.fileno()
+        stderr_fd = sys.stderr.fileno()
+    except (AttributeError, OSError, ValueError):
+        yield None
+        return
+    import os
+
+    proto_fd = os.dup(stdout_fd)
+    saved_stdout = sys.stdout
+    try:
+        sys.stdout.flush()
+        os.dup2(stderr_fd, stdout_fd)
+        sys.stdout = sys.stderr
+        yield proto_fd
+    finally:
+        with contextlib.suppress(OSError):
+            os.dup2(proto_fd, stdout_fd)
+        with contextlib.suppress(OSError):
+            os.close(proto_fd)
+        sys.stdout = saved_stdout
+
+
+def _run_mcp_stdio_isolated(mcp: Any, proto_fd: int | None = None) -> None:
+    """Run MCP stdio server over ``proto_fd`` when isolated, else fall back to ``mcp.run()``."""
+    lowlevel = getattr(mcp, "_mcp_server", None)
+    if lowlevel is None or proto_fd is None:
+        mcp.run()
+        return
+    import io
+    import os
+    import anyio
+    from mcp.server.stdio import stdio_server
+
+    async def _serve() -> None:
+        raw_proto = os.fdopen(proto_fd, "wb", buffering=0, closefd=False)
+        text_proto = io.TextIOWrapper(raw_proto, encoding="utf-8")
+        async with stdio_server(stdout=anyio.wrap_file(text_proto)) as (read_stream, write_stream):
+            await lowlevel.run(read_stream, write_stream, lowlevel.create_initialization_options())
+
+    anyio.run(_serve)
+
+
 def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None:
     """Start the MCP server, reporting import failures under their real cause.
 
@@ -47,16 +93,17 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
     """
 
     try:
-        mcp = import_server()
-        from ._mcpb_observation import observe_mcp_run_boundary
-        from .errors import MCPVideoError
+        with _isolated_mcp_stdio() as proto_fd:
+            mcp = import_server()
+            from ._mcpb_observation import observe_mcp_run_boundary
+            from .errors import MCPVideoError
 
-        try:
-            observe_mcp_run_boundary()
-        except MCPVideoError:
-            err_console.print("[red]MCP mode failed to start:[/red] supervised process observation failed.")
-            sys.exit(1)
-        mcp.run()
+            try:
+                observe_mcp_run_boundary()
+            except MCPVideoError:
+                err_console.print("[red]MCP mode failed to start:[/red] supervised process observation failed.")
+                sys.exit(1)
+            _run_mcp_stdio_isolated(mcp, proto_fd)
     except ValueError as exc:
         # Invalid KINOCUT_TOOLS configuration: surface selection raises
         # ValueError listing the allowed modes/profiles. Report it as a

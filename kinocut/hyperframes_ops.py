@@ -145,6 +145,7 @@ def render(
     strict_variables: bool = False,
 ) -> HyperframesRenderResult:
     """Render a Hyperframes composition to video."""
+    _require_node()
     if output_path is None:
         output_path = _default_render_output(project_path, format)
     output_path = _validate_output_path(str(Path(output_path).expanduser().absolute()))
@@ -401,6 +402,13 @@ def snapshot(
         variables_file=variables_file,
     )
     frame_paths = _snapshot_pngs(project, before)
+    if not frame_paths:
+        raise HyperframesRenderError(
+            "hyperframes snapshot",
+            0,
+            "",
+            reason="Hyperframes exited successfully but wrote no new snapshot frames; stale frames were not returned as current",
+        )
     return HyperframesSnapshotResult(
         frame_paths=frame_paths,
         output_dir=str(snapshot_dir),
@@ -623,7 +631,16 @@ def create_project(
     _require_hyperframes_deps(cwd=output_dir)
 
     if project_dir.exists() and any(project_dir.iterdir()):
-        print(f"Warning: Project directory already exists and is not empty — files will be overwritten: {project_dir}")
+        # A printed warning is not a gate: refuse rather than overwrite scaffolding and renders.
+        raise MCPVideoError(
+            "Project directory already exists and is not empty",
+            error_type="validation_error",
+            code="output_exists",
+            suggested_action={
+                "auto_fix": False,
+                "description": "Choose another project name or output directory, or remove the existing project yourself.",
+            },
+        )
 
     project_dir.mkdir(parents=True, exist_ok=True)
 
@@ -688,8 +705,10 @@ def render_and_post(
     output_path: str | None = None,
 ) -> HyperframesPipelineResult:
     """Render a Hyperframes composition, then apply Kinocut post-processing."""
-    # Step 1: Render with Hyperframes
-    render_result = render(project_path)
+    # Step 1: Render with Hyperframes. ``output_path`` names the *final* artifact:
+    # when there are post-processing steps the last one writes it, so the
+    # intermediate render goes to its default location instead of colliding with it.
+    render_result = render(project_path, output_path=output_path if not post_process else None)
     hyperframes_output = render_result.output_path
     if not render_result.success:
         raise HyperframesRenderError(

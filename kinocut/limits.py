@@ -175,3 +175,25 @@ FASTSTART_COPY_CHUNK_BYTES = 1024 * 1024
 
 # Stop GPU shader frame extraction after one overflow sentinel frame.
 MAX_SHADER_FRAMES = 7200
+# Uncompressed YUV420p frame buffer budget for FFmpeg's in-RAM reverse filter (V-02).
+MAX_REVERSE_FRAME_BYTES = 2 * 1024 * 1024 * 1024
+
+
+def resolve_ffmpeg_timeout(override: float | None = None, *, default: float = DEFAULT_FFMPEG_TIMEOUT) -> float:
+    """Return effective FFmpeg timeout: explicit override, KINOCUT_FFMPEG_TIMEOUT, or default."""
+    import math
+    import os
+
+    if override is not None:
+        value = float(override)
+        if math.isfinite(value) and value > 0:
+            return min(value, float(MAX_VIDEO_DURATION))
+    raw = os.environ.get("KINOCUT_FFMPEG_TIMEOUT", "").strip()
+    if raw:
+        try:
+            env_val = float(raw)
+        except ValueError:
+            env_val = 0.0
+        if math.isfinite(env_val) and env_val > 0:
+            return min(env_val, float(MAX_VIDEO_DURATION))
+    return float(default)

@@ -12,10 +12,11 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from .captions import CaptionArtifact
-from .package import package_approved_clip
+from .package import _verify_video_checksum, package_approved_clip
 from .package_models import PackageConfig, PackageLineage, ThumbnailSpec
 from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
-from .shorts_review import resolve_approved_candidate
+from .shorts_render import _file_sha256, expected_render_digests
+from .shorts_review import CandidateMoment, resolve_approved_candidate
 from ..validation_errors import exception_kind, likely_cause, own_reason
 
 __all__ = ["package_approved_candidate"]
@@ -79,6 +80,69 @@ def _gate_package_media(path: str, *, allow_fail: bool) -> dict[str, Any] | None
         raise
 
 
+def _require_renders_of_the_approved_cut(
+    plan: ShortsPlan, candidate: CandidateMoment, records: tuple[RenderRecord, ...]
+) -> None:
+    """A render made for an earlier revision must never ship under the current approval."""
+    expected = expected_render_digests(plan, candidate)
+    stale = tuple(record.platform for record in records if record.render_digest != expected.get(record.platform))
+    if stale:
+        raise _package_error(
+            "Platform renders do not match the approved cut.",
+            code="shorts_package_render_stale",
+            cause=f"render digests for {', '.join(stale)} predate the current approved revision.",
+            recovery="Re-run render_approved_candidate(...) for the approved cut, then package again.",
+        )
+
+
+def _gate_every_render(records: tuple[RenderRecord, ...], *, allow_fail: bool) -> dict[str, dict[str, Any] | None]:
+    """Verify and gate every render before publishing anything.
+
+    A failed check must not leave a visible package (or replace an earlier one) behind.
+    """
+    gates: dict[str, dict[str, Any] | None] = {}
+    for record in records:
+        if record.output_sha256 is not None:
+            _verify_video_checksum(record.output_sha256, _file_sha256(record.output_path))
+        gates[record.platform] = _gate_package_media(record.output_path, allow_fail=allow_fail)
+    return gates
+
+
+def _package_platform(
+    record: RenderRecord,
+    *,
+    candidate: CandidateMoment,
+    base: str,
+    config: PackageConfig,
+    gate: dict[str, Any] | None,
+    review_decision_ref: str,
+) -> tuple[Any, dict[str, Any]]:
+    """Package one platform render; return the package result and its summary."""
+    result = package_approved_clip(
+        package_dir=os.path.join(base, record.platform),
+        vertical_video_path=record.output_path,
+        expected_video_sha256=record.output_sha256,
+        caption_artifact=_caption_from_srt(record.editable_subtitles),
+        candidate=candidate,
+        thumbnail=ThumbnailSpec(image_path=record.thumbnail_path, timestamp=candidate.start),
+        lineage=PackageLineage(
+            candidate_id=candidate.candidate_id,
+            review_decision_ref=review_decision_ref,
+            generation_lineage_ref=record.render_digest,
+        ),
+        config=config,
+    )
+    summary = {
+        "platform": record.platform,
+        "package_root": result.package_root,
+        "manifest_path": result.manifest_path,
+        "asset_paths": list(result.asset_paths),
+        "external_posting": False,
+        "quality": gate,
+    }
+    return result, summary
+
+
 def package_approved_candidate(
     plan_path_or_dir: str,
     *,
@@ -100,6 +164,10 @@ def package_approved_candidate(
         )
 
     requested = package_root or os.path.join(plan.output_dir, candidate.candidate_id, "packages")
+
+    _require_renders_of_the_approved_cut(plan, candidate, records)
+    gates = _gate_every_render(records, allow_fail=allow_fail)
+
     base = os.path.realpath(os.path.expanduser(requested))
     # Fail closed outside plan.output_dir; package_approved_clip re-validates write paths.
     output_root = os.path.realpath(os.path.expanduser(plan.output_dir))
@@ -116,34 +184,17 @@ def package_approved_candidate(
     manifests: list[str] = list(plan.package_manifests)
 
     for record in records:
-        package_dir = os.path.join(base, record.platform)
-        result = package_approved_clip(
-            package_dir=package_dir,
-            vertical_video_path=record.output_path,
-            expected_video_sha256=record.output_sha256,
-            caption_artifact=_caption_from_srt(record.editable_subtitles),
+        result, summary = _package_platform(
+            record,
             candidate=candidate,
-            thumbnail=ThumbnailSpec(image_path=record.thumbnail_path, timestamp=candidate.start),
-            lineage=PackageLineage(
-                candidate_id=candidate.candidate_id,
-                review_decision_ref=plan.job_id,
-                generation_lineage_ref=record.render_digest,
-            ),
+            base=base,
             config=config,
+            gate=gates[record.platform],
+            review_decision_ref=plan.job_id,
         )
         if result.manifest_path not in manifests:
             manifests.append(result.manifest_path)
-        gate = _gate_package_media(record.output_path, allow_fail=allow_fail)
-        emitted.append(
-            {
-                "platform": record.platform,
-                "package_root": result.package_root,
-                "manifest_path": result.manifest_path,
-                "asset_paths": list(result.asset_paths),
-                "external_posting": False,
-                "quality": gate,
-            }
-        )
+        emitted.append(summary)
 
     revised = plan.model_copy(
         update={

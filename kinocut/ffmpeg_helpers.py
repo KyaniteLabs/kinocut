@@ -444,7 +444,8 @@ def _run_command(
             )
             if result.returncode != 0:
                 if stderr_sink is not None:
-                    stderr_sink.seek(0)
+                    stderr_sink.seek(0, os.SEEK_END)
+                    stderr_sink.seek(max(0, stderr_sink.tell() - FFMPEG_STDERR_DIAGNOSTIC_BYTES))
                     result.stderr = stderr_sink.read(FFMPEG_STDERR_DIAGNOSTIC_BYTES).decode("utf-8", errors="replace")
                     stderr_sink.seek(0)
                 raise ProcessingError(cmd_str, result.returncode, result.stderr)
@@ -455,19 +456,16 @@ def _run_command(
     return result
 
 
-def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subprocess.CompletedProcess[str]:
-    """Run FFmpeg with raw arguments; the resolved binary and ``-y`` are prepended.
-
-    The previous dual-mode signature (raw args OR a full command) silently
-    changed binary resolution and ``-y`` behavior based on the first element.
-    """
+def _run_ffmpeg(
+    args: list[str], *, pass_fds: tuple[int, ...] = (), timeout: float | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run FFmpeg with raw args (resolved binary and ``-y`` are prepended)."""
     from .engine_runtime_utils import _ffmpeg
+    from .limits import resolve_ffmpeg_timeout
 
     if args and args[0] in {"ffmpeg", "ffprobe"}:
-        raise ValueError(
-            "_run_ffmpeg takes raw FFmpeg arguments (the resolved binary and -y are "
-            "prepended); use _run_command for full ffmpeg/ffprobe command lists"
-        )
+        raise ValueError("_run_ffmpeg takes raw FFmpeg arguments; use _run_command for full command lists")
+    effective_timeout = resolve_ffmpeg_timeout(timeout, default=DEFAULT_FFMPEG_TIMEOUT)
     cmd = [_ffmpeg(), "-y", *args]
     from .staged_writers import staged_ffmpeg_command
 
@@ -475,12 +473,12 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
         with staged_ffmpeg_command(cmd, pass_fds) as (cmd, pass_fds):
             from .bounded_process import run_bounded
 
-            proc = run_bounded(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT, pass_fds=pass_fds)
+            proc = run_bounded(cmd, timeout=effective_timeout, pass_fds=pass_fds)
             if proc.returncode != 0:
                 raise parse_ffmpeg_error(proc.stderr, command=cmd)
     except subprocess.TimeoutExpired as e:
         raise ProcessingError(
-            " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
+            " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {effective_timeout}s"
         ) from e
     if args and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])
@@ -790,6 +788,7 @@ def _run_ffprobe_json(
 
 def _seconds_to_srt_time(seconds: float) -> str:
     """Convert seconds to SRT time format HH:MM:SS,mmm."""
+    seconds = max(0.0, float(seconds))
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)

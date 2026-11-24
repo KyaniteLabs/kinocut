@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections import Counter
+
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +67,30 @@ def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, flo
     return gains, exposure_scale
 
 
+def _matched_destinations(input_paths: list[Path], out_dir: Path) -> list[Path]:
+    """One output per input.
+
+    Two inputs with the same stem from different folders used to share one
+    destination, so the second silently replaced the first while the receipt
+    listed both. Colliding stems are disambiguated with a short source hash.
+    """
+    stem_counts = Counter(src.stem for src in input_paths)
+    destinations: list[Path] = []
+    for src in input_paths:
+        name = (
+            f"{src.stem}_matched.png"
+            if stem_counts[src.stem] == 1
+            else f"{src.stem}_{file_sha256(src)[:10]}_matched.png"
+        )
+        dest = out_dir / name
+        suffix = 2
+        while dest in destinations:
+            dest = out_dir / f"{dest.stem}_{suffix}.png"
+            suffix += 1
+        destinations.append(dest)
+    return destinations
+
+
 def _write_matched_outputs(
     input_paths: list[Path],
     input_arrs: list,
@@ -72,16 +98,16 @@ def _write_matched_outputs(
     out_dir: Path,
 ) -> list[dict[str, Any]]:
     outputs: list[dict[str, Any]] = []
-    for src, arr in zip(input_paths, input_arrs, strict=True):
+    destinations = _matched_destinations(input_paths, out_dir)
+    for src, arr, dest in zip(input_paths, input_arrs, destinations, strict=True):
         matched = apply_rgb_gains(arr, final_gains)
-        dest = out_dir / f"{src.stem}_matched.png"
-        save_rgb_array(matched, dest)
+        written = save_rgb_array(matched, dest)
         outputs.append(
             {
                 "source": str(src),
-                "output": str(dest),
+                "output": str(written),
                 "source_sha256": file_sha256(src),
-                "output_sha256": file_sha256(dest),
+                "output_sha256": file_sha256(written),
             }
         )
     return outputs

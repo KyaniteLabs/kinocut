@@ -563,7 +563,9 @@ def _hyperframes_op(
         args.extend([f"--{flag}", _format_cli_value(compute(kwargs))])
 
     result = _run_hyperframes(args, cwd=cwd, timeout=spec.get("timeout", 600))
-    if result.returncode != 0:
+    # ``doctor`` exits nonzero when it finds problems; that is the diagnostic the
+    # caller asked for, not a failure to raise before it can be reported.
+    if result.returncode != 0 and operation != "doctor":
         raise HyperframesRenderError(" ".join(args), result.returncode, result.stderr)
 
     return result, cwd

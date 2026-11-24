@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .validation_errors import reason, rejected_value
-import contextlib
+import math
 import os
 from typing import Annotated, Any
 
@@ -584,13 +584,19 @@ def video_template_preview(
     if outro_path is not None:
         kwargs["outro_path"] = outro_path
 
-    probed_duration: float | None = None
     if input_path is not None:
         input_path = _validate_input_path(input_path)
-        with contextlib.suppress(Exception):
+    effective_duration = duration
+    duration_source = "override" if duration is not None else "default"
+    if duration is None and input_path is not None:
+        duration_source = "default_after_probe_failure"
+        try:
             probed_duration = _get_video_duration(input_path)
-
-    effective_duration = duration if duration is not None else probed_duration
+        except MCPVideoError:
+            probed_duration = None
+        if probed_duration is not None and math.isfinite(probed_duration) and probed_duration > 0:
+            effective_duration = probed_duration
+            duration_source = "probe"
 
     result = preview_template(
         template_name=template,
@@ -598,6 +604,7 @@ def video_template_preview(
         duration=effective_duration,
         **kwargs,
     )
+    result["duration_source"] = duration_source
     return result
 
 

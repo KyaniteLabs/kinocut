@@ -6,7 +6,7 @@ from kinocut.contracts.capability import NextAction
 from kinocut.next_action import next_action, next_action_for_unavailable, recommended_next_actions
 
 
-def _diagnostics(ffmpeg_ok: bool, whisper_ok: bool = False, pillow_ok: bool = True):
+def _diagnostics(ffmpeg_ok: bool, whisper_ok: bool = False, pillow_ok: bool = True, c2patool_ok: bool = True):
     return {
         "success": True,
         "checks": [
@@ -14,6 +14,7 @@ def _diagnostics(ffmpeg_ok: bool, whisper_ok: bool = False, pillow_ok: bool = Tr
             {"name": "ffprobe", "category": "core", "required": True, "ok": ffmpeg_ok},
             {"name": "openai-whisper", "category": "optional", "required": False, "ok": whisper_ok},
             {"name": "pillow", "category": "image", "required": False, "ok": pillow_ok},
+            {"name": "c2patool", "category": "optional", "required": False, "ok": c2patool_ok},
         ],
     }
 

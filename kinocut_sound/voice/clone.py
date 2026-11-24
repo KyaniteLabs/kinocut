@@ -7,6 +7,7 @@ explicit opt-in and cloud-egress authorization.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from kinocut_sound.authorization import (
     AuthorizationBoundary,
     AuthorizationContext,
     ConsentLedger,
+    _authorization_error,
 )
 from kinocut_sound.lines import Line
 from kinocut_sound.voice._errors import (
@@ -70,6 +72,20 @@ class CloneRenderer:
     def __init__(self, *, adapter: TtsAdapter | LocalSynthesisAdapter | CloudTtsAdapterStub) -> None:
         self._adapter = adapter
 
+    @staticmethod
+    def _require_grant_covers_profile(profile: CloneProfile, ledger: ConsentLedger) -> None:
+        """A profile may only be used under a grant issued for its own subject.
+
+        The ledger authorizes the *grant*; nothing tied the grant's subject to the
+        profile's, so a live grant for one person could authorize cloning another.
+        """
+        grant = ledger.current_grant(profile.grant_id)
+        if grant.subject_id != profile.subject_id:
+            raise _authorization_error(
+                "clone profile subject is not the subject of its consent grant",
+                "profile_subject_mismatch",
+            )
+
     def _authorize_generation(
         self,
         *,
@@ -78,6 +94,7 @@ class CloneRenderer:
         context: AuthorizationContext,
         at_iso: str,
     ) -> tuple[str, ...]:
+        self._require_grant_covers_profile(profile, ledger)
         return ledger.authorize(
             AuthorizationBoundary.GENERATION,
             grant_ids=(profile.grant_id,),
@@ -93,6 +110,7 @@ class CloneRenderer:
         context: AuthorizationContext,
         at_iso: str,
     ) -> tuple[str, ...]:
+        self._require_grant_covers_profile(profile, ledger)
         return ledger.authorize(
             AuthorizationBoundary.EXPORT,
             grant_ids=(profile.grant_id,),
@@ -145,6 +163,7 @@ class CloneRenderer:
         actor_id: str,
     ) -> tuple[SynthesisOutput, str]:
         lease_id = _next_lease_id()
+        self._require_grant_covers_profile(profile, ledger)
         lease = ledger.acquire_lease(
             lease_id,
             grant_ids=(profile.grant_id,),
@@ -153,7 +172,14 @@ class CloneRenderer:
             at_iso=at_iso,
             actor_id=actor_id,
         )
-        output = self._render_unlocked(line=line, profile=profile)
+        try:
+            output = self._render_unlocked(line=line, profile=profile)
+        except BaseException:
+            # A failed render must not leave an active lease that blocks a waiting revocation.
+            with contextlib.suppress(Exception):
+                ledger.abort_lease(lease.lease_id, at_iso=at_iso, actor_id=actor_id)
+            raise
+        # The caller owns the lease from here: commit it with the rendered asset, or abort it.
         return output, lease.lease_id
 
     def export(

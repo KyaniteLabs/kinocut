@@ -253,6 +253,8 @@ def _integrated_lufs(path: str) -> float | None:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
+    if proc.returncode != 0:
+        return None
     stderr = proc.stderr or ""
     # loudnorm prints JSON block at end of stderr
     m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", stderr, re.S)

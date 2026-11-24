@@ -16,7 +16,7 @@ PUSHED = "a" * 40
 HEAD = "b" * 40
 
 
-def _fake(*, pulls=None, trees=None, runs=None):
+def _fake(*, pulls=None, trees=None, runs=None, jobs=None):
     pulls = (
         [
             {
@@ -46,6 +46,18 @@ def _fake(*, pulls=None, trees=None, runs=None):
         if runs is None
         else runs
     )
+    jobs = (
+        [
+            {
+                "name": "Test (Python 3.13)",
+                "status": "completed",
+                "conclusion": "success",
+                "steps": [{"name": "Run tests with coverage", "conclusion": "success"}],
+            }
+        ]
+        if jobs is None
+        else jobs
+    )
 
     def fetch(path):
         if path.endswith("/pulls"):
@@ -55,6 +67,8 @@ def _fake(*, pulls=None, trees=None, runs=None):
         if "/actions/workflows/ci.yml/runs?" in path:
             assert "event=pull_request" in path and f"head_sha={HEAD}" in path
             return {"workflow_runs": runs}
+        if "/actions/runs/" in path and "/jobs?" in path:
+            return {"jobs": jobs}
         raise AssertionError(path)
 
     return fetch
@@ -66,6 +80,21 @@ def _decide(**kwargs):
 
 def test_identical_tree_with_green_pull_request_run_is_tested():
     assert _decide() is True
+
+
+def test_skipped_pytest_on_pr_does_not_skip_master():
+    skipped_jobs = [
+        {
+            "name": "Test (Python 3.13)",
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [
+                {"name": "Skip tests", "conclusion": "success"},
+                {"name": "Run tests with coverage", "conclusion": "skipped"},
+            ],
+        }
+    ]
+    assert _decide(jobs=skipped_jobs) is False
 
 
 @pytest.mark.parametrize(

@@ -5,6 +5,7 @@ NumPy-based professional DSP with band-limited waveforms and high-quality effect
 
 from __future__ import annotations
 
+import math
 from typing import Any, Literal
 
 from ..errors import MCPVideoError
@@ -78,6 +79,151 @@ def _validate_synth_effects(effects: dict[str, Any] | None) -> None:
         )
 
 
+def validate_effect_items(effects: list[dict[str, Any]], sample_rate: int) -> None:
+    """Validate the ``audio_effects`` chain form: a list of ``{"type": ..., **params}`` items."""
+    for item in effects:
+        if isinstance(item, dict) and item.get("type"):
+            validate_effect_values(
+                {item["type"]: {key: value for key, value in item.items() if key != "type"}}, sample_rate
+            )
+
+
+#: Accepted numeric ranges for every effect parameter, shared by the synthesis
+#: and effects tools. A value outside its range is an input error raised before
+#: a single sample is generated, instead of a raw IndexError / ValueError from
+#: numpy or a multi-gigabyte allocation. ``None`` means unbounded on that side.
+_EFFECT_PARAM_RANGES: dict[str, dict[str, tuple[float | None, float | None]]] = {
+    "envelope": {"attack": (0.0, 60.0), "decay": (0.0, 60.0), "sustain": (0.0, 1.0), "release": (0.0, 60.0)},
+    "reverb": {"room_size": (0.0, 1.0), "damping": (0.0, 1.0), "wet_level": (0.0, 1.0)},
+    "delay": {"delay_time": (0.001, 10.0), "feedback": (0.0, 0.99), "mix": (0.0, 1.0)},
+    "chorus": {"rate": (0.01, 100.0), "depth": (0.0, 0.05), "voices": (1, 8), "mix": (0.0, 1.0)},
+    "flanger": {"rate": (0.01, 100.0), "depth": (0.0, 0.05), "feedback": (0.0, 0.99), "mix": (0.0, 1.0)},
+    "distortion": {"drive": (0.0, 1.0), "tone": (0.0, 1.0)},
+    "compressor": {
+        "threshold": (0.0, 1.0),
+        "ratio": (1.0, 100.0),
+        "attack": (0.0, 1.0),
+        "release": (0.0, 2.0),
+        "makeup": (0.0, 64.0),
+    },
+    "eq": {
+        "low_gain": (-60.0, 60.0),
+        "mid_gain": (-60.0, 60.0),
+        "high_gain": (-60.0, 60.0),
+        "low_freq": (20.0, None),
+        "high_freq": (20.0, None),
+    },
+    "tremolo": {"rate": (0.01, 100.0), "depth": (0.0, 1.0)},
+    "vibrato": {"rate": (0.01, 100.0), "depth": (0.0, 0.05)},
+    "fade": {"fade_in": (0.0, 600.0), "fade_out": (0.0, 600.0)},
+    "normalize": {},
+}
+_EFFECT_PARAM_CHOICES: dict[str, dict[str, frozenset[str]]] = {
+    "lowpass": {"type": frozenset({"static", "sweep_up", "sweep_down"})},
+    "distortion": {"type": frozenset({"soft", "tube", "bit"})},
+}
+#: Parameters that must stay below Nyquist for the render rate.
+_FREQUENCY_PARAMS: dict[str, frozenset[str]] = {
+    "lowpass": frozenset({"frequency", "to"}),
+    "highpass": frozenset({"frequency"}),
+    "eq": frozenset({"low_freq", "high_freq"}),
+}
+#: Top-level numeric effects, in seconds.
+_TOP_LEVEL_RANGES: dict[str, tuple[float, float]] = {"fade_in": (0.0, 600.0), "fade_out": (0.0, 600.0)}
+
+
+def _invalid_effect(expected: str) -> MCPVideoError:
+    return MCPVideoError(
+        f"audio effect parameter must be {expected}", error_type="validation_error", code="invalid_parameter"
+    )
+
+
+def _require_number(value: Any, bounds: tuple[float | None, float | None], nyquist: float | None = None) -> None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise _invalid_effect("a finite number")
+    low, high = bounds
+    if (low is not None and value < low) or (high is not None and value > high):
+        raise _invalid_effect(f"between {low} and {high}")
+    if nyquist is not None and not (0.0 < value < nyquist):
+        raise _invalid_effect(f"greater than 0 and below the Nyquist frequency ({nyquist:g} Hz)")
+
+
+def validate_effect_values(effects: dict[str, Any] | None, sample_rate: int) -> None:
+    """Reject effect parameters numpy would crash on, allocate wildly for, or silently ignore.
+
+    Covers every effect shared by ``audio_synthesize``/``audio_preset`` and
+    ``audio_effects``: unknown keys, non-numeric or non-finite values, values
+    outside their range, misspelled enum members and cutoffs at or above
+    Nyquist all raise ``validation_error`` before any DSP runs.
+    """
+    if not effects:
+        return
+    nyquist = sample_rate / 2.0
+    for effect, spec in effects.items():
+        if effect in _TOP_LEVEL_RANGES:
+            _require_number(spec, _TOP_LEVEL_RANGES[effect])
+            continue
+        if effect in ("lowpass", "highpass") and not isinstance(spec, dict):
+            _require_number(spec, (None, None), nyquist)
+            continue
+        if not isinstance(spec, dict):
+            raise _invalid_effect("a number or a dict of parameters")
+        ranges = _EFFECT_PARAM_RANGES.get(effect, {})
+        frequencies = _FREQUENCY_PARAMS.get(effect, frozenset())
+        choices = _EFFECT_PARAM_CHOICES.get(effect, {})
+        unknown = sorted(set(spec) - set(ranges) - frequencies - set(choices))
+        if unknown:
+            raise MCPVideoError(
+                "audio effect received unsupported parameter(s)",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        for param, value in spec.items():
+            if param in frequencies:
+                _require_number(value, (None, None), nyquist)
+            elif param in ranges:
+                _require_number(value, ranges[param])
+            elif value not in choices[param]:
+                raise _invalid_effect("a supported option")
+
+
+# Where a lowpass sweep ends when the caller gives no "to" (issue #843).
+_SWEEP_DEFAULT_TO = {"sweep_down": 200.0, "sweep_up": 8000.0}
+
+
+def _apply_lowpass_sweep(samples: Any, start: float, end: float, sample_rate: int) -> Any:
+    """Lowpass whose cutoff glides exponentially from ``start`` to ``end`` Hz over the sound.
+
+    Numpy-only: Hann-windowed STFT frames at 75% overlap, each multiplied by a
+    2-pole Butterworth magnitude at that frame's cutoff, then overlap-added.
+    """
+    import numpy as np
+
+    x = np.asarray(samples, dtype=np.float64)
+    if x.size == 0:
+        return samples
+    nyq = sample_rate / 2.0
+    start = float(min(max(start, 20.0), nyq * 0.95))
+    end = float(min(max(end, 20.0), nyq * 0.95))
+    n_fft, hop = 1024, 256
+    win = np.hanning(n_fft + 1)[:-1]
+    pad = np.concatenate([np.zeros(n_fft), x, np.zeros(n_fft)])
+    out = np.zeros_like(pad)
+    norm = np.zeros_like(pad)
+    freqs = np.fft.rfftfreq(n_fft, 1.0 / sample_rate)
+    n_frames = 1 + (len(pad) - n_fft) // hop
+    for k in range(n_frames):
+        i = k * hop
+        centre = min(max(i + n_fft // 2 - n_fft, 0), len(x) - 1)
+        cutoff = start * (end / start) ** (centre / max(len(x) - 1, 1))
+        mag = 1.0 / np.sqrt(1.0 + (freqs / cutoff) ** 4)
+        frame = np.fft.irfft(np.fft.rfft(pad[i : i + n_fft] * win) * mag, n_fft)
+        out[i : i + n_fft] += frame * win
+        norm[i : i + n_fft] += win**2
+    out = out / np.maximum(norm, 1e-12)
+    return out[n_fft : n_fft + len(x)]
+
+
 def _apply_filter_effects(
     samples: Any,
     effects: dict[str, Any],
@@ -88,7 +234,17 @@ def _apply_filter_effects(
     if "lowpass" in effects:
         lp = effects["lowpass"]
         cutoff = lp.get("frequency", 2000) if isinstance(lp, dict) else lp
-        samples = apply_lowpass(samples, cutoff, sample_rate)
+        sweep = lp.get("type") if isinstance(lp, dict) else None
+        if sweep in (None, "static"):
+            samples = apply_lowpass(samples, cutoff, sample_rate)
+        elif sweep in _SWEEP_DEFAULT_TO:
+            samples = _apply_lowpass_sweep(samples, cutoff, lp.get("to", _SWEEP_DEFAULT_TO[sweep]), sample_rate)
+        else:
+            raise MCPVideoError(
+                f"lowpass type must be one of {['static', *sorted(_SWEEP_DEFAULT_TO)]}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
 
     # Highpass
     if "highpass" in effects:
@@ -255,6 +411,7 @@ def _validate_synth_params(
             error_type="validation_error",
             code="invalid_parameter",
         )
+    validate_effect_values(effects, sample_rate)
 
     # Reject synthesis that would allocate oversized in-memory buffers (H6).
     channels = 2 if stereo else 1
@@ -348,6 +505,38 @@ def audio_synthesize(
     return write_wav(pcm_data, output, sample_rate)
 
 
+def _apply_preset_controls(config: dict[str, Any], mult: float, intensity: float) -> None:
+    """Apply ``pitch`` and ``intensity`` to a preset config, in place.
+
+    ``intensity`` drives every preset the same way: loudness and effect wetness
+    scale together around the authored values (0.5 = as authored, 0 = half,
+    1 = 1.5x), so 0 is never silent. ``pitch`` shifts the frequency; a noise
+    generator ignores frequency, so for noise the filter edges move instead
+    and the parameter is not silently dropped.
+    """
+    config["frequency"] = config["frequency"] * mult
+    scale = 0.5 + intensity
+    config["volume"] = min(1.0, config["volume"] * scale)
+    effects = config.get("effects") or {}
+    for name in ("reverb", "delay", "chorus", "flanger"):
+        wet = effects.get(name)
+        if isinstance(wet, dict):
+            for key in ("wet_level", "mix"):
+                if key in wet:
+                    wet[key] = min(1.0, wet[key] * scale)
+    if config.get("waveform") != "noise":
+        return
+    ceiling = DEFAULT_SAMPLE_RATE / 2.0 * 0.95
+    for name in ("lowpass", "highpass"):
+        spec = effects.get(name)
+        if isinstance(spec, dict):
+            for key in ("frequency", "to"):
+                if key in spec:
+                    spec[key] = min(spec[key] * mult, ceiling)
+        elif isinstance(spec, (int, float)):
+            effects[name] = min(spec * mult, ceiling)
+
+
 def audio_preset(
     preset: str,
     output: str,
@@ -370,9 +559,11 @@ def audio_preset(
     Args:
         preset: Preset name
         output: Output WAV file path
-        pitch: Pitch variation (low/mid/high)
+        pitch: Pitch variation (low/mid/high). Noise presets have no pitch to
+            shift, so their filter edges move instead.
         duration: Override default duration
-        intensity: Effect intensity (0-1)
+        intensity: Effect intensity 0-1. Scales loudness and effect wetness:
+            0.5 is the preset as authored, 0 is half, 1 is 1.5x.
         stereo: Output stereo WAV
         pan: Stereo panning (-1 left to 1 right)
 
@@ -387,22 +578,16 @@ def audio_preset(
             error_type="validation_error",
             code="invalid_parameter",
         )
-    if not isinstance(intensity, (int, float)) or intensity < 0 or intensity > 1:
+    if not isinstance(intensity, (int, float)) or not (0.0 <= intensity <= 1.0):
         raise MCPVideoError(
-            f"intensity must be between 0 and 1, got {intensity}",
+            f"intensity must be between 0 and 1, got {rejected_value(intensity)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
 
     config = get_preset_config(preset)
-
-    mult = _PITCH_MULT[pitch]
-    config["frequency"] = config["frequency"] * mult
-
     if duration is not None:
         config["duration"] = duration
-
-    if preset in {"typing", "scan", "hi-hat", "ui-tap"}:
-        config["volume"] = config["volume"] * intensity
+    _apply_preset_controls(config, _PITCH_MULT[pitch], float(intensity))
 
     return audio_synthesize(output=output, stereo=stereo, pan=pan, **config)

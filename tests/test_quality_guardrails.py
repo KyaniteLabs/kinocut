@@ -207,6 +207,21 @@ class TestVisualQualityGuardrails:
         assert 0 <= report.score <= 100
         assert isinstance(report.message, str)
 
+    @pytest.mark.parametrize(
+        ("stats", "metric_name", "expected"),
+        [
+            ({"YHIGH": 32, "YLOW": 16}, "ffmpeg.signalstats.YHIGH-YLOW", 6.25),
+            ({"YMAX": 192, "YMIN": 64}, "ffmpeg.signalstats.YMAX-YMIN", 50.0),
+        ],
+    )
+    def test_contrast_describes_measured_luma_spread(self, guardrails, stats, metric_name, expected):
+        with patch.object(guardrails, "_mean_signalstat", side_effect=lambda _path, key: stats.get(key)):
+            report = guardrails.check_contrast("video.mp4")
+
+        assert f"luma spread: {expected:.1f}%" in report.message
+        assert report.details["metric"]["name"] == metric_name
+        assert report.details["metric"]["value"] == pytest.approx(expected)
+
     def test_check_saturation(self, guardrails, tmp_path):
         """Test saturation check."""
         video_path = str(tmp_path / "test.mp4")

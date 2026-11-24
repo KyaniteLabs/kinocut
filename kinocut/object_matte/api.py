@@ -82,10 +82,21 @@ def _write_outputs(
                 docs_url=_DOCS,
             )
         written = write_png(first_cut, dest)
-        hole_written = write_png(first_hole, hole) if hole and first_hole is not None else None
-        return written, hole_written
-    written = write_alpha_video(cut_dir, dest, fps, "cut_%06d.png")
-    hole_written = write_alpha_video(hole_dir, hole, fps, "hole_%06d.png") if hole else None
+    else:
+        written = write_alpha_video(cut_dir, dest, fps, "cut_%06d.png")
+    if not hole:
+        return written, None
+    if Path(hole).suffix.lower() == ".png":
+        if first_hole is None or count != 1:
+            raise MCPVideoError(
+                "PNG object-matte background output accepts a still, not a video",
+                error_type="validation_error",
+                code="invalid_parameter",
+                docs_url=_DOCS,
+            )
+        hole_written = write_png(first_hole, hole)
+    else:
+        hole_written = write_alpha_video(hole_dir, hole, fps, "hole_%06d.png")
     return written, hole_written
 
 

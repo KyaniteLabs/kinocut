@@ -272,7 +272,7 @@ venvPath = "."
 venv = ".venv"
 
 [tool.coverage.run]
-source = ["kinocut"]
+source = ["kinocut", "kinocut_sound"]
 omit = ["kinocut/_crush_shader/*"]
 
 [tool.coverage.report]

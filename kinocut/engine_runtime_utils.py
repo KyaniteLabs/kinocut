@@ -16,6 +16,7 @@ from .errors import (
     FFmpegNotFoundError,
     FFprobeNotFoundError,
     MCPVideoError,
+    ProcessingError,
 )
 from .limits import DEFAULT_CRF, DEFAULT_PRESET, DOCTOR_COMMAND_TIMEOUT
 from .models import EditResult
@@ -71,18 +72,26 @@ def _check_filter_available(name: str) -> bool:
     """Check if an FFmpeg filter is available."""
     global _AVAILABLE_FILTERS
     if _AVAILABLE_FILTERS is None:
-        proc = subprocess.run(  # noqa: S603
-            [_ffmpeg(), "-filters"],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        _AVAILABLE_FILTERS = set()
+        try:
+            proc = subprocess.run(  # noqa: S603
+                [_ffmpeg(), "-filters"],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except subprocess.TimeoutExpired:
+            raise ProcessingError("ffmpeg -filters", -1, "", reason="FFmpeg filter probe timed out after 10s") from None
+        if proc.returncode != 0:
+            return False
+        parsed = set()
         for line in proc.stdout.split("\n"):
             parts = line.strip().split()
             if len(parts) >= 3 and "->" in parts[2]:
-                _AVAILABLE_FILTERS.add(parts[1])
+                parsed.add(parts[1])
+        if parsed:
+            _AVAILABLE_FILTERS = parsed
+        return name in parsed
     return name in _AVAILABLE_FILTERS
 
 
@@ -134,7 +143,7 @@ def _build_edit_result(
     output_path: str,
     operation: str,
     timing: dict[str, float | None],
-    format: str = "mp4",
+    format: str | None = None,
     *,
     audio_only: bool = False,
     progress: float | None = None,
@@ -148,12 +157,13 @@ def _build_edit_result(
     from .engine_probe import probe, probe_audio_input
 
     info = probe_audio_input(output_path) if audio_only else probe(output_path)
+    resolved_format = format or os.path.splitext(output_path)[1].lstrip(".").lower() or info.format or "mp4"
     return EditResult(
         output_path=output_path,
         duration=info.duration,
         resolution=None if audio_only else info.resolution,
         size_mb=info.size_mb,
-        format=format,
+        format=resolved_format,
         operation=operation,
         elapsed_ms=timing["elapsed_ms"],
         progress=progress,

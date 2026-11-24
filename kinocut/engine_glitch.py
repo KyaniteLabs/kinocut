@@ -249,11 +249,12 @@ def glitch_screen_tearing(
     # to the valid 1..255 map range.
     xexpr = f"clip(128+{displacement},1,255)"
 
+    info = probe(input_path)
     vf = (
         "split=3[main][src1][src2];"
         f"[src1]scale=16:ih,format=gray,geq=lum='{xexpr}'[xsmall];"
-        "[xsmall][main]scale2ref=w=iw:h=ih:flags=neighbor[xmap][main2];"
-        "[main2]format=gbrp[main3];"
+        f"[xsmall]scale={info.display_width}:{info.display_height}:flags=neighbor[xmap];"
+        "[main]format=gbrp[main3];"
         "[src2]geq=lum=128,format=gray[ymap];"
         "[main3][xmap][ymap]displace=edge=smear"
     )
@@ -548,15 +549,22 @@ def glitch_cmyk_split(
 # ---------------------------------------------------------------------------
 
 
-def _build_turbulent_filter(amount: float, scale: float, speed: float, octaves: int) -> str:
+def _build_turbulent_filter(
+    amount: float,
+    scale: float,
+    speed: float,
+    octaves: int,
+    *,
+    width: int | None = None,
+    height: int | None = None,
+) -> str:
     """Build the FFmpeg filter_complex for turbulent displacement.
 
     Fast native-filter turbulent warp. The displacement field is built ONCE at a
     tiny 96x54 resolution with ``geq`` (cheap: ~5k pixels), upscaled to the source
-    resolution with ``scale2ref`` (resolution-agnostic, no need to know W/H here),
-    and applied with the vectorized ``displace`` filter. ``displace`` reads each
-    map as an offset (128 = no shift), giving the same turbulent warp orders of
-    magnitude faster (~10s for a 1080p/10s/30fps clip vs. minutes).
+    resolution, and applied with the vectorized ``displace`` filter. Using explicit
+    probed ``scale=W:H`` avoids FFmpeg 7.1.0-7.1.4's ``best_input >= 0`` SIGABRT
+    regression on ``scale2ref`` + ``displace`` graphs.
 
     Map coords run 0..95 / 0..53, so spatial frequencies are multiplied by an
     upscale reference factor to keep the turbulence scale comparable on the full
@@ -586,6 +594,15 @@ def _build_turbulent_filter(amount: float, scale: float, speed: float, octaves: 
     dx_map = f"128+{px:.1f}*({dx_expr})/{amp_sum:.3f}"
     dy_map = f"128+{px:.1f}*({dy_expr})/{amp_sum:.3f}"
 
+    if width is not None and height is not None:
+        return (
+            f"[0:v]split=3[base][mx][my];"
+            f"[mx]scale={map_w}:{map_h},geq=lum='{dx_map}':cb=128:cr=128,format=gray,"
+            f"scale={width}:{height}:flags=bilinear[xmap];"
+            f"[my]scale={map_w}:{map_h},geq=lum='{dy_map}':cb=128:cr=128,format=gray,"
+            f"scale={width}:{height}:flags=bilinear[ymap];"
+            f"[base][xmap][ymap]displace=edge=mirror[out]"
+        )
     return (
         f"[0:v]split=3[base][mx][my];"
         f"[mx]scale={map_w}:{map_h},geq=lum='{dx_map}':cb=128:cr=128,format=gray[mxs];"
@@ -628,7 +645,10 @@ def glitch_turbulent_displacement(
     octaves = int(_sanitize_ffmpeg_number(octaves, "octaves"))
     octaves = max(1, min(5, octaves))
 
-    filter_complex = _build_turbulent_filter(amount, scale, speed, octaves)
+    info = probe(input_path)
+    filter_complex = _build_turbulent_filter(
+        amount, scale, speed, octaves, width=info.display_width, height=info.display_height
+    )
 
     cmd = [
         "ffmpeg",

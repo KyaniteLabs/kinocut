@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import math
-import warnings as _warnings
 
 from .defaults import (
     DEFAULT_AUDIO_BITRATE,
@@ -90,7 +89,8 @@ def _build_mix_audio_args(
     # even where some FFmpeg builds tolerate it.
     if start_time:
         safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
-        second_chain = f"[1:a:0]adelay={safe_delay}|{safe_delay},{af}[a1]"
+        # all=1 delays every channel: a two-value list leaves channel 3+ of 5.1 undelayed.
+        second_chain = f"[1:a:0]adelay={safe_delay}:all=1,{af}[a1]"
     else:
         second_chain = f"[1:a:0]{af}[a1]"
     filter_complex = (
@@ -155,7 +155,7 @@ def _build_replace_audio_args(
         # FFmpeg forbids combining -filter_complex and -af on the same output
         # stream, so fold the filters into the complex chain after the delay.
         safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
-        delay_chain = f"[1:a:0]adelay={safe_delay}|{safe_delay}"
+        delay_chain = f"[1:a:0]adelay={safe_delay}:all=1"
         if audio_filters:
             delay_chain += "," + ",".join(audio_filters)
         delay_chain += "[a]"
@@ -221,33 +221,47 @@ def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
         )
 
 
-def _emit_add_audio_guardrails(video_info, audio_path: str, volume: float, start_time: float | None) -> None:
-    """Emit volume/mix guardrail warnings (and the hard volume<0 error)."""
+def _add_audio_guardrail_warnings(video_info, audio_path: str, volume: float, start_time: float | None) -> list[str]:
+    """Guardrail messages for the result envelope: clipping, mix and timing risks.
 
-    if volume < 0.0:
-        raise MCPVideoError(
-            f"volume must be >= 0, got {volume}",
-            error_type="validation_error",
-            code="invalid_volume",
-        )
+    They travel in ``EditResult.warnings`` so the calling agent sees them;
+    ``warnings.warn`` only reached the server's stderr, once per location.
+    """
+
+    messages: list[str] = []
     if volume > 1.0:
-        _warnings.warn(
+        messages.append(
             f"[AUDIO GUARDRAIL] volume={volume} > 1.0. If source audio is already "
-            f"near peak, this may cause digital clipping/distortion.",
-            stacklevel=2,
+            f"near peak, this may cause digital clipping/distortion."
         )
     # The attached audio is commonly an audio-only file (e.g. a voiceover WAV),
     # so probe it with an audio-aware probe — otherwise a valid WAV is misreported
     # as "No video stream found" (issue #7).
     try:
         audio_info = probe_audio_input(audio_path)
-        mix_warnings = validate_audio_mix(video_info, audio_info, volume=volume, start_time=start_time or 0.0)
-        for w in mix_warnings:
-            _warnings.warn(f"[AUDIO GUARDRAIL] {w}", stacklevel=2)
+        messages.extend(
+            f"[AUDIO GUARDRAIL] {message}"
+            for message in validate_audio_mix(video_info, audio_info, volume=volume, start_time=start_time or 0.0)
+        )
     except Exception as e:
-        message = f"[AUDIO GUARDRAIL] Could not validate audio mix: {e}"
-        logger.warning(message, exc_info=True)
-        _warnings.warn(message, stacklevel=2)
+        logger.warning("[AUDIO GUARDRAIL] Could not validate audio mix: %s", e, exc_info=True)
+        messages.append(f"[AUDIO GUARDRAIL] Could not validate audio mix: {e}")
+    return messages
+
+
+def _dropped_stream_warnings(video_probe: dict) -> list[str]:
+    """These operations carry one picture stream and one audio track; say what they leave behind."""
+    streams = video_probe.get("streams", [])
+    extra_audio = sum(1 for stream in streams if stream.get("codec_type") == "audio") - 1
+    subtitles = sum(1 for stream in streams if stream.get("codec_type") == "subtitle")
+    messages: list[str] = []
+    if extra_audio > 0:
+        messages.append(
+            f"{extra_audio} additional audio track(s) in the source are not carried into the output; only the first is kept."
+        )
+    if subtitles > 0:
+        messages.append(f"{subtitles} subtitle stream(s) in the source are not carried into the output.")
+    return messages
 
 
 def _validate_add_params(volume, fade_in, fade_out, mix, start_time):
@@ -319,7 +333,7 @@ def add_audio(
     audible_start, audible_duration, picture_end = _attachment_window(
         video_path, audio_path, video_probe, audio_probe, start_time, duration_policy, mix
     )
-    _emit_add_audio_guardrails(video_info, audio_path, volume, start_time)
+    guardrails = _add_audio_guardrail_warnings(video_info, audio_path, volume, start_time)
 
     filters = [
         "aresample=async=1:first_pts=0",
@@ -344,19 +358,21 @@ def add_audio(
     )
     result = _render_audio_edit(cmd, output, "add_audio")
 
-    warnings = []
+    warnings = [*_dropped_stream_warnings(video_probe)]
     if source_has_audio and not mix:
         warnings.append(
             "This operation will replace existing audio. Use mix=True to "
             "preserve source audio and listen before publishing."
         )
+    if mix and source_has_audio:
+        warnings.append("Both tracks are summed without loudness normalization and may clip; listen before publishing.")
     if duration_policy == "shortest":
         warnings.append(
             "duration_policy='shortest' may shorten the output below the source "
             "video duration (the outro can be trimmed). Use 'keep_video' to preserve it."
         )
 
-    return result.model_copy(update={"warnings": [*result.warnings, *warnings]})
+    return result.model_copy(update={"warnings": [*result.warnings, *warnings, *guardrails]})
 
 
 def _validate_duck_params(
@@ -453,4 +469,5 @@ def duck_audio(
         *_movflags_args(output),
         output,
     ]
-    return _render_audio_edit(args, output, "duck_audio")
+    result = _render_audio_edit(args, output, "duck_audio")
+    return result.model_copy(update={"warnings": [*result.warnings, *_dropped_stream_warnings(source_probe)]})

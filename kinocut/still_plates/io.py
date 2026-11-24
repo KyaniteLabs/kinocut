@@ -78,17 +78,26 @@ def load_rgb_array(path: str | Path):
 
 
 def save_rgb_array(arr, path: str | Path) -> Path:
-    """Save a float RGB array (0..1) as PNG/JPEG by extension."""
+    """Save a float RGB array (0..1) as PNG/JPEG by extension.
+
+    Goes through the shared output validation and anchored publication like
+    every other media output: an existing file needs overwrite consent, and a
+    destination that aliases one of this operation's inputs is refused.
+    """
     require_still_deps()
     import numpy as np
     from PIL import Image
 
+    from ..ffmpeg_helpers import _atomic_output, _validate_output_path
+
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
+    target = _validate_output_path(str(out))
     clipped = np.clip(arr, 0.0, 1.0)
     u8 = (clipped * 255.0 + 0.5).astype("uint8")
-    Image.fromarray(u8, mode="RGB").save(out)
-    return out.resolve()
+    with _atomic_output(target) as staged:
+        Image.fromarray(u8, mode="RGB").save(staged)
+    return Path(target).resolve()
 
 
 def file_sha256(path: str | Path) -> str:
@@ -101,12 +110,20 @@ def file_sha256(path: str | Path) -> str:
 
 
 def write_receipt(path: str | Path, payload: dict[str, Any]) -> Path:
-    """Write a JSON receipt; strip absolute home-rooted paths from string values."""
+    """Write a JSON receipt through the anchored artifact publisher.
+
+    Strips absolute home-rooted paths from string values. An existing receipt
+    is only replaced with overwrite consent, never silently.
+    """
+    from ..ffmpeg_helpers import _atomic_artifact, _validate_artifact_path
+
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
+    target = _validate_artifact_path(str(out))
     sanitized = _sanitize_receipt(payload)
-    out.write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return out.resolve()
+    with _atomic_artifact(target) as staged:
+        Path(staged).write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return Path(target).resolve()
 
 
 def _sanitize_receipt(value: Any) -> Any:

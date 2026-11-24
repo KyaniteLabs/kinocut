@@ -62,7 +62,8 @@ def _grant(
 ) -> ConsentGrant:
     return ConsentGrant(
         grant_id=grant_id,
-        subject_id=f"subject_{grant_id}",
+        # The grant must be issued for the profile's subject; the renderer binds the two.
+        subject_id="subject_a",
         rightsholder_id=f"rights_{grant_id}",
         scope=_scope(operations=operations, provider_classes=provider_classes),
         reference_evidence_hash=_SHA,
@@ -587,3 +588,94 @@ def test_clone_render_acquires_and_commits_generation_lease():
     lease = ledger._leases.get(lease_id)
     assert isinstance(lease, GenerationLease)
     assert lease.status is LeaseStatus.ACTIVE
+
+
+# ---------------------------------------------------------------------------
+# Roast audit T-07 / C-29: the grant must cover the profile; failed leases end
+# ---------------------------------------------------------------------------
+
+
+def _profile(subject_id: str = "subject_a"):
+    from kinocut_sound.voice.clone import CloneProfile
+
+    return CloneProfile(
+        profile_id="clone_subject_a",
+        subject_id=subject_id,
+        grant_id="grant_a",
+        reference_hash=_SHA,
+        transcript_hash=_SHA,
+        base_slot=_base_slot(),
+        created_at_iso=_NOW,
+    )
+
+
+def test_clone_render_refuses_a_profile_the_grant_does_not_cover():
+    from kinocut_sound.voice.clone import CloneRenderer
+
+    ledger = _ledger()
+    ledger.register_grant(_grant("grant_a"), at_iso=_NOW, actor_id="reviewer_001")  # issued for subject_a
+    renderer = CloneRenderer(adapter=LocalSynthesisAdapter())
+
+    with pytest.raises(AuthorizationError) as exc_info:
+        renderer.render(
+            line=_line(),
+            profile=_profile(subject_id="subject_someone_else"),
+            ledger=ledger,
+            context=_live_clone_context(),
+            at_iso=_NOW,
+        )
+    assert exc_info.value.code == "profile_subject_mismatch"
+
+
+def test_clone_export_refuses_a_profile_the_grant_does_not_cover(tmp_path):
+    from kinocut_sound.voice.clone import CloneRenderer
+
+    ledger = _ledger()
+    ledger.register_grant(_grant("grant_a"), at_iso=_NOW, actor_id="reviewer_001")
+    renderer = CloneRenderer(adapter=LocalSynthesisAdapter())
+
+    with pytest.raises(AuthorizationError) as exc_info:
+        renderer.export(
+            output_path="line.wav",
+            output_dir=str(tmp_path),
+            line=_line(),
+            profile=_profile(subject_id="subject_someone_else"),
+            ledger=ledger,
+            context=_live_clone_context(),
+            at_iso=_NOW,
+        )
+    assert exc_info.value.code == "profile_subject_mismatch"
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_failed_leased_render_aborts_its_lease():
+    from kinocut_sound.voice.clone import CloneRenderer
+
+    class ExplodingAdapter(LocalSynthesisAdapter):
+        def render(self, *, slot, line):
+            raise RuntimeError("synthesis exploded")
+
+    ledger = _ledger()
+    ledger.register_grant(_grant("grant_a"), at_iso=_NOW, actor_id="reviewer_001")
+    renderer = CloneRenderer(adapter=ExplodingAdapter())
+
+    with pytest.raises(Exception):
+        renderer.render_with_lease(
+            line=_line(),
+            profile=_profile(),
+            ledger=ledger,
+            context=_live_clone_context(),
+            at_iso=_NOW,
+            ttl_seconds=30,
+            actor_id="worker_001",
+        )
+
+    # No lease is left active, so a waiting revocation completes immediately.
+    ledger.revoke(
+        "grant_a",
+        expected_state=ConsentState.LIVE,
+        policy=RevocationPolicy.WAIT,
+        at_iso=_NOW,
+        actor_id="reviewer_001",
+    )
+    assert ledger.current_grant("grant_a").state is ConsentState.REVOKED

@@ -111,9 +111,11 @@ def _parse_metric(stderr: str, metric_lower: str, computed: dict[str, float]) ->
     for line in stderr.split("\n"):
         if metric_lower == "psnr" and "average:" in line.lower():
             try:
-                val_match = re.search(r"average:\s*([0-9.]+)", line, re.IGNORECASE)
+                val_match = re.search(r"average:\s*(inf|[0-9.]+)", line, re.IGNORECASE)
                 if val_match:
-                    computed["psnr"] = float(val_match.group(1))
+                    raw_val = val_match.group(1).lower()
+                    # Identical frames emit PSNR=inf; report JSON-safe 100.0 dB ceiling.
+                    computed["psnr"] = 100.0 if raw_val == "inf" else float(raw_val)
             except (ValueError, IndexError):
                 continue
         elif metric_lower == "ssim" and "All:" in line:

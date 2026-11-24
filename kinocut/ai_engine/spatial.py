@@ -210,6 +210,15 @@ def _spatial_channel_gains(pan_value: float) -> tuple[float, float]:
     return left_gain, right_gain
 
 
+def _spatial_pan_matrix(pan_value: float) -> tuple[float, float, float, float]:
+    """Return stereo pan matrix ``(ll, lr, rl, rr)`` preserving stereo separation at center."""
+    p = max(-1.0, min(1.0, float(pan_value)))
+    if p < 0.0:
+        amount = -p
+        return (1.0, amount, 0.0, 1.0 - amount)
+    return (1.0 - p, 0.0, p, 1.0)
+
+
 def _render_spatial_segment(
     video: str,
     i: int,
@@ -239,17 +248,15 @@ def _render_spatial_segment(
     # Convert to pan and volume values
     pan_value = _azimuth_to_pan(azimuth)
     volume_value = _elevation_to_volume(elevation)
-    left_gain, right_gain = _spatial_channel_gains(pan_value)
+    ll, lr, rl, rr = _spatial_pan_matrix(pan_value)
 
     # Output segment file
     segment_file = tmpdir_path / f"segment_{i:04d}.mp4"
 
     # Build FFmpeg command for this segment
-    # Extract segment, apply pan and volume
+    # Extract segment, apply balance-preserving stereo pan and volume
     filter_complex = (
-        f"[0:a]volume={volume_value},"
-        f"pan=stereo|c0={left_gain:.3f}*c0+{left_gain:.3f}*c1|"
-        f"c1={right_gain:.3f}*c0+{right_gain:.3f}*c1[aout]"
+        f"[0:a]volume={volume_value},pan=stereo|c0={ll:.3f}*c0+{lr:.3f}*c1|c1={rl:.3f}*c0+{rr:.3f}*c1[aout]"
     )
 
     cmd = [

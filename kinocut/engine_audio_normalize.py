@@ -328,6 +328,8 @@ def normalize_audio(
                     audio_codec="copy",
                 )
             )
+            # Nothing was normalized; the caller must not read this as a loudness result.
+            warnings = ["input_has_no_audio_stream: nothing was normalized; the output is a stream copy of the input."]
         else:
             warnings, measured_input, measured_output = _apply_loudnorm(
                 input_path, probe, staged, fade, target_s, lra_s, peak_s, codec, video_container

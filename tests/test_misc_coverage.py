@@ -1,7 +1,7 @@
 """Targeted tests to raise coverage on small utility modules."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -191,51 +191,20 @@ class TestAudioEngineInit:
         with pytest.raises(InputFileError):
             add_generated_audio("/nonexistent.mp4", {"events": [{"type": "tone"}]}, str(tmp_path / "out.mp4"))
 
-    def test_add_generated_audio_with_drone(self, tmp_path):
-        from mcp_video.audio_engine import add_generated_audio
+    def test_add_generated_audio_unreadable_video_is_a_processing_error(self, tmp_path):
+        from kinocut.audio_engine import add_generated_audio
+        from kinocut.errors import ProcessingError
 
-        video = str(tmp_path / "v.mp4")
-        Path(video).write_bytes(b"fake")
-        out = str(tmp_path / "out.mp4")
+        video = tmp_path / "not-a-video.mp4"
+        video.write_bytes(b"\x00" * 4096)
 
-        # Mock audio_sequence to avoid actual generation, then ffmpeg will fail
-        with patch("mcp_video.audio_engine.audio_sequence"), patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stderr="")
-            result = add_generated_audio(
-                video,
-                {"drone": {"frequency": 100, "volume": 0.2}, "events": []},
-                out,
+        with pytest.raises(ProcessingError):
+            add_generated_audio(
+                str(video),
+                {"events": [{"type": "tone", "at": 0, "duration": 1, "freq": 440}]},
+                str(tmp_path / "out.mp4"),
             )
-            assert result == out
-
-    def test_add_generated_audio_ffmpeg_timeout(self, tmp_path):
-        from mcp_video.audio_engine import add_generated_audio
-
-        video = str(tmp_path / "v.mp4")
-        Path(video).write_bytes(b"fake")
-        out = str(tmp_path / "out.mp4")
-
-        with (
-            patch("mcp_video.audio_engine.audio_sequence"),
-            patch("subprocess.run", side_effect=TimeoutError("timeout")),
-            pytest.raises(Exception),
-        ):
-            # The code catches subprocess.TimeoutExpired, not TimeoutError
-            # So this will actually raise a different error
-            add_generated_audio(video, {"events": [{"type": "tone"}]}, out)
-
-    def test_add_generated_audio_ffmpeg_error(self, tmp_path):
-        from mcp_video.audio_engine import add_generated_audio
-        from mcp_video.errors import ProcessingError
-
-        video = str(tmp_path / "v.mp4")
-        Path(video).write_bytes(b"fake")
-        out = str(tmp_path / "out.mp4")
-
-        with patch("mcp_video.audio_engine.audio_sequence"):
-            mock_result = MagicMock(returncode=1, stderr="ffmpeg error")
-            with patch("subprocess.run", return_value=mock_result), pytest.raises(ProcessingError):
-                add_generated_audio(video, {"events": [{"type": "tone"}]}, out)
+        assert not (tmp_path / "out.mp4").exists()
 
 
 class TestServerToolsImageSuccess:

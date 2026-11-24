@@ -30,8 +30,13 @@ def _build_duck_filtergraph(
     fade_out: float,
     target_duration: float,
     target_lufs: float,
+    output_sample_rate: int,
 ) -> str:
-    """Build the sidechain-duck + fade + loudnorm filtergraph (voice present)."""
+    """Build the sidechain-duck + fade + loudnorm filtergraph (voice present).
+
+    ``loudnorm`` runs at 192 kHz and would hand the AAC encoder that rate, so
+    the chain ends by resampling back to the source rate.
+    """
     fade_start = max(0.0, target_duration - fade_out)
     vol, thr, rat = _n(music_volume, "music_volume"), _n(duck_threshold, "duck_threshold"), _n(duck_ratio, "duck_ratio")
     atk, rel, lufs = _n(duck_attack, "duck_attack"), _n(duck_release, "duck_release"), _n(target_lufs, "target_lufs")
@@ -44,13 +49,20 @@ def _build_duck_filtergraph(
             f"[ducked]afade=t=in:st=0:d={_n(fade_in, 'fade_in')}",
             f",afade=t=out:st={_n(fade_start, 'fade_start')}:d={_n(fade_out, 'fade_out')}[faded];",
             "[0:a][faded]amix=inputs=2:duration=first:normalize=0[mixed];",
-            f"[mixed]loudnorm=I={lufs}:TP={tp}:LRA={lra}[aout]",
+            f"[mixed]loudnorm=I={lufs}:TP={tp}:LRA={lra},aresample={_n(output_sample_rate, 'output_sample_rate')}[aout]",
         ]
     )
 
 
 def _build_no_duck_filtergraph(
-    *, music_volume: float, fade_in: float, fade_out: float, target_duration: float, target_lufs: float, needs_pad: bool
+    *,
+    music_volume: float,
+    fade_in: float,
+    fade_out: float,
+    target_duration: float,
+    target_lufs: float,
+    needs_pad: bool,
+    output_sample_rate: int,
 ) -> str:
     """Build fade + loudnorm filtergraph for the no-voice case (no ducking)."""
     fade_start = max(0.0, target_duration - fade_out)
@@ -61,7 +73,7 @@ def _build_no_duck_filtergraph(
         f"[1:a]{pad}volume={vol}"
         f",afade=t=in:st=0:d={_n(fade_in, 'fade_in')}"
         f",afade=t=out:st={_n(fade_start, 'fade_start')}:d={_n(fade_out, 'fade_out')}"
-        f",loudnorm=I={lufs}:TP={tp}:LRA={lra}[aout]"
+        f",loudnorm=I={lufs}:TP={tp}:LRA={lra},aresample={_n(output_sample_rate, 'output_sample_rate')}[aout]"
     )
 
 

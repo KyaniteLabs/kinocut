@@ -109,6 +109,12 @@ def _index_decisions(project: Project) -> dict[str, ReviewDecision]:
     }
 
 
+def verdict_covers_clip(verdict: ClipVerdict | None, clip: ClipRecord) -> bool:
+    """A verdict only vouches for the asset it was issued on: the clip or its source."""
+
+    return verdict is not None and verdict.asset_hash in {clip.asset_id, clip.source_asset_id}
+
+
 def _verdict_is_approved(verdict: ClipVerdict | None) -> bool:
     """True when a verdict exists and has an approved disposition."""
 
@@ -174,6 +180,7 @@ def query_approved_clips(
         and _active_asset_rights_allowed(clip.asset_id, assets, rights)
         and _active_asset_rights_allowed(clip.source_asset_id, assets, rights)
         and _verdict_is_approved(verdicts.get(clip.verdict_id))
+        and verdict_covers_clip(verdicts.get(clip.verdict_id), clip)
         and _consent_is_valid(decisions.get(clip.review_decision_id), target_asset=clip.asset_id)
         and _matches_tags(clip.tags, wanted)
     ]

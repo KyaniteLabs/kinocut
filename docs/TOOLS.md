@@ -737,7 +737,7 @@ Every entry below is generated from the code, so nothing is missing. The section
 
 | Tool | Summary |
 | --- | --- |
-| `video_benchmark_run` | Run the AI-video benchmark corpus against host capabilities. |
+| `video_benchmark_run` | Count which AI-video corpus capabilities are available on this host. |
 | `video_capabilities` | Probe host capabilities (ffmpeg, whisper, c2pa) and return a capability report. |
 | `video_cost_ledger` | Sum known USD cost events by category for the project. |
 | `video_doctor` | Return a read-only JSON readiness verdict for the next video job. |
@@ -749,7 +749,7 @@ Every entry below is generated from the code, so nothing is missing. The section
 | `video_publish_gate` | Evaluate the fail-closed publish gate; any blocking finding blocks publishing. |
 | `video_recipe_capture` | Capture a workflow recipe (writer); idempotent by canonical digest. |
 | `video_record_motion_acceptance` | Record an authorized human caller's explicit whole-film motion attestation. |
-| `video_review_decision` | Record a human review decision (writer); corrections supersede by record id. |
+| `video_review_decision` | Record a review decision (writer); corrections supersede by record id. |
 | `video_review_package` | Assemble a review package and publish-gate verdict for a candidate artifact. |
 | `video_validate_text_layout` | Validate a set of text overlays for visual failure modes before rendering. |
 

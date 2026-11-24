@@ -52,7 +52,11 @@ def _resize_dimensions(info, width: int | None, height: int | None, aspect_ratio
         display_w, display_h = getattr(info, "display_width", info.width), getattr(info, "display_height", info.height)
         w, h = _even_dimension(height * display_w / display_h), _even_dimension(height)
     else:
-        raise MCPVideoError("resize requires width+height, aspect_ratio, or single dimension")
+        raise MCPVideoError(
+            "resize requires width+height, aspect_ratio, or single dimension",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
     _validate_dimension(w, "resolved width")
     _validate_dimension(h, "resolved height")
     return w, h

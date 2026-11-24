@@ -39,7 +39,12 @@ _WORK_PREFIX = "@work/"
 _OUTPUT_PREFIX = "@outputs."
 
 
-def validate_workflow_spec(spec_path: str, variant: str | None = None) -> dict[str, Any]:
+def validate_workflow_spec(
+    spec_path: str,
+    variant: str | None = None,
+    *,
+    _preloaded: tuple[Path, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Validate a workflow job-spec, returning a structured verdict.
 
     When ``variant`` is given, the selected variant's overrides are merged into
@@ -52,8 +57,11 @@ def validate_workflow_spec(spec_path: str, variant: str | None = None) -> dict[s
 
     Raises ``MCPVideoError`` (fail-closed) on any structural violation.
     """
-    resolved = validate_spec_path(spec_path)
-    data = load_spec(resolved)
+    if _preloaded is not None:
+        resolved, data = _preloaded
+    else:
+        resolved = validate_spec_path(spec_path)
+        data = load_spec(resolved)
     workspace_root = Path(os.path.realpath(resolved.parent))
     if variant is not None:
         data = apply_variant_overrides(data, variant)
@@ -155,6 +163,7 @@ def _validate_steps(
 ) -> list[dict[str, Any]]:
     seen_ids: set[str] = set()
     work_produced: set[str] = set()
+    outputs_produced: set[str] = set()
     verdict: list[dict[str, Any]] = []
     for step in spec.steps:
         _validate_step_id(step.id, seen_ids)
@@ -173,6 +182,14 @@ def _validate_steps(
         )
         if step.output and step.output.startswith(_WORK_PREFIX):
             work_produced.add(step.output[len(_WORK_PREFIX) :])
+        elif step.output and step.output.startswith(_OUTPUT_PREFIX):
+            outputs_produced.add(step.output[len(_OUTPUT_PREFIX) :])
+    unproduced = sorted(output_ids - outputs_produced)
+    if unproduced:
+        raise workflow_error(
+            f"workflow declares {len(unproduced)} output(s) with no producing step",
+            INVALID_WORKFLOW_SPEC,
+        )
     return verdict
 
 

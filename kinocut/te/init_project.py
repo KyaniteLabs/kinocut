@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
+
+from ..ffmpeg_helpers import _validate_output_path
+
+
+def _render_cutfile_yaml(slug: str) -> str:
+    """Serialize the starter cutfile without requiring optional PyYAML."""
+    return f"name: {json.dumps(slug)}\nversion: 1\nsources: []\nops: []\n"
 
 
 def init_project(
@@ -13,7 +21,9 @@ def init_project(
     with_cutfile: bool = True,
 ) -> dict[str, Any]:
     """Create a minimal Kinocut project directory (idempotent on empty dirs)."""
-    root = Path(path).expanduser().resolve()
+    expanded = str(Path(path).expanduser())
+    safe_path = _validate_output_path(expanded)
+    root = Path(safe_path).resolve()
     root.mkdir(parents=True, exist_ok=True)
     slug = name or root.name
     media = root / "media"
@@ -31,10 +41,7 @@ def init_project(
     if with_cutfile:
         cf = root / "cutfile.yaml"
         if not cf.exists():
-            cf.write_text(
-                f'name: "{slug}"\nversion: 1\nsources: []\nops: []\n',
-                encoding="utf-8",
-            )
+            cf.write_text(_render_cutfile_yaml(slug), encoding="utf-8")
         cutfile_path = str(cf)
     return {
         "artifact_kind": "project_init",

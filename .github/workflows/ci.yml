@@ -43,8 +43,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base="${{ github.event.before }}"
+          pr_base="${{ github.event.pull_request.base.sha }}"
           head="${{ github.sha }}"
+          if [[ -n "$pr_base" ]]; then
+            base="$pr_base"
+          else
+            base="${{ github.event.before }}"
+          fi
           if [[ -z "$base" || "$base" == "0000000000000000000000000000000000000000" ]]; then
             base="$(git rev-parse "$head^")"
           fi
@@ -54,6 +59,9 @@ jobs:
             printf 'code=true\ndocker=true\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          if [[ -n "$pr_base" ]]; then
+            base="$(git merge-base "$base" "$head")"
+          fi
           changed_file="$(mktemp "$RUNNER_TEMP/kinocut-changes.XXXXXX")"
           trap 'rm -f -- "$changed_file"' EXIT
           git diff --no-renames --name-only -z "$base" "$head" -- > "$changed_file"
@@ -62,11 +70,11 @@ jobs:
           while IFS= read -r -d '' changed_path; do
             printf 'changed: %q\n' "$changed_path"
             case "$changed_path" in
-              kinocut/*|kinocut_sound/*|plugins/*|tests/*|workflows/05-confidence-baseline/*|scripts/golden_path.py|scripts/annotate-pytest-failures.py|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
+              kinocut/*|kinocut_sound/*|plugins/*|tests/*|qa/*|scripts/*|workflows/05-confidence-baseline/*|docs/public_claims.json|README.md|README-PYPI.md|llms.txt|server.json|mcpb/*|npm/*|compat/*|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|Dockerfile.ci|.github/workflows/*|.github/scripts/*|.forgejo/*)
                 code=true ;;
             esac
             case "$changed_path" in
-              Dockerfile|kinocut/*|kinocut_sound/*|mcp_video.py|pyproject.toml|uv.lock|.dockerignore|.github/workflows/ci.yml)
+              Dockerfile|Dockerfile.ci|kinocut/*|kinocut_sound/*|mcp_video.py|pyproject.toml|uv.lock|.dockerignore|.github/workflows/ci.yml)
                 docker=true ;;
             esac
           done < "$changed_file"
@@ -111,7 +119,7 @@ jobs:
         # pin deliberately together with the pyproject floor.
         run: .venv/bin/pip install "ruff==0.15.11"
       - name: Ruff check
-        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
+        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/ qa/ .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Ruff format check
         run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Type check core modules
@@ -165,7 +173,8 @@ jobs:
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20
-        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
+        run: |
+          bash .github/scripts/install-ffmpeg-ubuntu.sh
           ffmpeg -version
           ffprobe -version
       - name: Install dependencies
@@ -174,7 +183,7 @@ jobs:
       - name: Run tests with coverage
         id: pytest
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov-report=term --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
+        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov=kinocut_sound --cov-report=term --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
       - name: Annotate failing tests
         if: failure() && needs.changes.outputs.code == 'true' && steps.pytest.outcome == 'failure'
         run: .venv/bin/python scripts/annotate-pytest-failures.py "$RUNNER_TEMP/kinocut-pytest.xml"
@@ -253,7 +262,8 @@ jobs:
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 20
-        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
+        run: |
+          bash .github/scripts/install-ffmpeg-ubuntu.sh
           ffmpeg -version
           ffprobe -version
       - name: Install dependencies
@@ -467,7 +477,9 @@ jobs:
         run: |
           .venv/bin/pytest -q --tb=short -n 4 \
             tests/test_engine_composite_layers.py \
+            tests/test_composite_blend_windows.py \
             tests/test_server_tools_composite_layers.py \
+            tests/test_engine_glitch.py \
             tests/test_workflow_golden.py \
             tests/test_engine_overlay.py
 

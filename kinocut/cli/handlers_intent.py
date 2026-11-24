@@ -13,6 +13,13 @@ from ..limits import MAX_CLI_JSON_ARTIFACT_BYTES
 logger = logging.getLogger(__name__)
 
 
+def _translate_summary(result: dict[str, Any]) -> str:
+    """Text output for a translation: the destination plus any coverage warnings."""
+    return "\n".join(
+        [f"translated → {result['output_path']} ({result['cue_count']} cues)", *result.get("warnings", [])]
+    )
+
+
 def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
     """Handle intent / caption-translate / review CLI commands."""
     runner = CommandRunner(args, use_json)
@@ -80,7 +87,7 @@ def _register_intent_commands(runner: CommandRunner) -> None:
             source_lang=a.source_lang,
             target_lang=a.target_lang,
         )
-        _out(result.to_dict(), j, lambda res: f"translated → {res['output_path']} ({res['cue_count']} cues)")
+        _out(result.to_dict(), j, _translate_summary)
 
     def _coverage(a: Any, j: bool) -> None:
         from kinocut.intent import language_coverage_report
@@ -245,6 +252,9 @@ def _register_te_review_commands(runner: CommandRunner) -> None:
 
         r = validate_publish_spec(a.platform, duration_seconds=a.duration, height=a.height, width=a.width)
         _out(r, j, lambda res: f"{res['platform']} {res['verdict']}")
+        # The report is printed above; a failed gate must still fail the shell command.
+        if r["blocked"]:
+            raise SystemExit(1)
 
     def _hooks(a: Any, j: bool) -> None:
         from kinocut.te import generate_hook_candidates

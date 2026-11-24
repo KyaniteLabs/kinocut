@@ -114,7 +114,15 @@ def test_variant_output_collision_fails_closed(tmp_path):
     spec = {
         "schema_version": 1,
         "sources": {"a": {"path": "in.mp4"}},
-        "steps": [{"id": "p", "op": "probe", "inputs": {"src": "@sources.a"}}],
+        "steps": [
+            {
+                "id": "cut",
+                "op": "trim",
+                "inputs": {"src": "@sources.a"},
+                "params": {"start": 0, "duration": 1},
+                "output": "@outputs.o",
+            }
+        ],
         "outputs": {"o": {"path": "out.mp4"}},
         "variants": [
             {"id": "a", "overrides": {"outputs.o.path": "same/final.mp4"}},
@@ -132,7 +140,15 @@ def test_distinct_variant_outputs_do_not_collide(tmp_path):
     spec = {
         "schema_version": 1,
         "sources": {"a": {"path": "in.mp4"}},
-        "steps": [{"id": "p", "op": "probe", "inputs": {"src": "@sources.a"}}],
+        "steps": [
+            {
+                "id": "cut",
+                "op": "trim",
+                "inputs": {"src": "@sources.a"},
+                "params": {"start": 0, "duration": 1},
+                "output": "@outputs.o",
+            }
+        ],
         "outputs": {"o": {"path": "out.mp4"}},
         "variants": [{"id": "a", "overrides": {}}, {"id": "b", "overrides": {}}],
     }

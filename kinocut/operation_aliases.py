@@ -60,7 +60,6 @@ OPERATION_ALIASES: dict[str, str] = {
     "video_convert": "Convert a video to another format, such as a web-friendly MP4.",
     # --- speech, voice and narration -----------------------------------------
     "hyperframes_tts": ("Record a voiceover or narration from a script, using a chosen voice or a voice clone."),
-    "video_add_generated_audio": "Generate a spoken voiceover or narration and lay it into the video.",
     "video_add_audio": "Add, replace or lay in an audio track, voice recording or music on a video.",
     "video_dub_plan": "Plan a dubbed version of a video in another language.",
     "sound_voice_batch": "Produce a batch of spoken voice lines from a script.",
@@ -72,7 +71,10 @@ OPERATION_ALIASES: dict[str, str] = {
     "video_translate_captions": "Translate subtitles or captions into another language.",
     "video_auto_chapters": "Split a video into chapters from its speech.",
     # --- music, beds and sound -----------------------------------------------
-    "audio_synthesize": ("Generate background music, a soundtrack or a sound effect, from a provider or locally."),
+    "audio_synthesize": ("Generate a tone, noise or other waveform locally as a WAV file."),
+    "video_add_generated_audio": (
+        "Generate procedural sound (a drone, tones or sound presets) and lay it under a video. Not speech or narration."
+    ),
     "video_audio_bed": (
         "Lay background music or a soundtrack bed under narration or dialogue, and line the cuts up with the beat."
     ),
@@ -143,7 +145,7 @@ OPERATION_ALIASES: dict[str, str] = {
     "video_ai_scene_detect": "Detect the scene changes in a video.",
     "video_detect_scenes": "Detect the scene changes in a video.",
     "video_filter": "Apply a visual look or filter to a video.",
-    "video_cleanup": "Clean up a video's picture, such as denoising it.",
+    "video_cleanup": "Delete intermediate video files after a workflow; this removes files, it does not denoise or enhance the picture.",
     # --- planning ------------------------------------------------------------
     "video_intent": "Turn a plain-language description of an edit into a plan.",
     "video_direct": "Turn spoken direction into a reviewable edit plan.",

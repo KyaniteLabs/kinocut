@@ -109,7 +109,9 @@ def __getattr__(name: str) -> Any:
     try:
         return importlib.import_module(f"{__name__}.{name}")
     except ModuleNotFoundError as exc:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+        if exc.name == f"{__name__}.{name}":
+            raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+        raise
 
 
 def __dir__() -> list[str]:

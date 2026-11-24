@@ -70,6 +70,18 @@ def _hyperframes_subcommand(cmd: list[str]) -> str:
     raise AssertionError(f"hyperframes command not found in {cmd!r}")
 
 
+def _snapshot_writer(project: Path):
+    """A fake Hyperframes run that writes one new frame, as the real CLI does."""
+
+    def run(cmd, **kwargs):
+        snapshot_dir = project / "snapshots"
+        snapshot_dir.mkdir(exist_ok=True)
+        (snapshot_dir / "frame_new.png").write_bytes(b"png")
+        return _make_completed_process(stdout="captured")
+
+    return run
+
+
 def _mock_deps_ok():
     """Return a patcher that makes shutil.which find Node and Hyperframes."""
 
@@ -932,12 +944,14 @@ class TestStill:
         project = Path(sample_hyperframes_project)
         variables_file = tmp_path / "runtime.json"
         variables_file.write_text('{"headline":"Runtime"}')
-        fake_cp = _make_completed_process(stdout="Rendered frame.")
         snapshot_dir = project / "snapshots"
         snapshot_dir.mkdir()
-        (snapshot_dir / "frame.png").write_bytes(b"png")
+        (snapshot_dir / "frame.png").write_bytes(b"png")  # stale frame from an earlier run
 
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=_snapshot_writer(project)) as mock_run,
+        ):
             still(str(project), frame=42, variables={"headline": "Runtime"}, variables_file=str(variables_file))
 
         cmd = mock_run.call_args[0][0]
@@ -968,9 +982,12 @@ class TestSnapshot:
 
     def test_builds_at_timestamps(self, sample_hyperframes_project):
         project = str(sample_hyperframes_project)
-        fake_cp = _make_completed_process(stdout="captured")
-
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        with (
+            _mock_deps_ok(),
+            patch(
+                "mcp_video.hyperframes_engine.subprocess.run", side_effect=_snapshot_writer(Path(project))
+            ) as mock_run,
+        ):
             snapshot(project, at=[0.5, 1.25])
 
         cmd = mock_run.call_args[0][0]
@@ -982,9 +999,12 @@ class TestSnapshot:
         project = str(sample_hyperframes_project)
         variables_file = tmp_path / "vars.json"
         variables_file.write_text('{"quote":"Hello"}')
-        fake_cp = _make_completed_process(stdout="captured")
-
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        with (
+            _mock_deps_ok(),
+            patch(
+                "mcp_video.hyperframes_engine.subprocess.run", side_effect=_snapshot_writer(Path(project))
+            ) as mock_run,
+        ):
             snapshot(project, frames=1, variables={"quote": "Hello"}, variables_file=str(variables_file))
 
         cmd = mock_run.call_args[0][0]
