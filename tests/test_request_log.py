@@ -316,3 +316,43 @@ def test_hls_playlist_name_is_redacted_and_nested_path_tree_is_bounded(enabled_l
     latest = _records(enabled_log)[-1]["request_text"]
     assert len(latest.encode("utf-8")) <= request_log._MAX_REQUEST_TEXT
     assert "<truncated>" in latest
+
+
+def test_preserialization_node_and_depth_budget_strictly_bound_both_branches() -> None:
+    def _count_nodes(obj: object) -> int:
+        if isinstance(obj, dict):
+            return 1 + sum(_count_nodes(v) for v in obj.values())
+        if isinstance(obj, list):
+            return 1 + sum(_count_nodes(v) for v in obj)
+        return 1
+
+    # Depth boundary with 1 node left: must spend that node and stop without iterating children.
+    for branch_fn, sample in (
+        (
+            lambda b: request_log._redact_value(
+                ["a", "b", "c", "d"], budget=b, depth=request_log._MAX_REDACT_DEPTH - 1
+            ),
+            "general",
+        ),
+        (
+            lambda b: request_log._redact_path_value(
+                ["/a.mp4", "/b.mp4", "/c.mp4", "/d.mp4"], budget=b, depth=request_log._MAX_REDACT_DEPTH - 1
+            ),
+            "path",
+        ),
+    ):
+        budget = request_log._RedactBudget(nodes=1)
+        out = branch_fn(budget)
+        assert out == "<truncated>", sample
+        assert budget.nodes == 0, sample
+        assert _count_nodes(out) == 1, sample
+
+    # Small shared node budget bounds the entire pre-serialization tree including truncation markers.
+    for payload in (
+        {"items": [["x"] * 50 for _ in range(50)]},
+        {"clips": [["/tmp/a.mp4"] * 50 for _ in range(50)]},
+    ):
+        budget = request_log._RedactBudget(nodes=5)
+        out = request_log._redact_value(payload, budget=budget)
+        assert _count_nodes(out) <= 5
+        assert budget.nodes == 5 - _count_nodes(out)

@@ -240,19 +240,28 @@ def _is_path_key(key: str) -> bool:
 
 
 def _redact_path_value(value: object, budget: _RedactBudget, depth: int) -> object:
-    if depth >= _MAX_REDACT_DEPTH or not budget.consume_node():
+    if not budget.consume_node():
+        return "<truncated>"
+    if depth >= _MAX_REDACT_DEPTH:
         return "<truncated>"
     if isinstance(value, str):
         return _PATH_PLACEHOLDER
     if isinstance(value, (list, tuple)):
+        if depth + 1 >= _MAX_REDACT_DEPTH:
+            return "<truncated>"
+        seq = cast(list[object] | tuple[object, ...], value)
         items: list[object] = []
-        for index, item in enumerate(cast(list[object] | tuple[object, ...], value)):
-            if index >= _MAX_REDACT_ITEMS or budget.nodes <= 0:
-                items.append("<truncated>")
+        for index, item in enumerate(seq):
+            remaining_after = len(seq) - index - 1
+            if index >= _MAX_REDACT_ITEMS or budget.nodes <= (1 if remaining_after > 0 else 0):
+                if budget.consume_node():
+                    items.append("<truncated>")
                 break
             items.append(_redact_path_value(item, budget, depth + 1))
         return items
-    return _redact_value(value, budget=budget, depth=depth + 1)
+    # Container/scalar fallback: undo the node charge already taken before delegating.
+    budget.nodes += 1
+    return _redact_value(value, budget=budget, depth=depth)
 
 
 def _redact_bounded_str(text: str, budget: _RedactBudget) -> str:
@@ -269,31 +278,52 @@ def _redact_bounded_str(text: str, budget: _RedactBudget) -> str:
 def _redact_value(value: object, *, budget: _RedactBudget | None = None, depth: int = 0) -> object:
     """Return a bounded redacted copy of ``value``; never mutates the input."""
     active_budget = budget if budget is not None else _RedactBudget()
-    if depth >= _MAX_REDACT_DEPTH or active_budget.chars <= 0 or not active_budget.consume_node():
+    if not active_budget.consume_node():
+        return "<truncated>"
+    if depth >= _MAX_REDACT_DEPTH or active_budget.chars <= 0:
         return "<truncated>"
     if isinstance(value, str):
         return _redact_bounded_str(value, active_budget)
     if isinstance(value, dict):
+        if depth + 1 >= _MAX_REDACT_DEPTH:
+            return "<truncated>"
+        mapping = cast(dict[object, object], value)
         result: dict[str, object] = {}
-        for index, (raw_key, item) in enumerate(cast(dict[object, object], value).items()):
-            if index >= _MAX_REDACT_ITEMS or active_budget.chars <= 0 or active_budget.nodes <= 0:
-                result["<truncated>"] = True
+        total_entries = len(mapping)
+        for index, (raw_key, item) in enumerate(mapping.items()):
+            remaining_after = total_entries - index - 1
+            if (
+                index >= _MAX_REDACT_ITEMS
+                or active_budget.chars <= 0
+                or active_budget.nodes <= (1 if remaining_after > 0 else 0)
+            ):
+                if active_budget.consume_node():
+                    result["<truncated>"] = True
                 break
             key_str = str(raw_key)
             safe_key = _redact_bounded_str(key_str, active_budget)
             if _SENSITIVE_KEY_RE.search(key_str):
-                active_budget.consume_node()
-                result[safe_key] = _PLACEHOLDER
+                if active_budget.consume_node():
+                    result[safe_key] = _PLACEHOLDER
             elif _is_path_key(key_str):
                 result[safe_key] = _redact_path_value(item, active_budget, depth + 1)
             else:
                 result[safe_key] = _redact_value(item, budget=active_budget, depth=depth + 1)
         return result
     if isinstance(value, (list, tuple)):
+        if depth + 1 >= _MAX_REDACT_DEPTH:
+            return "<truncated>"
+        seq = cast(list[object] | tuple[object, ...], value)
         items: list[object] = []
-        for index, item in enumerate(cast(list[object] | tuple[object, ...], value)):
-            if index >= _MAX_REDACT_ITEMS or active_budget.chars <= 0 or active_budget.nodes <= 0:
-                items.append("<truncated>")
+        for index, item in enumerate(seq):
+            remaining_after = len(seq) - index - 1
+            if (
+                index >= _MAX_REDACT_ITEMS
+                or active_budget.chars <= 0
+                or active_budget.nodes <= (1 if remaining_after > 0 else 0)
+            ):
+                if active_budget.consume_node():
+                    items.append("<truncated>")
                 break
             items.append(_redact_value(item, budget=active_budget, depth=depth + 1))
         return items
