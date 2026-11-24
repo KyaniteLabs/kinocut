@@ -224,11 +224,36 @@ def test_negative_authored_start(sample_video):
         "<script>node.animate(frames, 50)</script>",
         "<style>.box {animation: fade 1s}</style>",
         "<script>gsap.to(box,{duration:1,repeat:2})</script>",
+        '<svg><animateMotion dur="13ms"/></svg>',
+        "<style>.box {animation-name: missing; animation-duration: 1s}</style>",
     ],
 )
 def test_unsupported_timing_cannot_hide_behind_valid_timing(unsupported):
     report = lint_composition_keyframes('<div data-start="0"></div>' + unsupported, MusicalGrid(120))
     assert not report["passed"] and report["errors"]
+
+
+def test_cross_style_block_keyframes_are_resolved():
+    html = (
+        "<style>@keyframes pulse { 13% { opacity: 1; } }</style>"
+        "<style>.box { animation-name: pulse; animation-duration: 1s; }</style>"
+    )
+    report = lint_composition_keyframes(html, MusicalGrid(120), tolerance_ms=0)
+    assert not report["passed"]
+    assert any(row["name"] == "pulse.13%" and not row["passed"] for row in report["keyframes"])
+
+
+@pytest.mark.parametrize("bad_time", [float("nan"), float("inf"), float("-inf"), "Infinity", "-Infinity", "NaN"])
+def test_timeline_grid_rejects_non_finite_times(bad_time):
+    from kinocut.models import Timeline
+    from pydantic import ValidationError
+
+    payload = {
+        "grid": {"bpm": 120},
+        "tracks": [{"type": "video", "clips": [{"source": "clip.mp4", "trim_start": bad_time}]}],
+    }
+    with pytest.raises((ValueError, ValidationError)):
+        Timeline.model_validate(payload)
 
 
 def test_decimal_endpoint_and_linter_exit_status(tmp_path):

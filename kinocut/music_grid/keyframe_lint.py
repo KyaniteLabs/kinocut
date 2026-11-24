@@ -87,8 +87,11 @@ def _css(text):
         start = _seconds(props.get("animation-delay", 0))
         duration = _seconds(props["animation-duration"])
         name = props.get("animation-name", rule[1].strip())
-        if "animation-name" in props and not re.fullmatch(r"[\w-]+", name):
-            raise ValueError("Unresolved CSS animation name")
+        if "animation-name" in props:
+            if not re.fullmatch(r"[\w-]+", name):
+                raise ValueError("Unresolved CSS animation name")
+            if name != "none" and name not in keyframes:
+                raise ValueError(f"Unresolved CSS @keyframes: {name}")
         yield from _event_points(dict(name=name, start=start, duration=duration))
         for stop in keyframes.get(name, []):
             yield f"{name}.{float(100 * stop):g}%", start + stop * duration
@@ -98,34 +101,43 @@ class _Composition(HTMLParser):
     def __init__(self):
         super().__init__()
         self.points = []
+        self.css_blocks: list[str] = []
+        self.script_blocks: list[str] = []
         self.block = None
+        self._buffer: list[str] = []
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
         if (
             (tag == "script" and "src" in values)
             or (tag == "link" and "stylesheet" in (values.get("rel") or "").lower())
-            or tag in ("animate", "animatetransform", "set", "iframe")
+            or tag.startswith("animate")
+            or tag in ("discard", "set", "iframe", "object", "embed")
             or any(key.startswith("on") for key in values)
         ):
             raise ValueError("Unresolved embedded timing")
         if tag in ("script", "style"):
             self.block = tag
+            self._buffer = []
         if "data-start" in values or "data-duration" in values:
             event = {key[5:]: value for key, value in attrs if key.startswith("data-")}
             self.points.extend(_event_points(dict(event, name=values.get("id", tag))))
         if "style" in values:
-            self.points.extend(_css("inline {" + (values["style"] or "") + "}"))
+            self.css_blocks.append("inline {" + (values["style"] or "") + "}")
 
     def handle_endtag(self, tag):
         if tag == self.block:
+            content = "".join(self._buffer)
+            if self.block == "style":
+                self.css_blocks.append(content)
+            elif self.block == "script":
+                self.script_blocks.append(content)
             self.block = None
+            self._buffer = []
 
     def handle_data(self, data):
-        if self.block == "style":
-            self.points.extend(_css(data))
-        elif self.block == "script":
-            self.points.extend(_gsap(data))
+        if self.block in ("style", "script"):
+            self._buffer.append(data)
 
 
 def _points(source):
@@ -136,6 +148,10 @@ def _points(source):
             parser.close()
             if parser.block is not None:
                 raise ValueError("Unclosed composition block")
+            if parser.css_blocks:
+                parser.points.extend(_css("\n".join(parser.css_blocks)))
+            for script in parser.script_blocks:
+                parser.points.extend(_gsap(script))
             return parser.points
         return list(_css(source) if re.match(r"\s*(?:@|[^{};()]+\{)", source) else _gsap(source))
     return [point for event in source for point in _event_points(event)]
