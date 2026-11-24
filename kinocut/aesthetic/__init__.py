@@ -26,6 +26,7 @@ import threading
 from pathlib import Path
 
 from ..errors import MCPVideoError
+from ..offline import require_offline_local_artifact
 
 # Lazy imports — only load torch when NIMA is actually used
 _torch = None
@@ -124,6 +125,9 @@ class NimaScorer:
         for path in WEIGHTS_SEARCH:
             if os.path.isfile(path):
                 return path
+        require_offline_local_artifact(
+            Path(WEIGHTS_PATH), feature="NIMA aesthetic scoring", env_hint="Copy the NIMA weights into the local cache."
+        )
         raise MCPVideoError(
             f"NIMA weights not found. Download with:\n"
             f"  pip install huggingface_hub\n"

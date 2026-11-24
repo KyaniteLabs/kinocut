@@ -1,13 +1,68 @@
 """Tests for environment diagnostics."""
 
 import json
+import hashlib
 import shutil
 import subprocess
 import sys
 from importlib.machinery import ModuleSpec
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+
+
+@pytest.mark.parametrize(
+    ("weights_valid", "runtime_available", "ready"),
+    [(False, True, False), (True, False, False), (True, True, True)],
+)
+def test_offline_upscale_needs_verified_weights_and_superres(
+    tmp_path, monkeypatch, weights_valid, runtime_available, ready
+):
+    from kinocut.ai_engine import upscale
+    from kinocut.doctor_offline import check_offline_readiness
+    from kinocut.host_probes import HostProbes
+
+    weights = tmp_path / "cache/models/FSRCNN_x2.pb"
+    weights.parent.mkdir(parents=True)
+    weights.write_bytes(b"fixture weights" if weights_valid else b"invalid weights")
+    monkeypatch.setitem(upscale._MODEL_HASHES, weights.name, hashlib.sha256(b"fixture weights").hexdigest())
+    cv2 = SimpleNamespace()
+    if runtime_available:
+        cv2.dnn_superres = SimpleNamespace(DnnSuperResImpl_create=object)
+    probes = HostProbes(
+        environ={"KINOCUT_DATA_DIR": str(tmp_path)},
+        home=lambda: tmp_path,
+        import_module=lambda name: cv2,
+        find_spec=lambda name: object(),
+    )
+    result = check_offline_readiness(probes)["details"]["features"]["upscale"]
+    assert result["ready"] is ready
+    assert result["status"] == ("ready" if ready else "configured_unverified")
+    assert result["runtime_available"] is runtime_available
+    assert result["weights"][0] == {"path": str(weights), "present": True, "verified": weights_valid}
+    assert not result["weights"][1]["present"]
+    assert weights.is_file()
+
+
+def test_offline_vision_anthropic_supports_description_but_not_semantic_qc(tmp_path):
+    from kinocut.doctor_offline import check_offline_readiness
+    from kinocut.host_probes import HostProbes
+
+    probes = HostProbes(
+        environ={
+            "KINOCUT_OFFLINE": "1",
+            "KINOCUT_VISION_MODE": "local",
+            "KINOCUT_VISION_BASE_URL": "http://127.0.0.1:50911",
+            "KINOCUT_VISION_API_STYLE": "anthropic",
+        },
+        home=lambda: tmp_path,
+        import_module=lambda name: SimpleNamespace(),
+        find_spec=lambda name: object(),
+    )
+    features = check_offline_readiness(probes)["details"]["features"]
+    assert features["vision_product_description"]["ready"]
+    assert not features["vision_semantic_qc"]["ready"]
 
 
 def _installed_hyperframes(tmp_path) -> str:
@@ -497,7 +552,14 @@ def test_run_diagnostics_includes_mcp_server_import_check():
     )
 
     checks = {check["name"]: check for check in report["checks"]}
-    assert set(imported) == {"kinocut.server", "onnxruntime", "kinocut.te.sphere_director", "kinocut", "mcp_video"}
+    assert set(imported) == {
+        "cv2",
+        "kinocut.server",
+        "onnxruntime",
+        "kinocut.te.sphere_director",
+        "kinocut",
+        "mcp_video",
+    }
     assert checks["mcp-server-import"]["ok"] is True
     assert checks["mcp-server-import"]["required"] is True
     assert report["summary"]["required_ok"] is True

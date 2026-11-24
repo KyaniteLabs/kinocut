@@ -10,6 +10,7 @@ from pathlib import Path
 from ..defaults import DEFAULT_OBJECT_MATTE_TIMEOUT
 from ..errors import MCPVideoError
 from ..model_cache import model_download_stage
+from ..offline import is_offline_mode, require_offline_local_artifact
 from ..staged_writers import open_staged_writer
 from ..validation import (
     OBJECT_MATTE_MAX_DOWNLOAD_BYTES,
@@ -57,6 +58,9 @@ def _verify_weights(path: Path, *, delete_invalid: bool = True) -> None:
 
 
 def _download_weights(dest: Path) -> None:
+    if is_offline_mode():
+        require_offline_local_artifact(dest, feature="Object matte", env_hint="Stage the pinned BiRefNet ONNX weights.")
+        return
     dest.parent.mkdir(parents=True, exist_ok=True)
     req = urllib.request.Request(OBJECT_MATTE_WEIGHTS_URL)  # noqa: S310
     context = ssl.create_default_context()
@@ -93,6 +97,7 @@ def _copy_capped(resp: object, handle: object) -> None:
 def ensure_weights() -> tuple[Path, bool]:
     """Return (cache path, cache_hit). Never called by doctor or --info."""
     path = object_matte_cache_path()
+    require_offline_local_artifact(path, feature="Object matte", env_hint="Stage the pinned BiRefNet ONNX weights.")
     cache_hit = path.is_file()
     if cache_hit:
         _verify_weights(path)

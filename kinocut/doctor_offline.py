@@ -10,8 +10,11 @@ installed package's metadata on disk.
 from __future__ import annotations
 
 from .host_probes import HostProbes
+from .offline import is_loopback_url, is_offline_mode
+from .errors import MCPVideoError
 import os
 import json
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -228,3 +231,117 @@ def check_sphere_director(probes: HostProbes) -> dict[str, Any]:
             "details": {"available": False, "kind": "unresolved"},
             "reason": type(exc).__name__,
         }
+
+
+def _installed(probes: HostProbes, *modules: str) -> bool:
+    try:
+        return all(probes.find_spec(module) is not None for module in modules)
+    except (ImportError, ValueError):
+        return False
+
+
+def _model_readiness(probes: HostProbes) -> dict:
+    from .ai_engine.lfm3_audio import DEPENDENCIES, ENV_MODEL_DIR, MODEL_NAME, snapshot_files
+    from .ai_engine.upscale import _MODEL_HASHES, _verify_model_hash
+    from .validation import OBJECT_MATTE_WEIGHTS_SHA256
+
+    whisper = probes.whisper_weights_path()
+    raw = probes.environ.get(ENV_MODEL_DIR, "").strip()
+    directory = Path(raw).expanduser() if raw else None
+    matte, _, digest = probes.matte_weights()
+    override = probes.environ.get("KINOCUT_DATA_DIR", "").strip()
+    cache = Path(override).expanduser() / "cache" if override else probes.home() / ".cache" / "mcp-video"
+    upscale = []
+    for name, expected_hash in _MODEL_HASHES.items():
+        path = cache / "models" / name
+        present = path.is_file()
+        verified = False
+        if present:
+            with suppress(MCPVideoError, OSError):
+                _verify_model_hash(path, expected_hash, delete_invalid=False)
+                verified = True
+        upscale.append({"path": str(path), "present": present, "verified": verified})
+    runtime_available = False
+    with suppress(Exception):
+        runtime_available = probes.import_module("cv2").dnn_superres.DnnSuperResImpl_create() is not None
+    upscale_ready = runtime_available and any(item["verified"] for item in upscale)
+    upscale_configured = any(item["present"] for item in upscale)
+    return {
+        "transcription_whisper": {
+            "ready": whisper.is_file() and _installed(probes, "whisper"),
+            "model": "Whisper base",
+            "path": str(whisper),
+        },
+        "transcription_lfm3_audio": {
+            "ready": bool(
+                directory and all(p.is_file() for p in snapshot_files(directory)) and _installed(probes, *DEPENDENCIES)
+            ),
+            "model": MODEL_NAME,
+            "path": str(directory) if directory else None,
+        },
+        "object_matte": {
+            "ready": digest == OBJECT_MATTE_WEIGHTS_SHA256 and _installed(probes, "onnxruntime"),
+            "model": "BiRefNet-general ONNX",
+            "path": str(matte),
+        },
+        "upscale": {
+            "ready": upscale_ready,
+            "status": "ready" if upscale_ready else "configured_unverified" if upscale_configured else "unavailable",
+            "model": "FSRCNN",
+            "runtime_available": runtime_available,
+            "weights": upscale,
+        },
+    }
+
+
+def check_offline_readiness(probes: HostProbes, *, include_paths: bool = True) -> dict[str, Any]:
+    """Report local configuration and artifacts without contacting model servers."""
+    from .image_engine import resolve_vision_endpoint
+    from .te.sphere_director import ENV_BASE_URL, ENV_DIRECTOR, ENV_MODEL
+
+    env = probes.environ
+    features = _model_readiness(probes)
+    try:
+        vision = resolve_vision_endpoint(environ=env)
+    except MCPVideoError:
+        vision = {}
+    vision_url = vision.get("base_url")
+    local_vision = bool(
+        vision_url
+        and is_loopback_url(vision_url)
+        and env.get("KINOCUT_VISION_MODE", "off").strip().lower() in {"local", "remote"}
+    )
+    openai_vision = vision.get("api_style") == "openai"
+    director_url = env.get(ENV_BASE_URL, "").strip()
+    features["vision_product_description"] = {
+        "ready": local_vision and (openai_vision or _installed(probes, "anthropic", "httpx")),
+        "model": vision.get("model") if vision_url else None,
+        "base_url": vision_url,
+    }
+    features["vision_semantic_qc"] = {
+        "ready": local_vision and openai_vision,
+        "model": vision.get("model") if openai_vision else None,
+        "base_url": vision_url if openai_vision else None,
+    }
+    features["director_360"] = {
+        "ready": env.get(ENV_DIRECTOR, "").strip() == "openai_compat" and is_loopback_url(director_url),
+        "model": env.get(ENV_MODEL, "").strip() or "LFM3-1.7B",
+        "base_url": director_url or None,
+    }
+    if not include_paths:
+        if env.get("KINOCUT_VISION_MODEL", "").strip():
+            for name in ("vision_product_description", "vision_semantic_qc"):
+                if features[name]["model"] is not None:
+                    features[name]["model"] = "configured (redacted)"
+        if env.get(ENV_MODEL, "").strip():
+            features["director_360"]["model"] = "configured (redacted)"
+    return {
+        "name": "offline_readiness",
+        "category": "optional",
+        "required": False,
+        "ok": all(feature["ready"] for feature in features.values()),
+        "path": None,
+        "version": None,
+        "install_hint": None,
+        "details": {"enabled": is_offline_mode(env), "features": features},
+    }

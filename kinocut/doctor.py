@@ -17,6 +17,7 @@ from dataclasses import replace
 from .host_probes import HostProbes, without_machine_paths
 from .rescue.capabilities import captions_available, snapshot_capabilities
 from .doctor_offline import (
+    check_offline_readiness,
     check_hyperframes_cli as _check_hyperframes_cli,
     check_sphere_director,
     report_resolved_hyperframes,
@@ -589,6 +590,7 @@ def run_diagnostics(
     checks.append(_check_still_plates(probes.find_spec, probes.package_version))
     checks.append(_check_object_matte(probes))
     checks.append(check_sphere_director(probes))
+    checks.append(check_offline_readiness(probes, include_paths=include_paths))
     checks.extend([_check_workspace(probes), _check_runtime_policy(probes)])
     report = {
         "success": True,

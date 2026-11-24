@@ -62,6 +62,7 @@ audio-midi = ["numpy>=1.24"]
 audio-analysis = ["numpy>=1.24"]
 hyperframes = []  # External: Node.js + resolvable Hyperframes CLI
 transcribe = ["openai-whisper>=20231117", "torch>=2.13.0", "setuptools>=84.1.0", "urllib3>=2.8.0"]
+lfm3-audio = ["transformers>=5.20.2", "torch>=2.13.0", "accelerate", "librosa", "soundfile", "safetensors"]
 ai-scene = ["imagehash>=4.3", "Pillow>=12.3.0"]
 stems = ["demucs>=4.0", "torch>=2.13.0", "torchaudio>=2.0", "torchcodec>=0.8", "setuptools>=84.1.0"]
 object-matte = ["onnxruntime>=1.17", "numpy>=1.26", "pillow>=13.0.0"]

@@ -153,7 +153,14 @@ def _run_local_transcript(
     captions = package_dir / "captions.srt"
     transcript = package_dir / "transcript.txt"
     started = time.monotonic()
-    result = ai_transcribe(str(master), output_srt=str(captions), model="base")
+    import inspect
+
+    params = inspect.signature(ai_transcribe).parameters
+    accepts_backend = "backend" in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    if accepts_backend:
+        result = ai_transcribe(str(master), output_srt=str(captions), model="base", backend="whisper")
+    else:
+        result = ai_transcribe(str(master), output_srt=str(captions), model="base")
     transcript.write_text(str(result.get("transcript", "")).strip() + "\n", encoding="utf-8")
     parameters: dict[str, int | float | str | bool] = {
         "transcript_path": _relative(transcript, workspace),

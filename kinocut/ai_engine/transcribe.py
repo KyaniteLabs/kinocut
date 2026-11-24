@@ -19,7 +19,9 @@ from .._install_hints import pip_install_hint
 from ..defaults import DEFAULT_LONGFORM_TRANSCRIBE_SECONDS
 from ..errors import InputFileError, MCPVideoError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _seconds_to_srt_time, _validate_output_path
+from ..host_probes import whisper_model_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_TRANSCRIBE_DURATION
+from ..offline import is_offline_mode, require_offline_local_artifact
 from ..validation import VALID_WHISPER_MODELS
 from ..validation_errors import rejected_value
 
@@ -154,50 +156,24 @@ def ai_transcribe(
     language: str | None = None,
     *,
     chunk_longform: bool | None = None,
+    backend: str | None = None,
 ) -> dict[str, Any]:
-    """Speech-to-text transcription using OpenAI Whisper.
-
-    Args:
-        video: Input video path
-        output_srt: Optional output SRT file path
-        model: Whisper model size (tiny, base, small, medium, large)
-        language: Language code (auto-detect if None)
-        chunk_longform: Force or disable chunking; by default chunk above 30 minutes.
-
-    Returns:
-        Dict with transcript, segments, language
-
-    Raises:
-        RuntimeError: If whisper is not installed
-        FileNotFoundError: If video file doesn't exist
-    """
-    _validate_whisper_model(model)
+    """Transcribe with Whisper or the optional local LFM3-Audio backend."""
+    selected = (backend or os.environ.get("KINOCUT_ASR_BACKEND") or "whisper").strip().lower()
+    if selected not in {"whisper", "lfm3-audio"}:
+        raise MCPVideoError("ASR backend must be whisper or lfm3-audio", code="invalid_parameter")
     if "\x00" in video:
         raise InputFileError(video, "Invalid path: contains null bytes")
-
-    # Check for whisper availability
-    try:
-        import whisper
-    except ImportError:
-        # The hint must name the version that is actually running, not the
-        # release this message was written against (audit row 78).
-        hint = pip_install_hint("transcribe")
-        raise MCPVideoError(
-            f"Whisper not installed. Install with: {hint}",
-            error_type="dependency_error",
-            code="missing_whisper",
-            suggested_action={
-                "auto_fix": False,
-                "description": f"Run: {hint} to enable transcription",
-            },
-        ) from None
-
-    # Validate input file
+    whisper = _import_whisper(model) if selected == "whisper" else None
     video_path = Path(video)
     if not video_path.exists():
         raise InputFileError(video)
     duration = _validate_transcribe_duration(str(video_path))
-    if chunk_longform is True or (chunk_longform is None and duration > DEFAULT_LONGFORM_TRANSCRIBE_SECONDS):
+    if selected == "lfm3-audio":
+        from .lfm3_audio import transcribe_video
+
+        result = transcribe_video(video_path, duration, language)
+    elif chunk_longform is True or (chunk_longform is None and duration > DEFAULT_LONGFORM_TRANSCRIBE_SECONDS):
         from .transcribe_longform import transcribe_longform
 
         raw_segments: list[dict[str, Any]] = []
@@ -218,12 +194,48 @@ def ai_transcribe(
     return result
 
 
+def _offline_whisper_path(model: str) -> Path:
+    return require_offline_local_artifact(
+        whisper_model_path(model), feature="Whisper", env_hint="Stage Whisper weights under the local cache."
+    )
+
+
+def _import_whisper(model: str) -> Any:
+    _validate_whisper_model(model)
+    if is_offline_mode():
+        _offline_whisper_path(model)
+    try:
+        import whisper
+    except ImportError:
+        # The hint must name the version that is actually running, not the
+        # release this message was written against (audit row 78).
+        hint = pip_install_hint("transcribe")
+        raise MCPVideoError(
+            f"Whisper not installed. Install with: {hint}",
+            error_type="dependency_error",
+            code="missing_whisper",
+            suggested_action={
+                "auto_fix": False,
+                "description": f"Run: {hint} to enable transcription",
+            },
+        ) from None
+
+    return whisper
+
+
+def _load_whisper_model(whisper: Any, model: str) -> Any:
+    if is_offline_mode():
+        path = _offline_whisper_path(model).absolute()
+        return whisper.load_model(str(path), download_root=str(path.parent))
+    return whisper.load_model(model)
+
+
 def _single_pass(video_path: Path, whisper: Any, model: str, language: str | None) -> dict[str, Any]:
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         audio_path = tmp.name
     try:
         _extract_transcription_audio(video_path, audio_path)
-        whisper_model = whisper.load_model(model)
+        whisper_model = _load_whisper_model(whisper, model)
         return _build_transcription_result(
             whisper_model.transcribe(audio_path, **({"language": language} if language else {}))
         )

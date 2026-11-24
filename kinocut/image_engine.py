@@ -9,7 +9,7 @@ from __future__ import annotations
 import colorsys
 from typing import Any
 import os
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
 from .defaults import (
     DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS,
@@ -28,6 +28,8 @@ from .image_models import (
     ProductAnalysisResult,
 )
 from .validation_errors import rejected_value
+from .offline import is_loopback_url, require_offline_allowed_url
+from .openai_compat import chat_completion, completions_url
 
 SUPPORTED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp"})
 MAX_IMAGE_PIXELS = 50_000_000  # ~50 MP (e.g. 7168x7168); guards against decompression bombs (H5)
@@ -36,12 +38,14 @@ MAX_IMAGE_PIXELS = 50_000_000  # ~50 MP (e.g. 7168x7168); guards against decompr
 # of endpoint configuration and credentials; host image inspection needs neither.
 ENV_VISION_BASE_URL = "KINOCUT_VISION_BASE_URL"
 ENV_VISION_MODEL = "KINOCUT_VISION_MODEL"
-_LOCAL_VISION_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+VISION_LOCAL_HINT = "Set KINOCUT_VISION_BASE_URL to your loopback LFM3-VL-2B server."
 
 
 def resolve_vision_endpoint(
     base_url: str | None = None,
     model: str | None = None,
+    *,
+    environ=None,
 ) -> dict[str, Any]:
     """Resolve the AI-description endpoint (param > env). No network call.
 
@@ -49,32 +53,54 @@ def resolve_vision_endpoint(
     endpoint kind ("local" / "custom" / None when no endpoint override is set).
     Remote non-Anthropic endpoints must use HTTPS; raises MCPVideoError otherwise.
     """
-    resolved_url = (base_url or os.environ.get(ENV_VISION_BASE_URL) or "").strip() or None
-    resolved_model = (model or os.environ.get(ENV_VISION_MODEL) or "").strip() or None
+    env = os.environ if environ is None else environ
+    resolved_url = (base_url or env.get(ENV_VISION_BASE_URL) or env.get("LFM3_VL_URL") or "").strip() or None
+    resolved_model = (model or env.get(ENV_VISION_MODEL) or "").strip() or None
+    style = env.get("KINOCUT_VISION_API_STYLE", "").strip().lower()
+    if style not in {"", "openai", "anthropic"}:
+        raise MCPVideoError("KINOCUT_VISION_API_STYLE must be openai or anthropic", code="invalid_parameter")
     kind = None
     if resolved_url:
-        parsed = urlparse(resolved_url)
-        host = (parsed.hostname or "").lower()
-        scheme = (parsed.scheme or "").lower()
-        if not host or scheme not in {"http", "https"} or parsed.username or parsed.password:
+        try:
+            parsed = urlsplit(resolved_url)
+            if (
+                not parsed.hostname
+                or parsed.scheme not in {"http", "https"}
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.fragment
+                or parsed.query
+                or parsed.port == 0
+                or any(char.isspace() for char in resolved_url)
+                or "\\" in resolved_url
+            ):
+                raise ValueError
+        except ValueError:
             raise MCPVideoError(
                 "Vision endpoint must be an HTTP(S) URL without credentials", error_type="validation_error"
-            )
-        if host not in _LOCAL_VISION_HOSTS:
-            if scheme != "https":
+            ) from None
+        if not is_loopback_url(resolved_url):
+            if parsed.scheme != "https":
                 raise MCPVideoError(
-                    f"Remote vision endpoints must use HTTPS (got {scheme}://{host}). "
-                    "Use a local loopback endpoint for HTTP.",
+                    "Remote vision endpoints must use HTTPS. Use a local loopback endpoint for HTTP.",
                     error_type="validation_error",
                     code="insecure_endpoint",
                 )
             kind = "custom"
         else:
             kind = "local"
+            if not style and (
+                parsed.path.rstrip("/").endswith("/v1/chat/completions")
+                or (not base_url and not env.get(ENV_VISION_BASE_URL) and env.get("LFM3_VL_URL"))
+            ):
+                style = "openai"
+    if style == "openai" and not resolved_url:
+        raise MCPVideoError("OpenAI-compatible vision requires KINOCUT_VISION_BASE_URL", code="invalid_parameter")
     return {
         "base_url": resolved_url,
-        "model": resolved_model or DEFAULT_VISION_MODEL,
+        "model": resolved_model or ("LFM3-VL-2B" if style == "openai" else DEFAULT_VISION_MODEL),
         "endpoint_kind": kind,
+        **({"api_style": style} if style else {}),
     }
 
 
@@ -397,13 +423,63 @@ def _describe_product_with_vision(
 ) -> str:
     """Return an AI text description of ``image_path`` (opt-in vision call).
 
-    KINOCUT_VISION_MODE must explicitly permit this route. Local endpoints use
-    the legacy Anthropic-compatible protocol, with no proxy, redirect or retry.
+    KINOCUT_VISION_MODE must explicitly permit this route.
     """
-    from .vision_policy import require_vision_provider
+    from .vision_policy import require_vision_provider, strip_think_blocks
 
+    require_offline_allowed_url(
+        (
+            base_url or os.environ.get(ENV_VISION_BASE_URL) or os.environ.get("LFM3_VL_URL") or DEFAULT_VISION_BASE_URL
+        ).strip(),
+        feature="Vision",
+        local_alternative=VISION_LOCAL_HINT,
+    )
     endpoint = resolve_vision_endpoint(base_url, model)
     require_vision_provider(endpoint["endpoint_kind"])
+    if endpoint.get("api_style") == "openai":
+        mime_type, img_data = _encoded_vision_image(image_path)
+        text = chat_completion(
+            completions_url(endpoint["base_url"]),
+            {
+                "model": endpoint["model"],
+                "max_tokens": token_budget(ENV_PRODUCT_DESCRIPTION_MAX_TOKENS, DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS),
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": _PRODUCT_PROMPT},
+                            _openai_image(mime_type, img_data),
+                        ],
+                    }
+                ],
+            },
+            feature="Vision",
+            local_alternative=VISION_LOCAL_HINT,
+            key=_resolve_vision_api_key(endpoint) if endpoint["endpoint_kind"] == "custom" else None,
+        )
+        return strip_think_blocks(text)
+    return _describe_anthropic(endpoint, image_path)
+
+
+_PRODUCT_PROMPT = (
+    "Describe this product image concisely in 2-3 sentences. "
+    "Focus on the product type, colors, and key visual features."
+)
+
+
+def _openai_image(mime_type: str, data: str) -> dict:
+    return {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{data}"}}
+
+
+def _encoded_vision_image(image_path: str) -> tuple[str, str]:
+    import base64
+    import mimetypes
+
+    with open(image_path, "rb") as source:
+        return mimetypes.guess_type(image_path)[0] or "image/jpeg", base64.b64encode(source.read()).decode()
+
+
+def _describe_anthropic(endpoint: dict, image_path: str) -> str:
     if os.environ.get("ANTHROPIC_CUSTOM_HEADERS", "").strip():
         raise MCPVideoError(
             "The vision adapter does not accept ANTHROPIC_CUSTOM_HEADERS; unset it to prevent inherited "
@@ -424,15 +500,10 @@ def _describe_product_with_vision(
             },
         ) from None
 
-    import base64
     import httpx
-    import mimetypes
 
     api_key = _resolve_vision_api_key(endpoint)
-
-    mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
-    with open(image_path, "rb") as f:
-        img_data = base64.b64encode(f.read()).decode("utf-8")
+    mime_type, img_data = _encoded_vision_image(image_path)
 
     with httpx.Client(
         trust_env=endpoint["endpoint_kind"] != "local",
@@ -469,8 +540,7 @@ def _request_product_description(client: Any, model: str, mime_type: str, img_da
                     },
                     {
                         "type": "text",
-                        "text": "Describe this product image concisely in 2-3 sentences. "
-                        "Focus on the product type, colors, and key visual features.",
+                        "text": _PRODUCT_PROMPT,
                     },
                 ],
             }

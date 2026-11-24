@@ -242,6 +242,9 @@ def _integrated_lufs(path: str) -> float | None:
         "null",
         "-",
     ]
+    from ..offline import offline_media_command
+
+    cmd = offline_media_command(cmd)
     try:
         proc = subprocess.run(  # noqa: S603
             cmd,

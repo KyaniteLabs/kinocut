@@ -29,11 +29,28 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
     return runner.dispatch()
 
 
+def _format_doctor_with_readiness(report: dict) -> None:
+    from rich.markup import escape
+    from rich.table import Table
+
+    from .formatting import console
+
+    _format_doctor_text(report)
+    offline = next((check["details"] for check in report["checks"] if check["name"] == "offline_readiness"), None)
+    if offline:
+        table = Table(title=f"Offline Readiness (mode {'on' if offline['enabled'] else 'off'})")
+        for label in ("Feature", "Status", "Local model"):
+            table.add_column(label)
+        for feature, details in offline["features"].items():
+            table.add_row(feature, "Ready" if details["ready"] else "Not ready", escape(details["model"] or "-"))
+        console.print(table)
+
+
 def _register_diagnostics_commands(runner: CommandRunner) -> None:
     def _doctor(a, j):
         from ..doctor import run_diagnostics
 
-        _out(run_diagnostics(), j or a.json, _format_doctor_text)
+        _out(run_diagnostics(), j or a.json, _format_doctor_with_readiness)
 
     runner.register("doctor", _doctor)
     _info_default = plain_cmd(

@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+import os
 from typing import Any
 
-from kinocut.te.sphere_director import DirectorFn, apply_director, detect_sphere_director
+from kinocut.te.sphere_director import ENV_DIRECTOR, DirectorFn, apply_director, detect_sphere_director
 from kinocut.te.sphere_plan import decide_sphere_plan, propose_sphere_plan, validate_sphere_plan
 from kinocut.te.sphere_render import render_sphere_plan
 from kinocut.te.sphere_storyboard import storyboard_sphere_plan
@@ -77,7 +78,7 @@ def propose_360_assembly(
         plan = propose_sphere_plan(
             source, preset=chosen_preset, layout=chosen_layout, aspect=chosen_aspect, writer_kind="single"
         )
-    elif director or propose:
+    elif director or propose or os.environ.get(ENV_DIRECTOR, "").strip():
         plan = apply_director(
             source,
             preset=chosen_preset,

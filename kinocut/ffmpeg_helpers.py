@@ -24,6 +24,7 @@ from .limits import (
     MAX_FFMPEG_PIPE_BYTES,
 )
 from . import publication
+from .offline import offline_media_command as _offline_media_command
 from .publication import _staging, note_operation_write as _note_operation_write, record_operation_input
 from .publication._operation import _reject_self_overwrite as _reject_self_overwrite
 from .publication._policy import _validate_write_path as _validate_write_path
@@ -102,6 +103,9 @@ def _run_command(
     from .engine_runtime_utils import _ffmpeg, _ffprobe
     from .bounded_process import run_bounded
 
+    name = os.path.basename(cmd[0]).lower() if cmd else ""
+    is_ffmpeg = name in {"ffmpeg", "ffmpeg.exe"}
+    is_ffprobe = name in {"ffprobe", "ffprobe.exe"}
     if cmd and cmd[0] == "ffmpeg":
         cmd = [_ffmpeg(), *cmd[1:]]
     elif cmd and cmd[0] == "ffprobe":
@@ -114,18 +118,18 @@ def _run_command(
             if out_dir:
                 os.makedirs(out_dir, exist_ok=True)
             break
-    cmd_str = " ".join(cmd)
-
     output = cmd[-1] if cmd else ""
-    is_ffmpeg = bool(cmd and os.path.basename(cmd[0]).lower() in {"ffmpeg", "ffmpeg.exe"})
     staged = bool(cmd and _staging.is_staged_output(output))
-    if staged and not is_ffmpeg and os.path.basename(cmd[0]).lower() not in {"ffprobe", "ffprobe.exe"}:
+    if staged and not is_ffmpeg and not is_ffprobe:
         from .errors import FFmpegNotFoundError
 
         try:
             is_ffmpeg = cmd[0] == _ffmpeg()
         except FFmpegNotFoundError:
             is_ffmpeg = False
+    if is_ffmpeg or is_ffprobe:
+        cmd = _offline_media_command(cmd, probe=is_ffprobe)
+    cmd_str = " ".join(cmd)
     try:
         with contextlib.ExitStack() as lease:
             if is_ffmpeg:
@@ -162,7 +166,7 @@ def _run_ffmpeg(
     if args and args[0] in {"ffmpeg", "ffprobe"}:
         raise ValueError("_run_ffmpeg takes raw FFmpeg arguments; use _run_command for full command lists")
     effective_timeout = resolve_ffmpeg_timeout(timeout, default=DEFAULT_FFMPEG_TIMEOUT)
-    cmd = [_ffmpeg(), "-y", *args]
+    cmd = _offline_media_command([_ffmpeg(), "-y", *args])
 
     try:
         with _staging.staged_ffmpeg_command(cmd, pass_fds) as (cmd, pass_fds):
@@ -197,7 +201,7 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
             error_type="validation_error",
             code="invalid_ffmpeg_pipe",
         )
-    cmd = [_ffmpeg(), "-y", *args]
+    cmd = _offline_media_command([_ffmpeg(), "-y", *args])
     effective_timeout = resolve_ffmpeg_timeout(default=DEFAULT_FFMPEG_TIMEOUT)
     try:
         from .bounded_process import run_bounded
@@ -242,7 +246,8 @@ def _run_ffmpeg_with_progress(
 
     from .ffmpeg_progress import run_progress
 
-    with _staging.staged_ffmpeg_command([_ffmpeg(), "-y", *args]) as (cmd, pass_fds):
+    command = _offline_media_command([_ffmpeg(), "-y", *args])
+    with _staging.staged_ffmpeg_command(command) as (cmd, pass_fds):
         result = run_progress(
             cmd,
             estimated_duration,

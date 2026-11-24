@@ -19,6 +19,7 @@ import urllib.request
 from pathlib import Path
 
 from ..errors import MCPVideoError, ProcessingError
+from ..offline import is_offline_mode
 from ..validation_errors import exception_kind, rejected_value
 
 logger = logging.getLogger(__name__)
@@ -429,6 +430,12 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
     """
     if not _is_url(video):
         return video, None, None
+    if is_offline_mode():
+        raise MCPVideoError(
+            "Video URL import is disabled offline. Use a local video file.",
+            error_type="offline_error",
+            code="offline_network_blocked",
+        )
 
     if not _is_safe_url(video):
         raise MCPVideoError(
@@ -441,7 +448,6 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
     host = _url_host(video)
     is_platform = host in _PLATFORM_HOSTS
 
-    # Decide strategy — defer temp dir creation until download is imminent
     if is_platform:
         # Must use yt-dlp
         tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
