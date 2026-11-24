@@ -79,3 +79,30 @@ def test_registry_rejects_descriptor_mismatch_and_redacts_probe_failure() -> Non
     unavailable = AdapterRegistry({"tts_broken": broken}).probe("tts_broken")
     assert unavailable.available is False
     assert "PRIVATE_CONSTRUCTOR_MARKER" not in repr(unavailable)
+
+
+def test_required_capability_absence_blocks_render_but_advisory_is_reported() -> None:
+    registry = AdapterRegistry(
+        {
+            "tts_local": _local,
+            "analyzer_optional": lambda: _Adapter(
+                AdapterDescriptor(
+                    adapter_id="analyzer_optional",
+                    kind="analyzer",
+                    locality=AdapterLocality.LOCAL,
+                    provider_class="local",
+                ),
+                available=False,
+            ),
+        }
+    )
+    report = registry.probe_manifest(
+        required_ids=("tts_local",),
+        advisory_ids=("analyzer_optional",),
+        demanded_render=True,
+    )
+    assert report.ready is True
+    assert report.advisory_unavailable == ("analyzer_optional",)
+    with pytest.raises(RegistryError) as exc_info:
+        registry.probe_manifest(required_ids=("tts_missing",), advisory_ids=(), demanded_render=True)
+    assert exc_info.value.code == "required_capability_unavailable"
