@@ -80,7 +80,9 @@ def _entries() -> _Snapshot:
     if cached is not None and cached[0] == digest:
         return cached[1]
     rows = set()
-    for line in raw.decode("utf-8", errors="replace").splitlines():
+    for line in raw.decode("utf-8", errors="replace").split("\n"):
+        if not line:
+            continue
         with contextlib.suppress(ValueError, TypeError, KeyError):
             row = json.loads(line)
             rows.add((str(row["path"]), tuple(int(v) for v in row["id"])))

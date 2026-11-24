@@ -16,7 +16,7 @@ from kinocut.projectstore.cas_lifecycle import cleanup_backups, restore_blob, un
 from kinocut.projectstore.ingest import _best_effort_unlink, _hash_copy_to_temp
 
 _CHUNK = 1 << 20
-_TRUSTED_LINUX_FSTYPES = frozenset({"ext2", "ext3", "ext4", "xfs", "btrfs", "tmpfs", "zfs"})
+_TRUSTED_LINUX_FSTYPES = frozenset({b"ext2", b"ext3", b"ext4", b"xfs", b"btrfs", b"tmpfs", b"zfs"})
 _VERIFIED: dict[tuple[int, ...], str] = {}
 _CACHE_LOCK = Lock()
 
@@ -29,11 +29,11 @@ def _device_has_trusted_ctime(dev: int) -> bool:
     """Return True only when the device is confirmed as a local POSIX filesystem with reliable ctime."""
     if os.name != "posix" or not hasattr(os, "major") or not hasattr(os, "minor"):
         return False
-    dev_id = f"{os.major(dev)}:{os.minor(dev)}"
+    dev_id = f"{os.major(dev)}:{os.minor(dev)}".encode("ascii")
     try:
-        with open("/proc/self/mountinfo", encoding="utf-8") as handle:
+        with open("/proc/self/mountinfo", "rb") as handle:
             for line in handle:
-                parts = line.split(" - ", 1)
+                parts = line.split(b" - ", 1)
                 if len(parts) != 2:
                     continue
                 head = parts[0].split()

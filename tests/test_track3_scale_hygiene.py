@@ -206,6 +206,13 @@ def test_cas_and_ledger_detect_tampering_even_with_frozen_stat(tmp_path, monkeyp
     lpath.write_text(lpath.read_text().replace("out.mp4", "alt.mp4"))
     os.utime(lpath, ns=(old_lstat.st_atime_ns, old_lstat.st_mtime_ns))
     assert not ledger.owns(str(out))
+    # Literal U+2028 inside JSON string must not be split as a line break.
+    sep_out = tmp_path / "line\u2028sep.mp4"
+    sep_out.write_bytes(b"123")
+    st = sep_out.stat()
+    row = f'{{"path":"{sep_out}","id":[{st.st_dev},{st.st_ino},{st.st_size},{st.st_mtime_ns}]}}\n'
+    lpath.write_text(row, encoding="utf-8")
+    assert ledger.owns(str(sep_out))
 
 
 def test_still_grade_rejects_zero_byte_lut_output(tmp_path, monkeypatch):
