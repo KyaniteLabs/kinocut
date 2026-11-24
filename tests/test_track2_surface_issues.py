@@ -281,7 +281,8 @@ def test_package_overwrite_preserves_concurrently_added_unrelated_file(tmp_path,
 
 @pytest.mark.usefixtures("overwrite_consent")
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux post-verify race preservation")
-def test_package_overwrite_preserves_file_added_after_verification(tmp_path, monkeypatch):
+@pytest.mark.parametrize("late_rel", ["youtube-shorts/late_file.txt", "root_note.txt"])
+def test_package_overwrite_preserves_file_added_after_verification(tmp_path, monkeypatch, late_rel):
     from kinocut.product import shorts_package
 
     plan = _plan_with_renders(tmp_path)
@@ -294,7 +295,7 @@ def test_package_overwrite_preserves_file_added_after_verification(tmp_path, mon
 
     def inject_after_verify(displaced, snapshot):
         ok = real_matches(displaced, snapshot)
-        (displaced / "youtube-shorts" / "late_file.txt").write_text("do not delete", encoding="utf-8")
+        (displaced / late_rel).write_text("do not delete", encoding="utf-8")
         return ok
 
     monkeypatch.setattr(shorts_package, "_matches_snapshot", inject_after_verify)
@@ -303,8 +304,9 @@ def test_package_overwrite_preserves_file_added_after_verification(tmp_path, mon
     assert exc_info.value.code == "package_write_conflict"
     preserved = list(root.parent.glob(f".{root.name}.preserved_*"))
     assert len(preserved) == 1
-    assert (preserved[0] / "youtube-shorts" / "late_file.txt").read_text(encoding="utf-8") == "do not delete"
+    assert (preserved[0] / late_rel).read_text(encoding="utf-8") == "do not delete"
     assert (preserved[0] / "youtube-shorts" / "captions.srt").is_file()
+    assert not list(root.parent.glob(f".{root.name}.trash_*"))
 
 
 def test_windows_contested_rollback_preserves_old_package_outside_tempdir(tmp_path, monkeypatch):

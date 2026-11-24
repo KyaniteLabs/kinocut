@@ -226,19 +226,25 @@ def _matches_snapshot(displaced: Path, snapshot: _PackageSnapshot) -> bool:
     return seen_platforms == set(expected_platforms) and seen_files == set(expected_files)
 
 
-def _restore_quarantined(moved: list[tuple[Path, Path]], trash: Path) -> None:
+def _restore_quarantined(moved: list[tuple[Path, Path]], moved_dirs: list[tuple[Path, Path]], trash: Path) -> None:
+    for src, dst in reversed(moved_dirs):
+        with contextlib.suppress(OSError):
+            if dst.exists() and not os.path.lexists(src):
+                os.rename(dst, src)
     for src, dst in reversed(moved):
         with contextlib.suppress(OSError):
             if dst.exists() and not os.path.lexists(src):
+                src.parent.mkdir(parents=True, exist_ok=True)
                 os.rename(dst, src)
     with contextlib.suppress(OSError):
         trash.rmdir()
 
 
-def _quarantine_verified_entries(displaced: Path, trash: Path, snapshot: _PackageSnapshot) -> list[tuple[Path, Path]]:
+def _quarantine_verified_entries(
+    displaced: Path, trash: Path, snapshot: _PackageSnapshot, moved: list[tuple[Path, Path]]
+) -> None:
     """Move expected files into private 0o700 quarantine and re-verify inodes before any unlink."""
     expected_dir, expected_platforms, expected_files = snapshot
-    moved: list[tuple[Path, Path]] = []
     if not _matches_snapshot(displaced, snapshot):
         raise OSError("snapshot mismatch")
     dstat = os.stat(displaced, follow_symlinks=False)
@@ -259,7 +265,6 @@ def _quarantine_verified_entries(displaced: Path, trash: Path, snapshot: _Packag
             or (qstat.st_dev, qstat.st_ino) != expected_id
         ):
             raise OSError("quarantined file identity mismatch")
-    return moved
 
 
 def _remove_verified_displaced(displaced: Path, base: Path, snapshot: _PackageSnapshot) -> None:
@@ -268,16 +273,26 @@ def _remove_verified_displaced(displaced: Path, base: Path, snapshot: _PackageSn
     trash = base.parent / f".{base.name}.trash_{secrets.token_hex(6)}"
     os.mkdir(trash, mode=0o700)
     moved: list[tuple[Path, Path]] = []
+    moved_dirs: list[tuple[Path, Path]] = []
     try:
-        moved = _quarantine_verified_entries(displaced, trash, snapshot)
+        _quarantine_verified_entries(displaced, trash, snapshot, moved)
         for plat_name in expected_platforms:
-            (displaced / plat_name).rmdir()
+            src_dir = displaced / plat_name
+            dst_dir = trash / f"dir_{plat_name}"
+            if any(src_dir.iterdir()):
+                raise OSError("platform directory not empty")
+            os.rename(src_dir, dst_dir)
+            moved_dirs.append((src_dir, dst_dir))
+            if any(dst_dir.iterdir()):
+                raise OSError("quarantined platform directory not empty")
         displaced.rmdir()
     except OSError:
-        _restore_quarantined(moved, trash)
+        _restore_quarantined(moved, moved_dirs, trash)
         _preserve_displaced(displaced, base)
     for _, qpath in moved:
         qpath.unlink()
+    for _, qdir in moved_dirs:
+        qdir.rmdir()
     trash.rmdir()
 
 
