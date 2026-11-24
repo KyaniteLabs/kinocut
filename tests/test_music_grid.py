@@ -1,5 +1,8 @@
 import struct
 import wave
+import json
+import subprocess
+import sys
 
 import pytest
 
@@ -17,13 +20,14 @@ from kinocut.music_grid import (
     snap_duration_to_grid,
     validate_edit_points,
 )
+import itertools
 
 
 def test_coordinate_system_and_frame_residual():
     grid = MusicalGrid(126, offset_s=0.512)
     assert grid.parse_time("1:1:0") == 0.512
-    assert grid.parse_time("3:2:16") == pytest.approx(0.512 + 10 * 60 / 126)
-    assert grid.parse_time("tc:1:2:3") == grid.parse_time("01:02:03") == 3723
+    assert grid.parse_time("3:3:0") == pytest.approx(0.512 + 10 * 60 / 126)
+    assert grid.parse_time("tc:1:2:3") == grid.parse_time("tc:01:02:03") == 3723
     assert grid.parse_time("3:12.5") == 192.5
     cut = grid.cut("1:2:0")
     assert cut["frame"] == 30
@@ -93,7 +97,15 @@ def test_offset_curve_section_origin(shape, expected):
 @pytest.mark.parametrize(("strength", "expected"), [(0, 0.02), (50, 0.025625), (100, 0.03125)])
 def test_partial_quantization(strength, expected):
     row = quantize_real_timestamps([0, "20ms"], MusicalGrid(120), quantize_strength=strength)["events"][1]
-    assert row == pytest.approx(dict(source_time=0.02, mapped_time=0.02, final_time=expected, strength=strength))
+    assert row == pytest.approx(
+        dict(
+            source_time=0.02,
+            mapped_time=0.02,
+            final_time=expected,
+            strength=strength,
+            residual_ms=(expected - 0.03125) * 1000,
+        )
+    )
 
 
 def test_log_privacy_scaling_and_strength_curve():
@@ -138,8 +150,8 @@ def test_changing_strength_holds_crossing_events_in_input_order():
 
 def test_empty_or_dynamic_composition_does_not_pass():
     assert not lint_composition_keyframes("<body></body>", MusicalGrid(120))["passed"]
-    with pytest.raises(ValueError, match="literal"):
-        lint_composition_keyframes("gsap.to(node, {duration: compute})", MusicalGrid(120))
+    report = lint_composition_keyframes("gsap.to(node, {duration: compute})", MusicalGrid(120))
+    assert not report["passed"] and report["errors"]
 
 
 def test_keyframe_sources():
@@ -170,11 +182,11 @@ def test_keyframe_sources():
 @pytest.mark.parametrize(
     ("cell", "slots"),
     [
-        ("straight", [0, 32, 64, 96]),
-        ("tresillo", [0, 48, 96]),
+        ("straight", list(range(0, 128, 16))),
+        ("tresillo", [0, 24, 48, 64, 88, 112]),
         ("son_clave", [0, 24, 48, 80, 96]),
-        ("push", [48, 112]),
-        ("off_beat", [16, 48, 80, 112]),
+        ("push", [24, 56, 88, 120]),
+        ("off_beat", list(range(8, 128, 16))),
         ([0, 7, 10], [0, 7, 10]),
     ],
 )
@@ -192,3 +204,94 @@ def test_paired_phrase(cell, slots):
         == [hit["final_time"] for hit in sound]
         == [2 + slot / 32 + 0.004 for slot in slots]
     )
+
+
+@pytest.mark.parametrize("value", ["0:1:0", "1:0:0", "1:1:-1", "1:1:0.5", "1:x:0", "1:5:0", "1:1:16", "01:02:03"])
+def test_invalid_musical_triples_never_become_clock_times(value):
+    with pytest.raises(ValueError):
+        MusicalGrid(120).parse_time(value)
+
+
+def test_negative_authored_start(sample_video):
+    with pytest.raises(MCPVideoError, match="Invalid musical"):
+        trim(sample_video, start=-0.01, bpm=120)
+
+
+@pytest.mark.parametrize(
+    "unsupported",
+    [
+        "<script>gsap.timeline().to(node,{duration: dynamic})</script>",
+        "<script>node.animate(frames, 50)</script>",
+        "<style>.box {animation: fade 1s}</style>",
+        "<script>gsap.to(box,{duration:1,repeat:2})</script>",
+    ],
+)
+def test_unsupported_timing_cannot_hide_behind_valid_timing(unsupported):
+    report = lint_composition_keyframes('<div data-start="0"></div>' + unsupported, MusicalGrid(120))
+    assert not report["passed"] and report["errors"]
+
+
+def test_decimal_endpoint_and_linter_exit_status(tmp_path):
+    path = tmp_path / "events.json"
+    command = [sys.executable, "-m", "kinocut.music_grid", str(path), "--bpm", "150", "--tolerance-ms", "0"]
+    path.write_text('[{"start":0.1,"duration":0.2}]')
+    report = json.loads(subprocess.check_output(command))
+    assert report["keyframes"][-1]["time"] == 0.3
+    assert report["keyframes"][-1]["residual_ms"] == 0
+    path.write_text('[{"time":0.001}]')
+    assert subprocess.run(command).returncode == 1
+
+
+def test_swing_warp_is_increasing_and_section_relative():
+    grid = MusicalGrid(120, steps_per_bar=384, floor_ms=0)
+    config = MicrotimingConfig(swing_curve=TimingCurve(56, 70, 1))
+    times = [config.apply(grid.slot_time(slot), grid, section_start_bar=2) for slot in range(810)]
+    assert all(left["final_time"] < right["final_time"] for left, right in itertools.pairwise(times))
+    assert times[408]["swing_ms"] == pytest.approx(15)
+    assert times[792]["swing_ms"] == pytest.approx(50)
+
+
+def test_timeline_json_musical_context():
+    from kinocut.models import Timeline
+    from pydantic import ValidationError
+
+    tracks = [{"type": "video", "clips": [{"source": "clip.mp4", "start": "1:2:0", "duration": "1:2:0"}]}]
+    with pytest.raises(ValidationError):
+        Timeline.model_validate_json(json.dumps({"tracks": tracks}))
+    clip = (
+        Timeline.model_validate_json(json.dumps({"grid": {"bpm": 120, "offset_s": 0.25}, "tracks": tracks}))
+        .tracks[0]
+        .clips[0]
+    )
+    assert (clip.start, clip.duration) == (0.75, 0.5)
+
+
+def test_trim_cli_grid_flags():
+    from kinocut.cli.parser import build_parser
+
+    args = build_parser().parse_args(["trim", "a.mp4", "--bpm", "120", "--offset", "0.25", "--fps", "24"])
+    assert (args.bpm, args.offset, args.fps) == (120, 0.25, 24)
+
+
+def test_space_separated_iso_and_millisecond_bool():
+    grid = MusicalGrid(120)
+    for convert in (grid.slot_time, grid.frame_to_seconds, grid.time_to_frame):
+        with pytest.raises(ValueError):
+            convert(True)
+    assert quantize_real_timestamps(["1970-01-01 00:00:01"], grid)["events"][0]["source_time"] == 1
+    with pytest.raises(ValueError):
+        quantize_real_timestamps([{"time_ms": True}], grid)
+    for key in ("quantize_strength", "target_duration_s", "start_time_s"):
+        with pytest.raises(ValueError):
+            quantize_real_timestamps([], grid, **{key: True})
+
+
+@pytest.mark.parametrize("value", [True, float("nan"), float("inf")])
+def test_invalid_microtiming_numbers(value):
+    for key in ("gain_db", "section_start_bar"):
+        with pytest.raises(ValueError):
+            MicrotimingConfig().apply(0, MusicalGrid(120), **{key: value})
+    with pytest.raises(ValueError):
+        TimingCurve(value, 50, 1)
+    with pytest.raises(ValueError):
+        MicrotimingConfig(swing_pct=value)

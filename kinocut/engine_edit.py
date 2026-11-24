@@ -123,6 +123,8 @@ def _grid_trim_times(start, duration, end, bpm, fps, offset_s, steps_per_bar):
                 continue
             if isinstance(value, str) and len(value) > MAX_TRIM_TIME_TEXT_LENGTH:
                 raise ValueError
+            if name == "start" and grid._parse(value) < 0:
+                raise ValueError("Negative authored start")
             if name == "duration":
                 relative = MusicalGrid(bpm, fps, 0, steps_per_bar, floor_ms=0)
                 value = grid._parse(start) + relative._parse(value)

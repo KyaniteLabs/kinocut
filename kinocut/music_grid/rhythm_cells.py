@@ -28,9 +28,15 @@ def place_rhythm_cell(cell, grid, *, phrase_bars=2, events=None, sfx=None, start
         if cell not in _CELLS:
             raise ValueError("Unknown rhythm cell")
         division, pattern = _CELLS[cell]
-        if any(step * span % division for step in pattern):
+        period = grid.steps_per_bar * (2 if cell == "son_clave" else 1)
+        if any(step * period % division for step in pattern):
             raise ValueError("Cell does not fit this phrase resolution")
-        slots = [step * span // division for step in pattern]
+        slots = [
+            slot
+            for base in range(0, span, period)
+            for step in pattern
+            if (slot := base + step * period // division) < span
+        ]
     else:
         slots = list(cell)
         if any(type(step) is not int or not 0 <= step < span for step in slots) or slots != sorted(set(slots)):

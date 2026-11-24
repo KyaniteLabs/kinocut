@@ -2,7 +2,10 @@
 
 Use `kinocut.music_grid` for Python-authored timelines. BPM is explicit: an
 ordinary `engine_edit.trim` call still uses seconds and its original timecode
-parser. No MCP or CLI commands are added.
+parser. CLI trim accepts `--bpm`, `--fps`, and `--offset`. In timeline JSON,
+set `"grid": {"bpm": 120, "offset_s": 0.25}` (or a top-level `"bpm": 120`)
+to enable musical coordinates. Track starts include the song offset; durations,
+fades and source trim points do not. Without BPM, use numeric seconds.
 
 ```python
 from kinocut.engine_edit import trim
@@ -17,9 +20,8 @@ if not report['passed']:
 ```
 
 `bar:beat:sub` counts bars and beats from one, subdivisions from zero. A sub
-is one grid step, not a fraction of the current beat: it may carry into the next
-beat (`3:2:16` equals `3:3:0` on the default grid). With BPM set, unpadded
-positive integer triples are musical. Use `tc:1:2:3` or `01:02:03` to force
+is one grid step, and must fit inside its beat (0–15 on the default grid).
+With BPM set, bare triples must be musical. Use `tc:01:02:03` to force
 clock time. Seconds and `MM:SS` are film-relative; the song offset only shifts
 musical positions. For durations, `1:1:0` means zero elapsed time.
 
@@ -48,18 +50,21 @@ from kinocut.music_grid import MicrotimingConfig, TimingCurve, place_rhythm_cell
 feel = MicrotimingConfig(swing_pct=56, offset_ms=15, accent_pattern=(2,0,0,0),
                          curve=TimingCurve(15, 0, 8, shape="stepped", step_bars=2))
 phrase = place_rhythm_cell("tresillo", grid, phrase_bars=2, start_bar=5,
-                           events=["flip_A", "flip_B", "flip_C"], sfx="click", microtiming=feel)
+                           events=["flip_A", "flip_B", "flip_C"] * 2, sfx="click", microtiming=feel)
 ```
 
 Apply `feel.apply(seconds, grid, section_start_bar=5, gain_db=-6)` to one
 event or reuse it for a track or section. The curve replaces the millisecond
 offset; the example holds 15, 10, 5, then 0 ms for two bars each. A linear curve
 reaches its end at the section boundary. Swing delays the off subdivision by
-`(swing_pct - 50)/100` times a pair's duration. Accents add dB per grid slot
+`(swing_pct - 50)/100` times a pair's duration. Positions between anchors
+interpolate linearly. `swing_curve=TimingCurve(50, 65, 8)` sets the percentage
+at the start of each pair; percentages must be strictly between 0 and 100.
+Accents add dB per grid slot
 and restart at each bar. Keep final times at audio precision; converting them
 back to picture frames would discard fine offsets. The two cell output lists
-share exactly the same final times. Built-ins stretch across one phrase:
-`straight` (four hits), `tresillo`, `son_clave`, `push`, and `off_beat`.
+share exactly the same final times. `straight`, `tresillo`, `push`, and
+`off_beat` repeat every bar; `son_clave` repeats every two bars.
 Custom steps are literal zero-based offsets within the phrase, not fractions.
 
 ## Recorded groove and animation
@@ -73,9 +78,12 @@ read. A zero-span recording stays at the start with scale 1. A `strength_curve`
 uses elapsed mapped bars. Descending source times are refused rather than
 sorted. If varying strength would cross a prior event, placement holds at the
 prior final time and reports both zero-based indices in `collisions`.
+Each row's `residual_ms` is final time minus the mapped event's nearest slot, in milliseconds.
 
 `lint_composition_keyframes(source, grid, tolerance_ms=2)` returns `passed` and
-named `keyframes`. For build gates, exit nonzero if `passed` is false. Supply
+named `keyframes`. Run `python -m kinocut.music_grid composition.html --bpm 126`
+for a JSON report and nonzero exit on failure. Unsupported scripts and timing
+constructs produce lint errors, even alongside valid timing. Supply
 HTML `data-start`/`data-duration`, standalone literal `gsap.to` tweens (duration
 and optional delay), or CSS `animation-duration`, `animation-delay`, and
 `animation-name` longhands with percentage stops. This is not a browser or a JS

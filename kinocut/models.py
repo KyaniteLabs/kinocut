@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, get_args
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .defaults import DEFAULT_CRF
 from .errors import MCPVideoError as _MCPVideoError
@@ -415,6 +415,15 @@ class TimelineExport(BaseModel):
 
 class Timeline(BaseModel):
     """Full timeline specification for complex edits."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _resolve_musical_times(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or ("grid" not in data and data.get("bpm") is None):
+            return data
+        from .music_grid.grid import resolve_timeline_times
+
+        return resolve_timeline_times(data)
 
     width: int = 1920
     height: int = 1080

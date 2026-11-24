@@ -5,9 +5,10 @@ import math
 import re
 import warnings
 from array import array
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fractions import Fraction
 from pathlib import Path
+from typing import TypedDict
 
 from ..errors import MCPVideoError
 
@@ -20,6 +21,8 @@ def _ratio(value):
 
 def round_half_up(value):
     """Nearest integer; exact half ties round away from zero."""
+    if isinstance(value, bool):
+        raise ValueError("Expected a numeric position")
     return math.floor(value + Fraction(1, 2)) if value >= 0 else -round_half_up(-value)
 
 
@@ -67,10 +70,12 @@ class MusicalGrid:
     def _parse(self, value):
         if isinstance(value, str):
             text = value.strip()
-            if re.fullmatch(r"[1-9]\d*:[1-9]\d*:\d+", text):
+            if text.count(":") == 2 and not text.startswith("tc:"):
+                if not re.fullmatch(r"[1-9]\d*:[1-9]\d*:\d+", text):
+                    raise ValueError("Invalid bar:beat:sub coordinate")
                 bar, beat, sub = map(int, text.split(":"))
-                if beat > self.beats_per_bar:
-                    raise ValueError("Beat exceeds the meter")
+                if beat > self.beats_per_bar or sub >= self.steps_per_bar // self.beats_per_bar:
+                    raise ValueError("Beat or subdivision exceeds the meter")
                 slot = ((bar - 1) * self.beats_per_bar + beat - 1) * (self.steps_per_bar // self.beats_per_bar) + sub
                 return _ratio(self.offset_s) + slot * self._unit
             if ":" in text:
@@ -86,7 +91,7 @@ class MusicalGrid:
         return float(self._parse(value))
 
     def frame_to_seconds(self, frame):
-        return float(frame / _ratio(self.fps))
+        return float(_ratio(frame) / _ratio(self.fps))
 
     def time_to_frame(self, value):
         return round_half_up(self._parse(value) * _ratio(self.fps))
@@ -103,7 +108,7 @@ class MusicalGrid:
         )
 
     def slot_time(self, slot):
-        return float(_ratio(self.offset_s) + slot * self._unit)
+        return float(_ratio(self.offset_s) + _ratio(slot) * self._unit)
 
     def nearest(self, seconds, *, duration=False):
         origin = 0 if duration else _ratio(self.offset_s)
@@ -123,15 +128,65 @@ class MusicalGrid:
         )
 
 
-def validate_edit_points(points, grid, tolerance_ms=2.0):
-    if not math.isfinite(tolerance_ms) or tolerance_ms < 0:
+def resolve_timeline_times(data):
+    from copy import deepcopy
+
+    data = deepcopy(data)
+    options = data.get(
+        "grid", {key: data[key] for key in ("bpm", "fps", "offset_s", "steps_per_bar", "beats_per_bar") if key in data}
+    )
+    if not isinstance(options, dict):
+        raise ValueError("Expected grid settings")
+    try:
+        grid = MusicalGrid(**options)
+    except TypeError as exc:
+        raise ValueError("Invalid grid settings") from exc
+    relative = replace(grid, offset_s=0, floor_ms=0)
+
+    def resolve(item):
+        if isinstance(item, dict):
+            for key in ("start", "duration", "trim_start", "trim_end", "fade_in", "fade_out"):
+                value = item.get(key)
+                if isinstance(value, bool):
+                    raise ValueError("Expected numeric timeline time")
+                if isinstance(value, str) and ":" in value:
+                    item[key] = (grid if key == "start" else relative).parse_time(value)
+
+    resolve(data)
+    tracks = data.get("tracks", [])
+    for track in tracks if isinstance(tracks, list) else []:
+        if isinstance(track, dict):
+            for group in ("clips", "transitions", "elements", "images"):
+                items = track.get(group)
+                if isinstance(items, list):
+                    for item in items:
+                        resolve(item)
+    return data
+
+
+class PointReceipt(TypedDict):
+    time: float
+    slot: int
+    snapped_s: float
+    residual_ms: float
+    passed: bool
+
+
+class ValidationReceipt(TypedDict):
+    grid: dict
+    points: list[PointReceipt]
+    passed: bool
+
+
+def validate_edit_points(points, grid, tolerance_ms=2.0) -> ValidationReceipt:
+    if isinstance(tolerance_ms, bool) or not math.isfinite(tolerance_ms) or tolerance_ms < 0:
         raise ValueError("Tolerance must be finite and nonnegative")
-    rows = []
+    rows: list[PointReceipt] = []
     for point in points:
         actual = grid._parse(point)
         slot, snapped, residual = grid.nearest(actual)
         rows.append(
-            dict(
+            PointReceipt(
                 time=float(actual),
                 slot=slot,
                 snapped_s=snapped,
@@ -139,7 +194,7 @@ def validate_edit_points(points, grid, tolerance_ms=2.0):
                 passed=abs(residual) <= tolerance_ms,
             )
         )
-    return dict(grid=grid.receipt(), points=rows, passed=all(row["passed"] for row in rows))
+    return ValidationReceipt(grid=grid.receipt(), points=rows, passed=all(row["passed"] for row in rows))
 
 
 def estimate_bpm_from_audio(audio_path):
