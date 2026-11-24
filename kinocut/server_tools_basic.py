@@ -19,7 +19,6 @@ from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_X
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
 from .review_card import attach_review_card
-from .receipts_ai_video import attach_add_audio_receipt
 from .validation_errors import rejected_value
 
 
@@ -449,6 +448,8 @@ def video_add_audio(
             duration_policy=duration_policy,
         )
     )
+    from .receipts_ai_video import attach_add_audio_receipt
+
     return attach_add_audio_receipt(result, duration_policy)
 
 
