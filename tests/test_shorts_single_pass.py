@@ -275,8 +275,27 @@ def test_staged_burn_source_writes_through_owned_descriptor_not_reopened_path(so
     assert victim.read_text(encoding="utf-8") == "DO_NOT_OVERWRITE"
 
 
-@pytest.mark.parametrize("reason", ["No space left on device", "File too large"])
-def test_subtitles_aac_retry_preserves_unrelated_retry_failure(sample_video, tmp_path, monkeypatch, reason):
+@pytest.mark.parametrize(
+    ("reason", "retry_stderr"),
+    [
+        (
+            "No space left on device",
+            "[out#0/avi] Could not write header (incorrect codec parameters ?): No space left on device",
+        ),
+        (
+            "File too large",
+            "[out#0/avi] Could not write header (incorrect codec parameters ?): File too large",
+        ),
+        (
+            "No space left on device",
+            "codec frame size is not set\n"
+            "[out#0/avi] Could not write header (incorrect codec parameters ?): No space left on device",
+        ),
+    ],
+)
+def test_subtitles_aac_retry_preserves_unrelated_retry_failure(
+    sample_video, tmp_path, monkeypatch, reason, retry_stderr
+):
     from kinocut import engine_subtitles
     from kinocut.errors import ProcessingError
 
@@ -289,9 +308,7 @@ def test_subtitles_aac_retry_preserves_unrelated_retry_failure(sample_video, tmp
         calls.append(list(args))
         if len(calls) == 1:
             raise ProcessingError("ffmpeg", 1, "Could not find tag for codec pcm_s16le in stream #1")
-        raise ProcessingError(
-            "ffmpeg", 1, f"[out#0/avi] Could not write header (incorrect codec parameters ?): {reason}"
-        )
+        raise ProcessingError("ffmpeg", 1, retry_stderr)
 
     monkeypatch.setattr(engine_subtitles, "_run_ffmpeg", _runner)
     with pytest.raises(ProcessingError) as caught:

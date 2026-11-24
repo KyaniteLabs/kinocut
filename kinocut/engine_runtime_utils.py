@@ -246,17 +246,14 @@ _AVI_CODEC_HEADER_REASONS = (
 
 
 def _is_audio_copy_mux_rejection(stderr_lower: str) -> bool:
-    if any(marker in stderr_lower for marker in _AUDIO_COPY_MUX_REJECT_MARKERS):
-        return True
-    if "out#0/avi" not in stderr_lower:
-        return False
-    for line in stderr_lower.splitlines():
-        if "could not write header" not in line:
-            continue
-        reason = line.rsplit(":", 1)[-1].strip()
-        if any(marker in reason for marker in _AVI_CODEC_HEADER_REASONS):
-            return True
-    return False
+    if "out#0/avi" in stderr_lower:
+        header_lines = [line for line in stderr_lower.splitlines() if "could not write header" in line]
+        if header_lines:
+            return any(
+                any(marker in line.rsplit(":", 1)[-1].strip() for marker in _AVI_CODEC_HEADER_REASONS)
+                for line in header_lines
+            )
+    return any(marker in stderr_lower for marker in _AUDIO_COPY_MUX_REJECT_MARKERS)
 
 
 def _command_has_audio_input(args: list[str]) -> bool:
