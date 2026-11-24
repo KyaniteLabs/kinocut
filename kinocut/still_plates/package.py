@@ -83,8 +83,8 @@ def still_package(
     beat_paths = [validate_still_path(b) for b in beats]
     if len({beat.stem.casefold() for beat in beat_paths}) != len(beat_paths):
         raise MCPVideoError("Beat stems must be unique", error_type="validation_error", code="duplicate_beat_stem")
-    out_dir = ensure_output_dir(output_dir)
-    receipt_dest = confined_leaf(out_dir, receipt_name)
+    candidate_dir = Path(output_dir).expanduser().resolve()
+    receipt_dest = confined_leaf(candidate_dir, receipt_name)
     reject_output_alias(str(receipt_dest), tuple(map(str, (establish_path, *beat_paths))))
     _validate_artifact_path(str(receipt_dest))
     intent_list = intents or ["match establish world and light"] * len(beat_paths)
@@ -94,6 +94,7 @@ def still_package(
             error_type="validation_error",
             code="intent_length_mismatch",
         )
+    out_dir = ensure_output_dir(output_dir)
     graph = [
         {"step": "edit_beats", "count": len(beat_paths)},
         {"step": "still_match", "hero": str(establish_path)},

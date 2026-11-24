@@ -742,8 +742,14 @@ def render_and_post(
     # Step 1: Render with Hyperframes. ``output_path`` names the *final* artifact:
     # when there are post-processing steps the last one writes it, so the
     # intermediate render goes to its default location instead of colliding with it.
+    from .hyperframes_ops_helpers import _validate_post_step_values
+
     op_map = _post_process_ops()
     steps = _post_steps(post_process, op_map)
+    for op_type, params in steps:
+        _validate_post_step_values(op_type, params)
+    if output_path is not None:
+        _validate_output_path(output_path)
     render_result = render(project_path, output_path=output_path if not steps else None)
     hyperframes_output = render_result.output_path
     if not render_result.success:

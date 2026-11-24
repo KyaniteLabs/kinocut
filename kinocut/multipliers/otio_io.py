@@ -90,9 +90,14 @@ def _url_to_local_path(url: str) -> str | None:
         parsed = urlparse(url)
         if parsed.netloc.lower() not in {"", "localhost"}:
             return None
-        return unquote(parsed.path)
+        local = unquote(parsed.path)
+        if local.startswith(("//", "\\\\")) or local.lstrip("/").startswith("\\\\"):
+            return None
+        return local
     if "://" in url and not url.startswith("file:"):
         # Remote URLs are never auto-fetched — fail closed at import time.
+        return None
+    if url.startswith(("//", "\\\\")):
         return None
     return url
 

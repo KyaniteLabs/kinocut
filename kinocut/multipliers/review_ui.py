@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import MCPVideoError
-from ..ffmpeg_helpers import _atomic_artifact, _validate_artifact_location, _validate_artifact_path
+from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_artifact_location, _validate_artifact_path
 
 _HTML = """<!doctype html>
 <html lang="en">
@@ -66,8 +66,9 @@ def write_review_surface(output_dir: str, *, timeline_name: str = "timeline.json
         )
     _validate_artifact_location(str(root), "Review directory")
     html_path = root / "review.html"
-    with _atomic_artifact(_validate_artifact_path(str(html_path))) as staged:
-        Path(staged).write_text(_HTML.replace("__DEFAULT_TIMELINE__", json.dumps(timeline_name)), encoding="utf-8")
+    payload = _HTML.replace("__DEFAULT_TIMELINE__", json.dumps(timeline_name)).encode("utf-8")
+    with _atomic_artifact(_validate_artifact_path(str(html_path))) as staged, _open_staged_writer(staged) as stream:
+        stream.write(payload)
     return {
         "artifact_kind": "review_surface",
         "html_path": str(html_path.resolve()),

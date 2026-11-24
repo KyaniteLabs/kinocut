@@ -115,7 +115,7 @@ def _source_metadata(source: str, dest: str, hole: str | None) -> tuple[bool, fl
         with Image.open(source) as preview:
             return True, 30.0, 1, *preview.size
     fps, frames, width, height = refuse_overlong_video(source)
-    if frames > 1 and any(path and Path(path).suffix.lower() == ".png" for path in (dest, hole)):
+    if any(path and Path(path).suffix.lower() == ".png" for path in (dest, hole)):
         raise MCPVideoError(
             "PNG object-matte output accepts a still, not a video",
             error_type="validation_error",

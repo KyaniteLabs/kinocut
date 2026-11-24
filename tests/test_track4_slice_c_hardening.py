@@ -304,3 +304,73 @@ def test_shorts_render_discards_private_intermediates(tmp_path, monkeypatch, ove
     assert result["status"] == "rendered" and scratch_dirs
     assert all(not path.exists() for path in scratch_dirs)
     assert all(Path(item["output_path"]).is_file() for item in result["renders"])
+
+
+def test_concurrent_session_step_cannot_reopen_closed_session(tmp_path, monkeypatch):
+    from kinocut.te import edit_session
+
+    root = tmp_path / "sess"
+    opened = edit_session.session_open(str(root), "improve framing")
+    session_path = opened["path"]
+
+    def close_during_qc(_input_path: str) -> float:
+        edit_session.session_close(session_path, write_receipt=True)
+        return 85.0
+
+    monkeypatch.setattr(edit_session, "_qc_score", close_during_qc)
+    with pytest.raises(MCPVideoError) as exc_info:
+        edit_session.session_step(session_path, action="tune", input_path="clip.mp4")
+    assert exc_info.value.code == "session_closed"
+    saved = json.loads(Path(session_path).read_text(encoding="utf-8"))
+    assert saved.get("closed_at") is not None
+
+
+def test_render_and_post_rejects_bad_values_and_output_path_before_render(tmp_path, monkeypatch):
+    from kinocut import hyperframes_ops
+
+    monkeypatch.setattr(hyperframes_ops, "render", lambda *a, **k: pytest.fail("render should not run"))
+    with pytest.raises(MCPVideoError):
+        hyperframes_ops.render_and_post(str(tmp_path), [{"op": "resize", "params": {"aspect_ratio": "99:1"}}])
+    with pytest.raises(MCPVideoError):
+        hyperframes_ops.render_and_post(
+            str(tmp_path),
+            [{"op": "resize", "params": {"aspect_ratio": "9:16"}}],
+            output_path=str(tmp_path / ".." / "x.mp4"),
+        )
+
+
+def test_otio_rejects_unc_network_paths():
+    from kinocut.multipliers.otio_io import _url_to_local_path
+
+    assert _url_to_local_path("file:///%5C%5Cserver%5Cshare%5Cclip.mp4") is None
+    assert _url_to_local_path("file:////server/share/clip.mp4") is None
+    assert _url_to_local_path(r"\\server\share\clip.mp4") is None
+    assert _url_to_local_path("//server/share/clip.mp4") is None
+
+
+def test_invalid_still_names_do_not_create_output_dir(tmp_path):
+    from PIL import Image
+    from kinocut.still_plates.gate import still_gate
+    from kinocut.still_plates.package import still_package
+
+    img = tmp_path / "a.png"
+    Image.new("RGB", (8, 8), color=(80, 90, 100)).save(img)
+    gate_dir = tmp_path / "never_created_gate"
+    with pytest.raises(MCPVideoError):
+        still_gate(inputs=[img], output_dir=gate_dir, receipt_name="../escape.json")
+    assert not gate_dir.exists()
+    pkg_dir = tmp_path / "never_created_pkg"
+    with pytest.raises(MCPVideoError):
+        still_package(establish=img, beats=[img], output_dir=pkg_dir, receipt_name="../escape.json")
+    assert not pkg_dir.exists()
+
+
+def test_object_matte_rejects_png_for_single_frame_video(tmp_path, monkeypatch):
+    from kinocut.object_matte import api, media
+
+    video = tmp_path / "one_frame.mp4"
+    video.write_bytes(b"fake")
+    monkeypatch.setattr(media, "is_still", lambda _p: False)
+    monkeypatch.setattr(media, "refuse_overlong_video", lambda _p: (30.0, 1, 64, 64))
+    with pytest.raises(MCPVideoError, match="still, not a video"):
+        api._source_metadata(str(video), str(tmp_path / "out.png"), None)
