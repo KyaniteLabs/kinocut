@@ -343,10 +343,10 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
 def test_captions_refuse_a_measurement_list_that_does_not_match_the_segments():
     # A short measurement list cannot time the captions, and falling back to
     # the requested span is the drift this flow refuses.
-    from kinocut.product.shorts_flow import _apply_captions
+    from kinocut.product.shorts_flow import _prepare_captions
 
     with pytest.raises(Exception) as excinfo:
-        _apply_captions([(0.0, 1.0, "one")], [], "assembled.mp4", None, "final.mp4", "/tmp")
+        _prepare_captions([(0.0, 1.0, "one")], [], "assembled.mp4", "/tmp")
     assert "measured segment durations" in str(excinfo.value)
 
 
