@@ -129,16 +129,99 @@ def test_video_transforms_request_audio_copy(engine, operation, params, sample_v
     assert commands[0][commands[0].index("-c:a") + 1] == "copy"
 
 
-def test_incompatible_audio_falls_back_to_aac(sample_video, tmp_path):
+@pytest.mark.parametrize(
+    "audio_codec,out_ext",
+    [
+        ("pcm_mulaw", ".mp4"),
+        ("libopus", ".mov"),
+        ("flac", ".mov"),
+        ("libopus", ".avi"),
+    ],
+)
+def test_incompatible_audio_falls_back_to_aac(sample_video, tmp_path, audio_codec, out_ext):
     from kinocut.engine_probe import probe
     from kinocut.engine_resize import resize
 
-    source = str(tmp_path / "pcm.mkv")
+    source = str(tmp_path / f"{audio_codec}.mkv")
     subprocess.run(
-        ["ffmpeg", "-loglevel", "error", "-i", sample_video, "-c:v", "copy", "-c:a", "pcm_mulaw", source], check=True
+        ["ffmpeg", "-loglevel", "error", "-i", sample_video, "-c:v", "copy", "-c:a", audio_codec, source], check=True
     )
-    output = resize(source, width=64, output_path=str(tmp_path / "out.mp4"))
+    output = resize(source, width=64, output_path=str(tmp_path / f"out{out_ext}"))
     assert probe(output.output_path).audio_codec == "aac"
+
+
+def test_stream_cut_mp4_edit_list_trims_audio_to_picture_end(tmp_path):
+    from kinocut.engine_audio_ops import add_audio
+    from kinocut.engine_probe import _run_ffprobe_json
+
+    src = tmp_path / "src.mp4"
+    cut = tmp_path / "cut.mp4"
+    wav = tmp_path / "long.wav"
+    out = tmp_path / "trimmed.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=s=64x64:r=25:d=6",
+            "-c:v",
+            "libx264",
+            "-g",
+            "50",
+            "-pix_fmt",
+            "yuv420p",
+            str(src),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-ss", "0.24", "-i", str(src), "-t", "4", "-c", "copy", str(cut)],
+        check=True,
+    )
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=440:d=8", str(wav)],
+        check=True,
+    )
+    add_audio(str(cut), str(wav), output_path=str(out), duration_policy="trim_audio")
+    meta = _run_ffprobe_json(str(out))
+    v_dur = float(next(s for s in meta["streams"] if s["codec_type"] == "video")["duration"])
+    a_dur = float(next(s for s in meta["streams"] if s["codec_type"] == "audio")["duration"])
+    assert abs(a_dur - v_dur) <= 0.08
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX FD limit test")
+def test_retaining_wait_handles_high_numbered_fd(monkeypatch):
+    import fcntl
+    import resource
+    from kinocut import process_observation, process_tree
+
+    soft, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if soft <= 1050:
+        pytest.skip("RLIMIT_NOFILE too small for high-FD test")
+    monkeypatch.setattr(process_observation, "supports_nonreaping_wait", lambda: False)
+    real_dup = os.dup
+
+    def high_dup(fd: int) -> int:
+        return fcntl.fcntl(fd, fcntl.F_DUPFD, 1030)
+
+    monkeypatch.setattr(process_tree.os, "dup", high_dup)
+    reader, writer = os.pipe()
+    command = [sys.executable, "-c", f"import os; os.read({reader},1); raise SystemExit(7)"]
+    tree = process_tree.ProcessTree(command, pass_fds=(reader,))
+    try:
+        os.write(writer, b"x")
+        assert tree.wait(timeout=5) == 7
+    finally:
+        monkeypatch.setattr(process_tree.os, "dup", real_dup)
+        tree.close()
+        tree.process.stdout.close()
+        tree.process.stderr.close()
+        os.close(reader)
+        os.close(writer)
 
 
 @pytest.mark.parametrize("flow", ["shorts", "timeline"])

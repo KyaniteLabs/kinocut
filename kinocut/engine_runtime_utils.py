@@ -229,16 +229,28 @@ def _intermediate_outputs(directory: str):
         _intermediate_dir.reset(token)
 
 
+_AUDIO_COPY_MUX_REJECT_MARKERS = (
+    "codec not currently supported in container",
+    "could not find tag for codec",
+    "codec frame size is not set",
+    "incompatible with output codec",
+    "could not write header",
+)
+
+
 def _run_video_only(runner, args: list[str], *progress) -> None:
     """Keep the selected audio packets unless the output muxer rejects their codec."""
     try:
         runner(args, *progress)
     except ProcessingError as exc:
-        if "codec not currently supported in container" not in exc.full_stderr.lower():
+        stderr_lower = exc.full_stderr.lower()
+        if "-c:a" not in args or not any(marker in stderr_lower for marker in _AUDIO_COPY_MUX_REJECT_MARKERS):
+            raise
+        codec = args.index("-c:a") + 1
+        if codec >= len(args) or args[codec] != "copy":
             raise
         from .defaults import DEFAULT_AUDIO_BITRATE
 
-        codec = args.index("-c:a") + 1
         runner([*args[:codec], "aac", "-b:a", DEFAULT_AUDIO_BITRATE, *args[codec + 1 :]], *progress)
 
 

@@ -8,7 +8,7 @@ Clean SIGTERM/SIGHUP paths keep ProcessTree.close() / killpg as before.
 
 import contextlib
 import os
-import select
+import selectors
 import signal
 import subprocess
 import threading
@@ -130,7 +130,9 @@ class ProcessTree:
                 ready = event.wait(remaining)
             else:
                 try:
-                    ready = select.select([descriptor], [], [], remaining)[0]
+                    with selectors.DefaultSelector() as selector:
+                        selector.register(descriptor, selectors.EVENT_READ)
+                        ready = bool(selector.select(remaining))
                 finally:
                     os.close(descriptor)
             if not ready:
