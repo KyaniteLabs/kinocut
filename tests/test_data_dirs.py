@@ -29,9 +29,8 @@ def test_blank_override_is_ignored(monkeypatch, tmp_path):
 def test_modules_use_the_resolver(monkeypatch, tmp_path):
     monkeypatch.setenv("KINOCUT_DATA_DIR", str(tmp_path / "d"))
     monkeypatch.delenv("MCP_VIDEO_CRUSH_PATH", raising=False)
-    from kinocut import engine_glitch_shader, font_manager
+    from kinocut import engine_glitch_shader
 
-    assert font_manager._font_cache_dir() == str(tmp_path / "d" / "cache" / "fonts")
     crush = tmp_path / "d" / "crush-js" / "src"
     crush.mkdir(parents=True)
     assert engine_glitch_shader._resolve_crush_path() == str(crush)

@@ -1,15 +1,12 @@
 """Whole fields reject suffix controls without normalizing valid identities."""
 
 from dataclasses import replace
-from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
 from kinocut_sound._canonical import BoundedCode, RecordBase
-from kinocut_sound.authorization import AuthorizationContext, AuthorizationError, _parse_time
 from kinocut_sound.capability import CapabilityResult, CostDisclosure
 from kinocut_sound.consent import AuditEvent, CloudEgressGrant, ConsentGrant, ConsentScope, RetentionPolicy
-from kinocut_sound.provider_policy import _sanitize_context
 from kinocut_sound.render_fingerprint import FingerprintComponent, RenderFingerprint
 from kinocut_sound.public.mix_request import SourceAsset
 from kinocut_sound.routing import Track
@@ -17,10 +14,6 @@ from kinocut_sound.timeline import Cue
 from kinocut_sound.world.layers import AmbientLayer
 from kinocut_sound.voice.roster import _BASE_ROSTER, _validate_slot
 from kinocut_sound.voice._errors import VoiceError
-from kinocut_sound.voice.clone import CloneRenderer
-from kinocut_sound.voice.blend import BlendRenderer
-from tests.test_kinocut_sound_s3_policy import _request
-from tests.test_kinocut_sound_s3_review import _approved_cloud
 
 SHA = "sha256:" + "a" * 64
 NOW = "2026-01-01T00:00:00Z"
@@ -85,9 +78,6 @@ def _cases():
             "track_id",
         ),
         (AmbientLayer(layer_id="layer", asset_ref="rain"), "layer_id"),
-        (_request(), "territory"),
-        (_request(), "at_iso"),
-        (_approved_cloud()[1], "territory"),
     ]
 
 
@@ -112,20 +102,6 @@ def test_shared_codes_and_roster_labels_reject_controls(suffix):
         _validate_slot(replace(slot, display_label=slot.display_label + suffix))
 
 
-@pytest.mark.parametrize("suffix", CONTROLS)
-def test_authorization_timestamp_keeps_error_contract(suffix):
-    with pytest.raises(AuthorizationError) as error:
-        _parse_time(NOW + suffix)
-    assert error.value.code == "invalid_timestamp"
-
-
-@pytest.mark.parametrize("suffix", CONTROLS)
-def test_authorization_context_whole_territory(suffix):
-    context = AuthorizationContext(operation="generate", territory="US" + suffix)
-    with pytest.raises(ValueError):
-        _sanitize_context(context)
-
-
 @pytest.mark.parametrize(
     "model,base,field",
     [
@@ -140,23 +116,3 @@ def test_pydantic_patterns_remain_strict(model, base, field, suffix):
     with pytest.raises(ValidationError) as error:
         model(**{**base, field: base[field] + suffix})
     assert any(item["type"] == "string_pattern_mismatch" for item in error.value.errors())
-
-
-@pytest.mark.parametrize("renderer", [CloneRenderer, BlendRenderer])
-@pytest.mark.parametrize("suffix", CONTROLS)
-def test_export_path_rejects_controls_before_authorization(renderer, suffix):
-    def forbidden(**kwargs):
-        raise AssertionError("bad path reached authorization")
-
-    sentinel = SimpleNamespace(_authorize_export=forbidden, _authorize=forbidden)
-    with pytest.raises(VoiceError):
-        renderer.export(
-            sentinel,
-            output_path="voice.wav" + suffix,
-            output_dir="unused",
-            line=None,
-            profile=None,
-            ledger=None,
-            context=None,
-            at_iso=NOW,
-        )

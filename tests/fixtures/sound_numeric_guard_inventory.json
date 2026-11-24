@@ -1,40 +1,7 @@
 {
   "baseline_commit": "220804a8aaad309053ce20f43ea92db370fc7c95",
-  "existing_guard_count": 31,
+  "existing_guard_count": 28,
   "existing_guards": [
-    {
-      "module": "kinocut_sound.episode_assembly",
-      "model": "ClipRef",
-      "fields": [
-        "duration_seconds"
-      ],
-      "validator": "_duration_is_not_boolean",
-      "line": 78,
-      "current_mode": "after",
-      "target_mode": "before"
-    },
-    {
-      "module": "kinocut_sound.episode_assembly",
-      "model": "FoleyCueIntent",
-      "fields": [
-        "duration_seconds"
-      ],
-      "validator": "_duration_is_not_boolean",
-      "line": 108,
-      "current_mode": "after",
-      "target_mode": "before"
-    },
-    {
-      "module": "kinocut_sound.episode_assembly",
-      "model": "DesignedSilenceIntent",
-      "fields": [
-        "duration_seconds"
-      ],
-      "validator": "_duration_is_not_boolean",
-      "line": 129,
-      "current_mode": "after",
-      "target_mode": "before"
-    },
     {
       "module": "kinocut_sound.script_parser",
       "model": "ParsedLine",

@@ -34,7 +34,6 @@ ML_FUNCTIONS = {
     "kinocut/object_matte/runtime.py": {"make_session"},
     "kinocut/object_matte/infer.py": {"infer_mask"},
     "kinocut/aesthetic/__init__.py": {"__init__", "score_frame", "score_frames", "score_pil"},
-    "kinocut/audio_engine/integrations/basic_pitch_bridge.py": {"detect_pitch", "audio_to_midi"},
     "kinocut_sound/public/asr_worker.py": {"recognize"},
 }
 SOURCE_EXTENSIONS = {".py", ".js", ".mjs", ".ts", ".tsx", ".sh", ".html", ".css", ".glsl"}

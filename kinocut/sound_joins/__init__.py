@@ -3,8 +3,8 @@
 Lives under ``kinocut`` so it may import both the Kinocut runtime and the
 ``kinocut_sound`` sidecar. The sidecar itself never imports ``kinocut.*``.
 
-S13 binds existing D41 (``audio_bed``) and D42 (``voice_seam``) owners to the
-neutral sound ports. S14 provides a bounded local scheduler and dual-class
+S13 binds D41 audio beds to the neutral sound ports and reports D42 voice
+analysis as unavailable. S14 provides a bounded local scheduler and dual-class
 cold/warm benchmark receipts. No release action is authorized here.
 """
 

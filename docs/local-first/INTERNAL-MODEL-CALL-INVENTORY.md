@@ -98,7 +98,6 @@ llama-server, Ollama) instead of a fixed cloud API? `yes` / `no` / `partial`.
 ## 9. Network surfaces that are NOT model calls (completeness)
 
 - Media download: `kinocut/ai_engine/download.py:11-15` — `http.client` with IP-validation SSRF guard.
-- Font download: `kinocut/font_manager.py:84` — `urlretrieve` for font assets.
 - Hyperframes preview: `kinocut/hyperframes_engine.py:579` — `http://localhost:{port}` local dev server.
 - Doctor / capability probes (no network): `kinocut/doctor.py:97-112` (optional extras incl. anthropic/whisper/torch), `kinocut/capability_report.py:30,42` (tool→dependency map).
 

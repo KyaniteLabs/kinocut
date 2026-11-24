@@ -1,4 +1,4 @@
-"""Pydantic result models for the Revideo bridge and Sinter winners bundles."""
+"""Pydantic result models for the Revideo bridge."""
 
 from __future__ import annotations
 
@@ -18,30 +18,3 @@ class RevideoRenderResult(BaseModel):
     frames: int
     duration_seconds: float
     render_seconds: float
-
-
-class WinnersArtifactInfo(BaseModel):
-    """One winner inside a verified Sinter winners bundle."""
-
-    artifact_id: str
-    event_id: str
-    domain: str
-    axes: str
-    level: str
-    license: str = Field(description="Deterministic license mapping (liminal #999): LGPL-2.1/MIT/AGPL-3.0/BSD-3/house.")
-    judges: list[str] | None = Field(
-        default=None, description="Judge identities; null for historical events (never fabricated)."
-    )
-    payload_path: str = Field(description="Path relative to the bundle root.")
-    payload_sha256: str
-    payload_bytes: int
-
-
-class WinnersBundleReceipt(BaseModel):
-    """Fail-closed verification receipt for a winners-bundle envelope."""
-
-    schema_version: str
-    exported_at: str
-    envelope_sha256: str
-    artifacts: list[WinnersArtifactInfo]
-    staged_dir: str | None = None
