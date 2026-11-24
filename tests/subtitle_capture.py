@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -19,19 +19,18 @@ class SubtitleCapture:
         self.evidence = {"stages": {}}
         conversion = subtitles_common._run_ffmpeg
         burn = engine_subtitles._run_ffmpeg
-        fill = engine_subtitles._fill_burn_source
+        staging = subtitles_common.staged_burn_source
 
         def convert(args, **kwargs):
             result = conversion(args, **kwargs)
             self.record("conversion", Path(args[-1]).read_bytes(), result)
             return result
 
-        def stage(fd, *args, **kwargs):
-            with os.fdopen(os.dup(fd), "rb") as held:
-                result = fill(fd, *args, **kwargs)
-                held.seek(0)
-                self.record("staged", held.read())
-            return result
+        @contextmanager
+        def stage(*args, **kwargs):
+            with staging(*args, **kwargs) as source:
+                self.record("staged", Path(source.path).read_bytes())
+                yield source
 
         def render(args, **kwargs):
             result = burn(args, **kwargs)
@@ -39,7 +38,8 @@ class SubtitleCapture:
             return result
 
         monkeypatch.setattr(subtitles_common, "_run_ffmpeg", convert)
-        monkeypatch.setattr(engine_subtitles, "_fill_burn_source", stage)
+        monkeypatch.setattr(subtitles_common, "staged_burn_source", stage)
+        monkeypatch.setattr(engine_subtitles, "staged_burn_source", stage)
         monkeypatch.setattr(engine_subtitles, "_run_ffmpeg", render)
 
     def record(self, stage, content=None, result=None):
