@@ -14,6 +14,7 @@ from .offline import is_loopback_url, is_offline_mode
 from .errors import MCPVideoError
 import os
 import json
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -241,6 +242,7 @@ def _installed(probes: HostProbes, *modules: str) -> bool:
 
 def _model_readiness(probes: HostProbes) -> dict:
     from .ai_engine.lfm3_audio import DEPENDENCIES, ENV_MODEL_DIR, MODEL_NAME, snapshot_files
+    from .ai_engine.upscale import _MODEL_HASHES, _verify_model_hash
     from .validation import OBJECT_MATTE_WEIGHTS_SHA256
 
     whisper = probes.whisper_weights_path()
@@ -249,11 +251,21 @@ def _model_readiness(probes: HostProbes) -> dict:
     matte, _, digest = probes.matte_weights()
     override = probes.environ.get("KINOCUT_DATA_DIR", "").strip()
     cache = Path(override).expanduser() / "cache" if override else probes.home() / ".cache" / "mcp-video"
-    upscale = [
-        {"path": str(path), "present": path.is_file()}
-        for scale in (2, 4)
-        if (path := cache / "models" / f"FSRCNN_x{scale}.pb")
-    ]
+    upscale = []
+    for name, expected_hash in _MODEL_HASHES.items():
+        path = cache / "models" / name
+        present = path.is_file()
+        verified = False
+        if present:
+            with suppress(MCPVideoError, OSError):
+                _verify_model_hash(path, expected_hash, delete_invalid=False)
+                verified = True
+        upscale.append({"path": str(path), "present": present, "verified": verified})
+    runtime_available = False
+    with suppress(Exception):
+        runtime_available = probes.import_module("cv2").dnn_superres.DnnSuperResImpl_create() is not None
+    upscale_ready = runtime_available and any(item["verified"] for item in upscale)
+    upscale_configured = any(item["present"] for item in upscale)
     return {
         "transcription_whisper": {
             "ready": whisper.is_file() and _installed(probes, "whisper"),
@@ -273,8 +285,10 @@ def _model_readiness(probes: HostProbes) -> dict:
             "path": str(matte),
         },
         "upscale": {
-            "ready": any(item["present"] for item in upscale) and _installed(probes, "cv2"),
+            "ready": upscale_ready,
+            "status": "ready" if upscale_ready else "configured_unverified" if upscale_configured else "unavailable",
             "model": "FSRCNN",
+            "runtime_available": runtime_available,
             "weights": upscale,
         },
     }
@@ -292,17 +306,22 @@ def check_offline_readiness(probes: HostProbes, *, include_paths: bool = True) -
     except MCPVideoError:
         vision = {}
     vision_url = vision.get("base_url")
-    vision_ready = bool(
+    local_vision = bool(
         vision_url
         and is_loopback_url(vision_url)
         and env.get("KINOCUT_VISION_MODE", "off").strip().lower() in {"local", "remote"}
-        and (vision.get("api_style") == "openai" or _installed(probes, "anthropic", "httpx"))
     )
+    openai_vision = vision.get("api_style") == "openai"
     director_url = env.get(ENV_BASE_URL, "").strip()
-    features["vision"] = {
-        "ready": vision_ready,
+    features["vision_product_description"] = {
+        "ready": local_vision and (openai_vision or _installed(probes, "anthropic", "httpx")),
         "model": vision.get("model") if vision_url else None,
         "base_url": vision_url,
+    }
+    features["vision_semantic_qc"] = {
+        "ready": local_vision and openai_vision,
+        "model": vision.get("model") if openai_vision else None,
+        "base_url": vision_url if openai_vision else None,
     }
     features["director_360"] = {
         "ready": env.get(ENV_DIRECTOR, "").strip() == "openai_compat" and is_loopback_url(director_url),
@@ -311,7 +330,9 @@ def check_offline_readiness(probes: HostProbes, *, include_paths: bool = True) -
     }
     if not include_paths:
         if env.get("KINOCUT_VISION_MODEL", "").strip():
-            features["vision"]["model"] = "configured (redacted)"
+            for name in ("vision_product_description", "vision_semantic_qc"):
+                if features[name]["model"] is not None:
+                    features[name]["model"] = "configured (redacted)"
         if env.get(ENV_MODEL, "").strip():
             features["director_360"]["model"] = "configured (redacted)"
     return {

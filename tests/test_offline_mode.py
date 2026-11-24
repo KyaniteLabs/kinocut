@@ -2,6 +2,7 @@
 
 import ipaddress
 import json
+import shutil
 import socket
 import subprocess
 import sys
@@ -16,10 +17,12 @@ import pytest
 from kinocut import image_engine
 from kinocut.aesthetic import NimaScorer
 from kinocut.ai_engine import lfm3_audio, transcribe, upscale
+from kinocut.ai_engine._longform_models import LongformChunk
 from kinocut.ai_engine.download import _resolve_video_source
 from kinocut.ai_engine.stem import ai_stem_separation
 from kinocut.doctor import run_diagnostics
-from kinocut.errors import MCPVideoError
+from kinocut.errors import MCPVideoError, ProcessingError
+from kinocut.ffmpeg_helpers import _get_video_duration
 from kinocut.object_matte.weights import ensure_weights
 from kinocut.offline import is_loopback_url, is_offline_mode
 from kinocut.te.sphere_assembly import propose_360_assembly
@@ -126,6 +129,7 @@ def test_vision_and_qc_use_loopback_openai(loopback, tmp_path, monkeypatch):
     assert auth is None
     assert body["messages"][0]["content"][1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
     model = vision_provider.configured_vision_model()
+    assert model is not None
     result = vision_provider.assess_keyframes(model, [{"time": 0.5, "path": str(image)}])
     assert result.verdict == "pass"
     assert requests[1][1]["messages"][1]["content"][1]["type"] == "image_url"
@@ -189,7 +193,7 @@ def test_whisper_single_and_longform_only_load_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(
         _longform_runtime, "_extract_audio_segment", lambda *args, **kwargs: str(tmp_path / "audio.wav")
     )
-    chunk = SimpleNamespace(start=0.0, duration=1.0)
+    chunk = LongformChunk(index=0, start=0.0, end=1.0, duration=1.0)
     for call in (
         lambda: transcribe.ai_transcribe(str(media)),
         lambda: _longform_runtime._transcribe_chunk(
@@ -266,7 +270,7 @@ def test_missing_upscale_matte_and_nima_report_local_files(tmp_path, monkeypatch
     for call, path in (
         (lambda: upscale._download_fsrcnn_model(2), tmp_path / "cache/models/FSRCNN_x2.pb"),
         (ensure_weights, object_matte_cache_path()),
-        (lambda: NimaScorer._find_weights(None), tmp_path / "nima.pth"),
+        (object.__new__(NimaScorer)._find_weights, tmp_path / "nima.pth"),
     ):
         with pytest.raises(MCPVideoError) as caught:
             call()
@@ -304,13 +308,33 @@ def test_doctor_reports_offline_readiness(monkeypatch, tmp_path):
     assert details["enabled"]
     features = details["features"]
     assert set(features) == {
-        "vision",
+        "vision_product_description",
+        "vision_semantic_qc",
         "director_360",
         "transcription_whisper",
         "transcription_lfm3_audio",
         "object_matte",
         "upscale",
     }
-    assert features["vision"]["ready"] and features["vision"]["model"] == "LFM3-VL-2B"
+    for feature in ("vision_product_description", "vision_semantic_qc"):
+        assert features[feature]["ready"] and features[feature]["model"] == "LFM3-VL-2B"
     assert features["director_360"]["ready"] and features["director_360"]["model"] == "LFM3-1.7B"
     assert not features["transcription_whisper"]["ready"]
+
+
+@pytest.mark.skipif(not all(shutil.which(name) for name in ("ffmpeg", "ffprobe")), reason="needs FFmpeg and ffprobe")
+@pytest.mark.parametrize("operation", ["probe", "full_audio", "chunk_audio"])
+def test_offline_media_subprocess_refuses_playlist_http(tmp_path, operation):
+    playlist = tmp_path / "input.m3u8"
+    playlist.write_text(
+        "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\nhttp://192.0.2.1/sample.ts\n#EXT-X-ENDLIST\n"
+    )
+    with pytest.raises(ProcessingError) as caught:
+        if operation == "probe":
+            _get_video_duration(str(playlist))
+        elif operation == "full_audio":
+            transcribe._extract_transcription_audio(playlist, str(tmp_path / "audio.wav"))
+        else:
+            transcribe._extract_audio_segment(str(playlist), 0.0, 1.0, output_dir=str(tmp_path))
+    assert "Protocol 'http' not on whitelist 'file,pipe'" in caught.value.full_stderr
+    assert not list(tmp_path.glob("*.wav"))

@@ -64,10 +64,11 @@ Follow `docs/HERMES_TV.md`. Require `ui.show_media` on the paired TV. Run
 `kinocut.tv_preview.prepare_tv_review_payload`, then bind operator-provided,
 TV-reachable URLs for the proxy and QC sheet using `tv_review_messages`. Send
 both via `gadget_action`; never send local paths or start a media server. Use
-the decision card with `gadget_ask` when supported, or correlate the paired TV's
-explicit APPROVE / REJECT reply with the active review caption. Approve & export
-runs the release checkpoint and exports only on pass; Try another range never
-exports. If the TV path is unavailable, use the Desktop review card.
+the decision card with `gadget_ask` when supported, or require `APPROVE <review_id>`
+or `REJECT <review_id>` from the paired TV. In the process that prepared the
+review, call `consume_tv_review_decision` with the originating ID. Run the release
+checkpoint only on the returned approved cut and export only on pass. If the
+TV path is unavailable, use the Desktop review card.
 
 ## Vision review and network permission (1.16.5)
 

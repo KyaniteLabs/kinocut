@@ -54,7 +54,7 @@ Trim, merge and shorts return a card with the cut: reply with their `preview_dir
 
 ## Reviewing a cut on a paired TV
 
-Require `ui.show_media` on the paired TV. Run `kinocut.tv_preview.prepare_tv_review_payload`, then use `tv_review_messages` to bind TV-reachable HTTP(S) URLs for the proxy and QC sheet. Send both via `gadget_action`; never send local paths or start a media server. Use the decision card with `gadget_ask` when supported, or match an explicit APPROVE / REJECT reply from the paired TV to the active review caption. Approve & export runs the release checkpoint and exports only on pass; Try another range never exports. If this path is unavailable, use the Desktop review card.
+Require `ui.show_media` on the paired TV. Run `kinocut.tv_preview.prepare_tv_review_payload`, then use `tv_review_messages` to bind TV-reachable HTTP(S) URLs for the proxy and QC sheet. Send both via `gadget_action`; never send local paths or start a media server. Use the decision card with `gadget_ask` when supported, or require `APPROVE <review_id>` or `REJECT <review_id>` from the paired TV. In the process that prepared the review, call `consume_tv_review_decision` with the originating ID. Run the release checkpoint only on the returned approved cut and export only on pass. If the TV path is unavailable, use the Desktop review card.
 
 ## When the user just says what they want (next release)
 

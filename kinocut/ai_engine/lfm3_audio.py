@@ -70,8 +70,8 @@ def _model_directory() -> Path:
 
 def _load(directory: Path):
     try:
-        import torch
-        from transformers import AutoModelForMultimodalLM, AutoProcessor
+        import torch  # pyright: ignore[reportMissingImports]
+        from transformers import AutoModelForMultimodalLM, AutoProcessor  # pyright: ignore[reportMissingImports]
     except ImportError:
         raise MCPVideoError(
             f"{MODEL_NAME} runtime is missing. Install with: {pip_install_hint('lfm3-audio')}",
