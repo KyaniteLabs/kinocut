@@ -375,10 +375,8 @@ def test_run_diagnostics_checks_optional_packages_without_importing_them():
     assert "kinocut[ai-scene]" in checks["imagehash"]["install_hint"]
 
 
-def test_run_diagnostics_explains_manual_upscale_backend(monkeypatch):
+def test_run_diagnostics_explains_manual_upscale_backend():
     import mcp_video.doctor as doctor
-
-    monkeypatch.setattr(doctor.sys, "version_info", (3, 13, 12))
 
     report = doctor.run_diagnostics(
         which=lambda name: None,
@@ -390,8 +388,6 @@ def test_run_diagnostics_explains_manual_upscale_backend(monkeypatch):
     checks = {check["name"]: check for check in report["checks"]}
     assert "removed by modern TorchVision" in checks["basicsr"]["install_hint"]
     assert "OpenCV fallback" in checks["realesrgan"]["install_hint"]
-    assert "manual optional integration" in checks["basic-pitch"]["install_hint"]
-    assert "Python 3.11 or 3.12" in checks["basic-pitch"]["install_hint"]
 
 
 def test_run_diagnostics_requires_matching_distribution_for_package_checks():
