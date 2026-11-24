@@ -319,9 +319,6 @@ label,button{margin-inline-end:1rem} select,button{font:inherit}
 
 
 _IMAGE_FORMATS = frozenset({"image2", "image2pipe", "ico", "mjpeg", "webp", "gif", "apng", "fits"})
-_IMAGE_CODECS = frozenset(
-    {"png", "mjpeg", "bmp", "webp", "tiff", "gif", "apng", "ppm", "pgm", "pbm", "pam", "psd", "exr", "pcx", "targa"}
-)
 
 
 def _is_still_image_format(probe: dict) -> bool:
@@ -346,7 +343,6 @@ def _picture_stream(video: Path) -> int:
     for stream in streams:
         if (
             stream.get("codec_type") == "video"
-            and str(stream.get("codec_name") or "").lower() not in _IMAGE_CODECS
             and not stream.get("disposition", {}).get("attached_pic")
             and stream.get("width", 0) > 0
             and stream.get("height", 0) > 0

@@ -283,6 +283,29 @@ def test_audition_review_rejects_invalid_picture(tmp_path, audition_inputs, kind
     assert not folder.exists()
 
 
+def test_audition_accepts_containerized_mjpeg_video(tmp_path, audition_inputs):
+    _, mixes = audition_inputs
+    mjpeg_avi = tmp_path / "mjpeg.avi"
+    _command(
+        "ffmpeg",
+        "-y",
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=64x64:rate=10:duration=1",
+        "-c:v",
+        "mjpeg",
+        mjpeg_avi,
+    )
+    output = tmp_path / "mjpeg_audition.mkv"
+    receipt = build_ab_audition(mjpeg_avi, mixes, output)
+    assert output.is_file()
+    assert receipt["mode"] == "multi_audio"
+    assert _video_hash(output) == _video_hash(mjpeg_avi)
+
+
 @pytest.mark.parametrize("mode", ["review_page", "multi_audio"])
 def test_audition_matches_rendered_high_crest_factor_mix_without_clipping(tmp_path, audition_inputs, mode):
     video, mixes = audition_inputs
