@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from enum import StrEnum
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -10,6 +11,14 @@ from typing import Any
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _run_ffmpeg, _validate_input_path
 from .subtitle_qa import SubtitleQaReport, subtitle_qa
+
+
+class SubtitleAdvisoryStatus(StrEnum):
+    """Typed status values for advisory subtitle QA summaries."""
+
+    PASSED = "passed"
+    FAILED = "failed"
+    UNAVAILABLE = "unavailable"
 
 
 def _convert_and_qa(media: str, source: str, input_format: str | None, profile: str | None) -> SubtitleQaReport:
@@ -50,11 +59,12 @@ def subtitle_advisory(
     try:
         report = _report(media, captions, profile, burn_ass=burn_ass)
     except (MCPVideoError, ValueError, OSError, OverflowError):
-        return {"status": "unavailable", "passed": None, "profile": profile}
+        return {"status": SubtitleAdvisoryStatus.UNAVAILABLE.value, "passed": None, "profile": profile}
     counts = Counter(finding.detector.rsplit(":", 1)[-1] for finding in report.findings)
     passed = bool(report.cue_count) and not counts
+    status = SubtitleAdvisoryStatus.PASSED if passed else SubtitleAdvisoryStatus.FAILED
     return {
-        "status": "passed" if passed else "failed",
+        "status": status.value,
         "passed": passed,
         "profile": report.profile_name,
         "cue_count": report.cue_count,
