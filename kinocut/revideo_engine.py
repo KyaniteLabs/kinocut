@@ -233,9 +233,8 @@ def _validate_materialize_destination(dest: Path) -> None:
 def materialize_project(dest: str | Path, job: dict[str, Any], scene_source: str | Path | None = None) -> Path:
     """Materialize a complete bridge project without exposing partial files."""
     normalized_job = _validate_job(job)
-    materialized_job = {**job, **normalized_job}
     try:
-        job_bytes = (json.dumps(materialized_job, indent=2) + "\n").encode("utf-8")
+        job_bytes = (json.dumps(normalized_job, indent=2) + "\n").encode("utf-8")
     except (TypeError, ValueError) as exc:
         raise ValidationError("job", "must contain JSON-serializable values") from exc
     if len(job_bytes) > MAX_REVIDEO_JOB_JSON_BYTES:

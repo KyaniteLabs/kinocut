@@ -9,6 +9,7 @@ import tempfile
 
 from .engine_runtime_utils import (
     _build_edit_result,
+    _run_video_only,
     _ffmpeg,
     _require_filter,
     _timed_operation,
@@ -62,12 +63,14 @@ def stabilize(
             _detect_motion_vectors(input_path, vectors_file)
 
             safe_vectors_file = _escape_ffmpeg_filter_path(vectors_file)
-            _run_ffmpeg(
+            _run_video_only(
+                _run_ffmpeg,
                 _build_ffmpeg_cmd(
                     input_path,
                     output_path=staged,
+                    audio_codec="copy",
                     video_filter=f"vidstabtransform=input={safe_vectors_file}:smoothing={safe_smoothing}:zoom={safe_zooming}:crop=black",
-                )
+                ),
             )
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)

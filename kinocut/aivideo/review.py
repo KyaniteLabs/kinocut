@@ -89,10 +89,12 @@ def _states_for_candidate(project: Project, candidate: str) -> list[ApprovalStat
     ]
 
 
-def _active_state(project: Project, candidate: str) -> ApprovalState | None:
-    states = _states_for_candidate(project, candidate)
+def _active_state(states: list[ApprovalState]) -> ApprovalState | None:
     superseded = {item.supersedes for item in states if item.supersedes is not None}
     active = [item for item in states if item.record_id not in superseded]
+    for item in active:
+        if item.state in {ApprovalStateValue.REJECTED, ApprovalStateValue.INVALIDATED}:
+            return item
     return active[-1] if active else None
 
 
@@ -204,13 +206,13 @@ def evaluate_publish_gate(
     reasons: list[str] = []
     if blockers:
         reasons.append(f"blocked by {len(blockers)} unresolved finding(s)")
-    active = _active_state(project, candidate_artifact)
+    states = _states_for_candidate(project, candidate_artifact)
+    active = _active_state(states)
     if active is None:
         reasons.append("no active approval state for candidate")
         return PublishGateResult(publishable=False, reasons=tuple(reasons))
     if active.invalidation_reasons:
         reasons.append("candidate approval is invalidated/superseded")
-    states = _states_for_candidate(project, candidate_artifact)
     decisions = [item for item in read_records(project, "review_decision") if type(item) is ReviewDecision]
     publishable = active.is_publishable(decisions, states, blocking_findings=blockers)
     if not publishable and not reasons:

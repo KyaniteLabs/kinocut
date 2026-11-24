@@ -10,6 +10,7 @@ from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
     ReceiptStatus,
+    confined_leaf,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -93,6 +94,7 @@ def image_edit(
     source_path = validate_still_path(source)
     ref_path = validate_still_path(reference)
     out_dir = ensure_output_dir(output_dir)
+    receipt_dest = confined_leaf(out_dir, receipt_name)
 
     src_arr = load_rgb_array(source_path)
     ref_arr = load_rgb_array(ref_path)
@@ -137,7 +139,7 @@ def image_edit(
                 }
             ],
         }
-    receipt_path = write_receipt(out_dir / receipt_name, receipt)
+    receipt_path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
     return receipt

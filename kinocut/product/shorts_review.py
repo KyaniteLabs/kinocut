@@ -164,15 +164,12 @@ def _apply_review_decisions(
                 updates["suggested_hook"] = decision.hook
         elif decision.action == "sensitive_unsuitable":
             approved = False
-            if decision.unsuitable is True:
-                updates["unsuitable"] = True
-                updates["sensitivity"] = "unsafe"
-            if decision.sensitive is True and "sensitivity" not in updates:
-                updates["sensitivity"] = "sensitive"
-            if decision.unsuitable is False:
-                updates["unsuitable"] = False
-                if updates.get("sensitivity") == "unsafe":
-                    updates["sensitivity"] = "none"
+            if decision.unsuitable is not None:
+                updates["unsuitable"] = decision.unsuitable
+            if decision.sensitive is not None:
+                updates["sensitivity"] = "sensitive" if decision.sensitive else "none"
+    if updates.get("unsuitable"):
+        updates["sensitivity"] = "unsafe"
     return updates, approved
 
 

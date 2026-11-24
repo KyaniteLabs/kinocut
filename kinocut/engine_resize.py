@@ -7,7 +7,7 @@ from collections.abc import Callable
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_probe import probe
-from .engine_runtime_utils import _build_edit_result, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _run_video_only, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
 from .errors import MCPVideoError
@@ -70,11 +70,16 @@ def resize(
     quality: QualityLevel = "high",
     output_path: str | None = None,
     on_progress: Callable[[float], None] | None = None,
+    *,
+    fit_mode: str = "pad",
 ) -> EditResult:
     """Resize a video. Use aspect_ratio for preset sizes (e.g. '9:16').
 
-    ``on_progress`` receives the render's percent complete (0-100).
+    Pad to preserve the full frame, or set ``fit_mode="crop"`` to center-crop
+    to fill the target. ``on_progress`` receives percent complete (0-100).
     """
+    if fit_mode not in ("pad", "crop"):
+        raise MCPVideoError("fit_mode must be pad or crop", error_type="validation_error", code="invalid_parameter")
     input_path = _validate_input_path(input_path)
 
     info = probe(input_path)
@@ -92,21 +97,28 @@ def resize(
     output = output_path or _auto_output(input_path, f"{w}x{h}")
     _validate_output_path(output)
 
-    # Scale to fit within target, then pad to exact dimensions
-    vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
+    if fit_mode == "crop":
+        vf = (
+            f"scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,"
+            f"scale={w}:{h}:force_original_aspect_ratio=increase:force_divisible_by=2,"
+            f"crop={w}:{h},setsar=1"
+        )
+    else:
+        vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
         args = _build_ffmpeg_cmd(
             input_path,
             output_path=staged,
             video_filter=vf,
+            audio_codec="copy",
             crf=preset["crf"],
             preset=preset["preset"],
         )
         if on_progress is None:
-            _run_ffmpeg(args)
+            _run_video_only(_run_ffmpeg, args)
         else:
-            _run_ffmpeg_with_progress(args, info.duration, on_progress)
+            _run_video_only(_run_ffmpeg_with_progress, args, info.duration, on_progress)
         result = _build_edit_result(staged, "resize", timing)
     result.output_path = output
     result.elapsed_ms = timing["elapsed_ms"]

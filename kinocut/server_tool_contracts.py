@@ -21,6 +21,8 @@ from .errors import MCPVideoError
 from .tool_docstrings import fold_args
 from .tool_families import DESCRIBE_TOOL_NAME, FAMILY_OF_OPERATION
 
+_FAMILY_TOOL_NAMES = frozenset(FAMILY_OF_OPERATION.values())
+
 
 def _numeric_boolean_validator(model: Any) -> Any:
     numeric_fields = set()
@@ -70,6 +72,20 @@ def forgive_argument_aliases(tool: Any, arguments: dict[str, Any]) -> dict[str, 
         if len(present) == 1:
             renamed[canonical] = renamed.pop(present[0])
     return renamed
+
+
+def _fold_family_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Accept a flat payload for a known member, then validate it as normal params."""
+    operation = arguments.get("operation")
+    if not isinstance(operation, str) or FAMILY_OF_OPERATION.get(operation) != name or "params" in arguments:
+        return arguments
+    envelope = {"operation", "overwrite"}
+    if any(alias in arguments for alias in _ARGUMENT_ALIASES["params"]):
+        return arguments
+    params = {key: value for key, value in arguments.items() if key not in envelope}
+    if not params:
+        return arguments
+    return {**{key: arguments[key] for key in envelope if key in arguments}, "params": params}
 
 
 def call_shape(tool_name: str, tool: Any, *, operation: str | None = None) -> str:
@@ -219,6 +235,8 @@ class _ContractFastMCP(FastMCP):
         )
         tool.fn_metadata.arg_model = model
         tool.parameters = model.model_json_schema(by_alias=True, schema_generator=_UntitledSchema)
+        if name in _FAMILY_TOOL_NAMES:
+            tool.parameters["additionalProperties"] = True
         tool.description = fold_args(tool.description, tool.parameters)
         _compact_tool_metadata(tool)
 
@@ -227,7 +245,7 @@ class _ContractFastMCP(FastMCP):
         if tool is None:
             self._raise_if_unlisted_operation(name)
             return await super().call_tool(name, arguments)
-        arguments = forgive_argument_aliases(tool, arguments)
+        arguments = _fold_family_arguments(name, forgive_argument_aliases(tool, arguments))
         try:
             validate_tool_arguments(name, tool, arguments)
         except MCPVideoError as error:

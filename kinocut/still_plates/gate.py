@@ -7,7 +7,9 @@ from typing import Any
 
 from ..defaults import STILL_GATE_MAX_LUMA_SPREAD, STILL_GATE_MAX_SHADOW_GREEN_CYAN
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_artifact_path, _validate_output_path
 from .io import (
+    confined_leaf,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -29,29 +31,24 @@ class _Frames:
         return (load_rgb_array(path) for path in self.paths)
 
 
-def still_gate(
-    *,
-    inputs: list[str | Path],
-    output_dir: str | Path,
-    max_luma_spread: float = STILL_GATE_MAX_LUMA_SPREAD,
-    max_shadow_green_cyan: float = STILL_GATE_MAX_SHADOW_GREEN_CYAN,
-    contact_sheet_name: str = "contact_sheet.png",
-    receipt_name: str = "still_gate_receipt.json",
-) -> dict[str, Any]:
-    """Evaluate package cohesion; fail closed when metrics exceed thresholds."""
-    if not inputs:
-        raise MCPVideoError(
-            "still-gate requires at least one input still",
-            error_type="validation_error",
-            code="empty_inputs",
-        )
-    paths = [validate_still_path(p) for p in inputs]
-    out_dir = ensure_output_dir(output_dir)
-    metrics = package_metrics(_Frames(paths))
+def _gate_destinations(out_dir: Path, sheet_name: str, receipt_name: str) -> tuple[Path, Path]:
+    sheet = confined_leaf(out_dir, sheet_name)
+    receipt = confined_leaf(out_dir, receipt_name)
+    _validate_output_path(str(sheet))
+    _validate_artifact_path(str(receipt))
+    if sheet == receipt:
+        raise MCPVideoError("Gate outputs must be distinct", error_type="validation_error", code="invalid_output_path")
+    return sheet, receipt
 
+
+def _collect_gate_failures(
+    paths: list[Path],
+    metrics: dict[str, Any],
+    max_luma_spread: float,
+    max_shadow_green_cyan: float,
+) -> list[dict[str, Any]]:
     failures: list[dict[str, Any]] = []
     if metrics["luma_spread"] > max_luma_spread:
-        # Name the darkest and brightest frames by mean luma.
         lumas = [fm["mean_luma"] for fm in metrics["per_frame"]]
         dark_i = min(range(len(lumas)), key=lambda i: lumas[i])
         bright_i = max(range(len(lumas)), key=lambda i: lumas[i])
@@ -69,14 +66,9 @@ def still_gate(
             }
         )
     if metrics["shadow_green_cyan_max"] > max_shadow_green_cyan:
-        # Name the worst frame.
-        worst_i = 0
-        worst_v = -1.0
-        for i, fm in enumerate(metrics["per_frame"]):
-            v = fm["shadow_green_cyan_fraction"]
-            if v > worst_v:
-                worst_v = v
-                worst_i = i
+        worst_i = max(
+            range(len(metrics["per_frame"])), key=lambda i: metrics["per_frame"][i]["shadow_green_cyan_fraction"]
+        )
         failures.append(
             {
                 "metric": "shadow_green_cyan_fraction",
@@ -86,8 +78,34 @@ def still_gate(
                 "frame_index": worst_i,
             }
         )
+    return failures
 
-    sheet_path = _write_contact_sheet(paths, out_dir / contact_sheet_name)
+
+def still_gate(
+    *,
+    inputs: list[str | Path],
+    output_dir: str | Path,
+    max_luma_spread: float = STILL_GATE_MAX_LUMA_SPREAD,
+    max_shadow_green_cyan: float = STILL_GATE_MAX_SHADOW_GREEN_CYAN,
+    contact_sheet_name: str = "contact_sheet.png",
+    receipt_name: str = "still_gate_receipt.json",
+) -> dict[str, Any]:
+    """Evaluate package cohesion; fail closed when metrics exceed thresholds."""
+    if not inputs:
+        raise MCPVideoError(
+            "still-gate requires at least one input still",
+            error_type="validation_error",
+            code="empty_inputs",
+        )
+    paths = [validate_still_path(p) for p in inputs]
+    sheet_dest, receipt_dest = _gate_destinations(
+        Path(output_dir).expanduser().resolve(), contact_sheet_name, receipt_name
+    )
+    out_dir = ensure_output_dir(output_dir)
+    metrics = package_metrics(_Frames(paths))
+    failures = _collect_gate_failures(paths, metrics, max_luma_spread, max_shadow_green_cyan)
+
+    sheet_path = _write_contact_sheet(paths, sheet_dest)
     passed = len(failures) == 0
     receipt = {
         "tool": "still_gate",
@@ -103,7 +121,7 @@ def still_gate(
         "contact_sheet": str(sheet_path),
         "exit_code": 0 if passed else 1,
     }
-    receipt_path = write_receipt(out_dir / receipt_name, receipt)
+    receipt_path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
     return receipt
@@ -122,7 +140,7 @@ def _write_contact_sheet(paths: list[Path], dest: Path) -> Path:
     for path in paths:
         with Image.open(path) as image:
             width, height = image.size
-            thumbs.append(image.convert("RGB").resize((max(1, int(width * (thumb_h / height))), thumb_h)))
+            thumbs.append(image.convert("RGB").resize((max(1, int(width * (thumb_h / max(height, 1)))), thumb_h)))
 
     gap = 8
     total_w = sum(t.size[0] for t in thumbs) + gap * (len(thumbs) + 1)
@@ -131,6 +149,7 @@ def _write_contact_sheet(paths: list[Path], dest: Path) -> Path:
     for t in thumbs:
         sheet.paste(t, (x, gap))
         x += t.size[0] + gap
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(dest)
+    fmt = Image.registered_extensions().get(dest.suffix.lower()) or "PNG"
+    with _atomic_output(_validate_output_path(str(dest))) as staged, _open_staged_writer(staged) as stream:
+        sheet.save(stream, format=fmt)
     return dest.resolve()

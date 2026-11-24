@@ -408,17 +408,10 @@ class ToolSurface:
         """Load and expose the surface ``KINOCUT_TOOLS`` (or ``raw``) names."""
 
         self.mode, self.profiles = parse_tool_mode(raw)
-        modules = (
-            TOOL_NAMES_BY_MODULE
-            if self.mode == "all" or self.mode.startswith("profile:")
-            else {
-                module: names
-                for module, names in TOOL_NAMES_BY_MODULE.items()
-                if any(name in CORE_TOOLS for name in names)
-            }
-        )
-        for module in modules:
-            _import_tool_module(module)
+        allowed = _allowed_names(self.mode, self.profiles)
+        for module, names in TOOL_NAMES_BY_MODULE.items():
+            if not allowed.isdisjoint(names):
+                _import_tool_module(module)
         if self.mode != "all":
             # Default and profile modes carry the compact family dispatchers;
             # the legacy ``all`` surface stays exactly the registry.
@@ -501,12 +494,14 @@ def ensure_tool_loaded(name: str) -> Any:
     return getattr(SURFACE.load(module), name)
 
 
-def discovery_catalog() -> list[dict[str, Any]]:
-    """Load the complete registry only when an agent asks for discovery."""
+def discovery_catalog(modules: Iterable[str] = TOOL_NAMES_BY_MODULE) -> list[dict[str, Any]]:
+    """Load registration metadata only for the modules being searched."""
 
-    for module in TOOL_NAMES_BY_MODULE:
+    rows = []
+    for module in modules:
         SURFACE.load(module)
-    return [SURFACE.catalog[name] for name in TOOL_REGISTRY if name in SURFACE.catalog]
+        rows.extend(SURFACE.catalog[name] for name in TOOL_NAMES_BY_MODULE[module] if name in SURFACE.catalog)
+    return rows
 
 
 def active_mode() -> str:

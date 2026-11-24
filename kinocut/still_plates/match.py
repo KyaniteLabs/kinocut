@@ -11,6 +11,7 @@ from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
     ReceiptStatus,
+    confined_leaf,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -133,6 +134,7 @@ def still_match(
     hero_path = validate_still_path(hero)
     input_paths = [validate_still_path(p) for p in inputs]
     out_dir = ensure_output_dir(output_dir)
+    receipt_dest = confined_leaf(out_dir, receipt_name)
 
     hero_rgb = mean_rgb(load_rgb_array(hero_path))
     package_rgb = _package_mean_rgb(load_rgb_array(path) for path in input_paths)
@@ -151,7 +153,7 @@ def still_match(
         "delta_ev": (__import__("math").log2(exposure_scale) if exposure_scale > 0 else 0.0),
         "outputs": outputs,
     }
-    receipt_path = write_receipt(out_dir / receipt_name, receipt)
+    receipt_path = write_receipt(receipt_dest, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
     receipt["status"] = ReceiptStatus.OK

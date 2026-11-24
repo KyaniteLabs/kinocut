@@ -35,22 +35,32 @@ def find_best_thumbnail_timestamp(
     NIMA is unavailable, the video is too short, or scoring fails for any
     reason.
     """
+    with selected_frame(input_path, num_candidates) as (timestamp, _):
+        return timestamp
+
+
+@contextlib.contextmanager
+def selected_frame(input_path: str, num_candidates: int = DEFAULT_NIMA_CANDIDATES, *, suffix: str = ".jpg"):
+    """Keep the selected frame readable until the caller has published it."""
     input_path = _validate_input_path(input_path)
-    try:
-        ts = _select_best_with_nima(input_path, num_candidates)
-        if ts is not None:
-            return ts
-        logger.debug("NIMA unavailable, using default timestamp")
-    except Exception as exc:
-        logger.warning("Smart thumbnail selection failed (%s); using default", exc)
-    return _default_timestamp(input_path)
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}:
+        suffix = ".jpg"
+    with contextlib.ExitStack() as stack:
+        candidate = None
+        try:
+            candidate = _select_best_with_nima(input_path, num_candidates, stack, suffix)
+        except Exception as exc:
+            logger.warning("Smart thumbnail selection failed (%s); using default", exc)
+        yield candidate or (_default_timestamp(input_path), None)
 
 
 def _select_best_with_nima(
     input_path: str,
     num_candidates: int,
-) -> float | None:
-    """Run NIMA selection. Returns the best timestamp, or None if unavailable."""
+    stack: contextlib.ExitStack,
+    suffix: str,
+) -> tuple[float, str] | None:
+    """Return the best candidate and transfer its temporary lifetime to the caller."""
     try:
         from kinocut.aesthetic import NimaScorer, is_available
     except ImportError:
@@ -65,27 +75,15 @@ def _select_best_with_nima(
         logger.debug("Video too short (%.2fs) for smart selection", duration)
         return None
 
-    with _extract_candidates(input_path, duration, num_candidates) as frame_paths:
-        if not frame_paths:
-            return None
-
-        scorer = NimaScorer.get()
-        paths_only = [p for _, p in frame_paths]
-        scores = scorer.score_frames(paths_only)
-
-        best_idx = scores.index(max(scores))
-        best_ts = frame_paths[best_idx][0]
-        best_score = scores[best_idx]
-        logger.info(
-            "NIMA smart thumbnail: selected t=%.2fs (score %.2f) from %d candidates (avg %.2f, range %.2f-%.2f)",
-            best_ts,
-            best_score,
-            len(scores),
-            sum(scores) / len(scores),
-            min(scores),
-            max(scores),
-        )
-        return best_ts
+    frame_paths = stack.enter_context(_extract_candidates(input_path, duration, num_candidates, suffix))
+    if not frame_paths:
+        return None
+    scores = NimaScorer.get().score_frames([path for _, path in frame_paths])
+    best = scores.index(max(scores))
+    logger.info(
+        "NIMA selected t=%.2fs (score %.2f) from %d candidates", frame_paths[best][0], scores[best], len(scores)
+    )
+    return frame_paths[best]
 
 
 @contextlib.contextmanager
@@ -93,6 +91,7 @@ def _extract_candidates(
     input_path: str,
     duration: float,
     num_candidates: int,
+    suffix: str,
 ) -> Iterator[list[tuple[float, str]]]:
     """Extract candidate frames across the video. Returns (timestamp, path) pairs.
 
@@ -104,11 +103,10 @@ def _extract_candidates(
     step = (end - start) / (num_candidates - 1) if num_candidates > 1 else 0
     timestamps = [start + i * step for i in range(num_candidates)]
 
-    tmp_dir = tempfile.mkdtemp(prefix="nima_thumb_")
     frame_paths: list[tuple[float, str]] = []
-    try:
+    with tempfile.TemporaryDirectory(prefix="nima_thumb_") as tmp_dir:
         for i, ts in enumerate(timestamps):
-            frame_path = os.path.join(tmp_dir, f"candidate_{i:03d}.jpg")
+            frame_path = os.path.join(tmp_dir, f"candidate_{i:03d}{suffix}")
             try:
                 # _run_ffmpeg sets timeout=DEFAULT_FFMPEG_TIMEOUT internally.
                 _run_ffmpeg(
@@ -130,17 +128,6 @@ def _extract_candidates(
             if os.path.isfile(frame_path):
                 frame_paths.append((ts, frame_path))
         yield frame_paths
-    finally:
-        _cleanup_candidates(frame_paths, tmp_dir)
-
-
-def _cleanup_candidates(frame_paths: list[tuple[float, str]], tmp_dir: str) -> None:
-    """Remove temp candidate frames and their directory."""
-    for _, path in frame_paths:
-        with contextlib.suppress(OSError):
-            os.remove(path)
-    with contextlib.suppress(OSError):
-        os.rmdir(tmp_dir)
 
 
 def _default_timestamp(input_path: str) -> float:

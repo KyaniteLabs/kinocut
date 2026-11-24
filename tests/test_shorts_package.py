@@ -93,10 +93,11 @@ def test_package_fails_closed_without_approve(tmp_path):
     assert exc.value.code == "shorts_review_required"
 
 
-def test_package_writes_both_platform_packages(tmp_path):
+def test_package_writes_both_platform_packages(tmp_path, monkeypatch):
+    monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda path, **kwargs: {"video": path})
     plan = _plan_with_renders(tmp_path)
     review_shorts_plan(plan, candidate_id="candidate_01", decision="approve")
-    result = package_approved_candidate(plan, candidate_id="candidate_01", allow_fail=True)
+    result = package_approved_candidate(plan, candidate_id="candidate_01")
     assert result["status"] == "packaged"
     assert result["external_posting"] is False
     assert len(result["packages"]) == 2
@@ -135,11 +136,12 @@ def test_package_refuses_renders_of_an_earlier_revision(tmp_path, monkeypatch):
     review_shorts_plan(plan, candidate_id="candidate_01", decision={"action": "trim", "start": 12.0, "end": 20.0})
     review_shorts_plan(plan, candidate_id="candidate_01", decision="approve")
     with pytest.raises(MCPVideoError) as stale:
-        package_approved_candidate(plan, candidate_id="candidate_01", allow_fail=True)
+        package_approved_candidate(plan, candidate_id="candidate_01")
     assert stale.value.code == "shorts_package_render_stale"
 
     render_approved_candidate(plan, candidate_id="candidate_01")
-    assert package_approved_candidate(plan, candidate_id="candidate_01", allow_fail=True)["status"] == "packaged"
+    monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda path, **kwargs: {"video": path})
+    assert package_approved_candidate(plan, candidate_id="candidate_01")["status"] == "packaged"
 
 
 def test_failed_quality_gate_publishes_nothing(tmp_path, monkeypatch):

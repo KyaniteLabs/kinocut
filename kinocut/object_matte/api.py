@@ -108,6 +108,22 @@ def _validate_output_pair(dest: str, hole: str | None) -> None:
         reject_output_alias(output, (source,))
 
 
+def _source_metadata(source: str, dest: str, hole: str | None) -> tuple[bool, float, int, int, int]:
+    from .media import is_still, refuse_overlong_video
+
+    if is_still(source):
+        with Image.open(source) as preview:
+            return True, 30.0, 1, *preview.size
+    fps, frames, width, height = refuse_overlong_video(source)
+    if any(path and Path(path).suffix.lower() == ".png" for path in (dest, hole)):
+        raise MCPVideoError(
+            "PNG object-matte output accepts a still, not a video",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    return False, fps, frames, width, height
+
+
 def run_object_matte(
     *,
     input_path: str,
@@ -122,14 +138,11 @@ def run_object_matte(
     """Cut a product/object. quality is accepted and ignored (CLI always sends it)."""
     del quality
     require_object_matte_deps()
-    from .equipment import apply_equipment_gate
     from .infer import infer_mask
     from .media import (
         apply_alpha,
         charge_scratch,
-        is_still,
         iter_source_frames,
-        refuse_overlong_video,
         refuse_scratch,
     )
 
@@ -144,13 +157,14 @@ def run_object_matte(
     dest = assert_alpha_output(output_path or _default_output(source))
     hole = assert_alpha_output(background_output_path) if background_output_path else None
     _validate_output_pair(dest, hole)
-    still = is_still(source)
-    if still:
-        with Image.open(source) as preview:
-            width, height = preview.size
-        fps, planned_frames = 30.0, 1
-    else:
-        fps, planned_frames, width, height = refuse_overlong_video(source)
+    if fail_if_equipment_on_subject and not equipment_overlay:
+        raise MCPVideoError(
+            "Equipment gate requires an equipment overlay", error_type="validation_error", code="invalid_parameter"
+        )
+    if equipment_overlay:
+        _validate_output_pair(dest, equipment_overlay)
+        _validate_output_pair(equipment_overlay, hole)
+    still, fps, planned_frames, width, height = _source_metadata(source, dest, hole)
     weights, cache_hit = ensure_weights()
     session, providers = make_session(weights, device)
     deadline = time.monotonic() + DEFAULT_OBJECT_MATTE_TIMEOUT
@@ -162,7 +176,7 @@ def run_object_matte(
         if hole:
             hole_dir.mkdir()
         refuse_scratch(width, height, planned_frames, bool(hole), work_dir)
-        cut, hole_out, subject, samples = _stream_job(
+        cut, hole_out = _stream_job(
             source=source,
             dest=dest,
             hole=hole,
@@ -180,10 +194,6 @@ def run_object_matte(
             apply_alpha=apply_alpha,
             charge_scratch=charge_scratch,
             iter_source_frames=iter_source_frames,
-        )
-        apply_equipment_gate(
-            subject=subject,
-            frames=samples or ([subject.convert("RGB")] if still else samples),
             overlay_path=equipment_overlay,
             fail_if_equipment_on_subject=fail_if_equipment_on_subject,
         )
@@ -230,7 +240,9 @@ def _deadline_or_raise(deadline: float) -> None:
 
 
 def _stream_job(**kwargs):
-    """Stream frames to scratch PNGs; return cut path, hole path, subject mask, samples."""
+    """Stream frames to scratch, gate the subject, then publish the outputs."""
+    from .equipment import apply_equipment_gate
+
     source, dest, hole = kwargs["source"], kwargs["dest"], kwargs["hole"]
     width, height, fps = kwargs["width"], kwargs["height"], kwargs["fps"]
     mask_interval, session, deadline = kwargs["mask_interval"], kwargs["session"], kwargs["deadline"]
@@ -283,7 +295,13 @@ def _stream_job(**kwargs):
             code="object_matte_no_frames",
             docs_url=_DOCS,
         )
-    written, hole_written = _write_outputs(
+    apply_equipment_gate(
+        subject=subject,
+        frames=samples,
+        overlay_path=kwargs["overlay_path"],
+        fail_if_equipment_on_subject=kwargs["fail_if_equipment_on_subject"],
+    )
+    return _write_outputs(
         dest=dest,
         hole=hole,
         first_cut=first_cut,
@@ -293,4 +311,3 @@ def _stream_job(**kwargs):
         fps=fps,
         count=count,
     )
-    return written, hole_written, subject, samples

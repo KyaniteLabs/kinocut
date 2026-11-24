@@ -327,12 +327,12 @@ def test_job_digest_binds_exact_complete_file_bytes(tmp_path, monkeypatch) -> No
     assert result.job_sha256 == hashlib.sha256(raw).hexdigest()
 
 
-def test_materialize_preserves_custom_job_fields(tmp_path) -> None:
+def test_materialize_only_writes_validated_job_fields(tmp_path) -> None:
     custom = {**_job(), "palette": ["#fff", "#000"], "puppeteer": {"executablePath": "/trusted/browser"}}
     project = materialize_project(tmp_path / "bridge", custom)
 
     assert json.loads((project / "src" / "job.json").read_text(encoding="utf-8")) == {
-        **custom,
+        **_job(),
         "out_file": "video.mp4",
     }
 
