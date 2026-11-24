@@ -20,6 +20,17 @@ from .io import (
 from .stats import package_metrics
 
 
+class _Frames:
+    def __init__(self, paths: list[Path]):
+        self.paths = paths
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __iter__(self):
+        return (load_rgb_array(path) for path in self.paths)
+
+
 def _gate_destinations(out_dir: Path, sheet_name: str, receipt_name: str) -> tuple[Path, Path]:
     sheet = confined_leaf(out_dir, sheet_name)
     receipt = confined_leaf(out_dir, receipt_name)
@@ -91,8 +102,7 @@ def still_gate(
         Path(output_dir).expanduser().resolve(), contact_sheet_name, receipt_name
     )
     out_dir = ensure_output_dir(output_dir)
-    frames = [load_rgb_array(p) for p in paths]
-    metrics = package_metrics(frames)
+    metrics = package_metrics(_Frames(paths))
     failures = _collect_gate_failures(paths, metrics, max_luma_spread, max_shadow_green_cyan)
 
     sheet_path = _write_contact_sheet(paths, sheet_dest)
@@ -122,19 +132,15 @@ def _write_contact_sheet(paths: list[Path], dest: Path) -> Path:
     require_still_deps()
     from PIL import Image
 
-    images = []
-    for p in paths:
-        with Image.open(p) as im:
-            images.append(im.convert("RGB").copy())
-    if not images:
+    if not paths:
         raise MCPVideoError("no images for contact sheet", error_type="validation_error", code="empty_inputs")
 
     thumb_h = 256
     thumbs = []
-    for im in images:
-        w, h = im.size
-        scale = thumb_h / max(h, 1)
-        thumbs.append(im.resize((max(1, int(w * scale)), thumb_h)))
+    for path in paths:
+        with Image.open(path) as image:
+            width, height = image.size
+            thumbs.append(image.convert("RGB").resize((max(1, int(width * (thumb_h / max(height, 1)))), thumb_h)))
 
     gap = 8
     total_w = sum(t.size[0] for t in thumbs) + gap * (len(thumbs) + 1)

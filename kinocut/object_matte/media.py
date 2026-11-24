@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import select
 import shutil
 import subprocess
@@ -14,6 +15,8 @@ from PIL import Image, ImageOps
 
 from ..defaults import DEFAULT_FPS, DEFAULT_OBJECT_MATTE_TIMEOUT, OBJECT_MATTE_STILL_SUFFIXES
 from ..errors import MCPVideoError, ProcessingError
+from ..engine_runtime_utils import _ffmpeg
+from ..process_tree import ProcessTree
 from ..ffmpeg_helpers import _get_video_duration, _run_ffprobe_json, _validate_input_path
 from ..limits import MAX_OBJECT_MATTE_FRAMES, MAX_OBJECT_MATTE_SCRATCH_BYTES
 
@@ -149,7 +152,7 @@ def decode_video_argv(input_path: str, width: int, height: int) -> list[str]:
     # Frames are reshaped with the probed coded dimensions, so FFmpeg must not
     # autorotate display-rotated phone footage underneath them.
     return [
-        "ffmpeg",
+        _ffmpeg(),
         "-y",
         "-hide_banner",
         "-loglevel",
@@ -179,18 +182,19 @@ def _read_exact(stream, size: int, deadline: float) -> bytes | None:
                 code="object_matte_timeout",
                 docs_url=_DOCS,
             )
-        try:
+        if os.name == "nt":
+            from ..quality_signal_windows import _available_bytes
+
+            available = _available_bytes(stream)
+            if not available:
+                time.sleep(min(0.02, remaining))
+                continue
+            piece = os.read(stream.fileno(), min(size - got, available)) if available > 0 else b""
+        else:
             ready, _, _ = select.select([stream], [], [], remaining)
-        except (OSError, TypeError, ValueError):
-            ready = [stream]
-        if not ready:
-            raise MCPVideoError(
-                f"Object-matte exceeded {DEFAULT_OBJECT_MATTE_TIMEOUT}s",
-                error_type="processing_error",
-                code="object_matte_timeout",
-                docs_url=_DOCS,
-            )
-        piece = stream.read(size - got)
+            if not ready:
+                continue
+            piece = os.read(stream.fileno(), min(size - got, 1 << 16))
         if not piece:
             if got == 0:
                 return None
@@ -208,15 +212,15 @@ def _read_exact(stream, size: int, deadline: float) -> bytes | None:
 def iter_video_rgb(input_path: str, width: int, height: int, deadline: float | None = None) -> Iterator[Image.Image]:
     frame_bytes = width * height * 3
     ends = time.monotonic() + DEFAULT_OBJECT_MATTE_TIMEOUT if deadline is None else deadline
-    proc = subprocess.Popen(  # noqa: S603
+    tree = ProcessTree(
         decode_video_argv(input_path, width, height),
-        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     )
     count = 0
+    proc = tree.process
     try:
-        if proc.stdout is None:
+        if proc is None or proc.stdout is None:
             raise MCPVideoError(
                 "Object-matte decode produced no stdout",
                 error_type="processing_error",
@@ -238,7 +242,7 @@ def iter_video_rgb(input_path: str, width: int, height: int, deadline: float | N
             yield Image.frombytes("RGB", (width, height), buf)
         remaining = max(0.1, ends - time.monotonic())
         try:
-            rc = proc.wait(timeout=remaining)
+            rc = tree.wait(timeout=remaining)
         except subprocess.TimeoutExpired:
             raise MCPVideoError(
                 f"Object-matte exceeded {DEFAULT_OBJECT_MATTE_TIMEOUT}s",
@@ -261,9 +265,11 @@ def iter_video_rgb(input_path: str, width: int, height: int, deadline: float | N
                 docs_url=_DOCS,
             )
     finally:
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait()
+        try:
+            tree.close()
+        finally:
+            if proc is not None and proc.stdout is not None:
+                proc.stdout.close()
 
 
 def iter_source_frames(

@@ -365,25 +365,25 @@ def test_unknown_frame_count_refuses_before_decode(monkeypatch: pytest.MonkeyPat
 def test_stalled_decode_raises_timeout_and_reaps(monkeypatch: pytest.MonkeyPatch) -> None:
     killed: list[str] = []
 
-    class _Proc:
-        stdout = object()
-        stderr = None
+    import io
+    from types import SimpleNamespace
 
-        def poll(self):
-            return None if not killed else -9
+    class _Tree:
+        process = SimpleNamespace(stdout=io.BytesIO())
 
-        def kill(self):
+        def close(self):
             killed.append("kill")
 
         def wait(self, timeout=None):
             return -9
 
-    monkeypatch.setattr("mcp_video.object_matte.media.subprocess.Popen", lambda *a, **k: _Proc())
+    monkeypatch.setattr("mcp_video.object_matte.media.ProcessTree", lambda *a, **k: _Tree())
     monkeypatch.setattr("mcp_video.object_matte.media.select.select", lambda *_a, **_k: ([], [], []))
     with pytest.raises(MCPVideoError) as excinfo:
         list(iter_video_rgb("turn.mp4", 2, 2, deadline=0))
     assert excinfo.value.code == "object_matte_timeout"
     assert killed == ["kill"]
+    assert _Tree.process.stdout.closed
 
 
 def test_parse_rate_rejects_zero_denominators() -> None:

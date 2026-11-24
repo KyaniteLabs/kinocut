@@ -116,6 +116,7 @@ _SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
 # earlier output stays legal, while destroying a declared input stays blocked.
 _OPERATION_INPUTS: ContextVar[frozenset[str]] = ContextVar("kinocut_operation_inputs", default=frozenset())
 _OPERATION_WRITES: ContextVar[dict[str, tuple[int, int]] | None] = ContextVar("kinocut_operation_writes", default=None)
+_ON_PUBLISH: ContextVar[Callable[[str], None] | None] = ContextVar("kinocut_on_publish", default=None)
 
 
 def _owns_operation_output(path: str) -> bool:
@@ -145,7 +146,10 @@ def _note_operation_write(resolved: str) -> None:
         writes = {}
         _OPERATION_WRITES.set(writes)
     writes[os.path.realpath(resolved)] = (current.st_dev, current.st_ino)
-    # Cleanup in a later call can only trust what was recorded durably.
+    if os.path.basename(resolved).startswith(".kinocut_tmp_"):
+        return
+    if notify := _ON_PUBLISH.get():
+        notify(resolved)
     from .output_ledger import record_output
 
     record_output(resolved)
@@ -451,7 +455,7 @@ def _run_command(
                 raise ProcessingError(cmd_str, result.returncode, result.stderr)
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, "", reason=f"FFmpeg command timed out after {timeout}s") from None
-    if is_ffmpeg and os.path.isfile(output):
+    if is_ffmpeg and output != "-" and not output.startswith("pipe:") and os.path.isfile(output):
         _note_operation_write(output)
     return result
 

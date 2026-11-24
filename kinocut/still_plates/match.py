@@ -48,14 +48,17 @@ def _validate_match_args(
         )
 
 
-def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, float], float]:
+def _package_mean_rgb(arrays) -> tuple[float, float, float]:
+    means = [mean_rgb(array) for array in arrays]
+    return tuple(sum(channel) / len(means) for channel in zip(*means, strict=True))
+
+
+def _compute_shared_gains(hero_rgb, package_rgb) -> tuple[tuple[float, float, float], float]:
     """One shared gain triple mapping package mean RGB toward hero mean RGB.
 
     RGB-target gains already include exposure; do **not** multiply by a second
     luma scale (that over-corrected and clipped highlights).
     """
-    hero_rgb = mean_rgb(hero_arr)
-    package_rgb = tuple(float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3))
     gains = shared_gains_to_hero(
         hero_rgb,
         package_rgb,  # type: ignore[arg-type]
@@ -94,14 +97,13 @@ def _matched_destinations(input_paths: list[Path], out_dir: Path) -> list[Path]:
 
 def _write_matched_outputs(
     input_paths: list[Path],
-    input_arrs: list,
     final_gains: tuple[float, float, float],
     out_dir: Path,
 ) -> list[dict[str, Any]]:
     outputs: list[dict[str, Any]] = []
     destinations = _matched_destinations(input_paths, out_dir)
-    for src, arr, dest in zip(input_paths, input_arrs, destinations, strict=True):
-        matched = apply_rgb_gains(arr, final_gains)
+    for src, dest in zip(input_paths, destinations, strict=True):
+        matched = apply_rgb_gains(load_rgb_array(src), final_gains)
         written = save_rgb_array(matched, dest)
         outputs.append(
             {
@@ -134,17 +136,17 @@ def still_match(
     out_dir = ensure_output_dir(output_dir)
     receipt_dest = confined_leaf(out_dir, receipt_name)
 
-    hero_arr = load_rgb_array(hero_path)
-    input_arrs = [load_rgb_array(p) for p in input_paths]
-    final_gains, exposure_scale = _compute_shared_gains(hero_arr, input_arrs)
-    outputs = _write_matched_outputs(input_paths, input_arrs, final_gains, out_dir)
+    hero_rgb = mean_rgb(load_rgb_array(hero_path))
+    package_rgb = _package_mean_rgb(load_rgb_array(path) for path in input_paths)
+    final_gains, exposure_scale = _compute_shared_gains(hero_rgb, package_rgb)
+    outputs = _write_matched_outputs(input_paths, final_gains, out_dir)
 
     receipt = {
         "tool": "still_match",
         "hero": str(hero_path),
         "hero_sha256": file_sha256(hero_path),
-        "hero_mean_rgb": list(mean_rgb(hero_arr)),
-        "package_mean_rgb": [float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)],
+        "hero_mean_rgb": list(hero_rgb),
+        "package_mean_rgb": list(package_rgb),
         "shared_gains": list(final_gains),
         "exposure_scale": exposure_scale,
         "per_frame_auto_wb": False,
