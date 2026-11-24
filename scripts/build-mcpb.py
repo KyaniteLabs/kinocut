@@ -26,7 +26,7 @@ from kinocut.limits import (  # noqa: E402
 )
 
 MCPB_DIR = ROOT / "mcpb"
-VERSION = "2.0.1"
+VERSION = "2.1.0"
 MEMBERS = ("README.md", "manifest.json", "server/launcher.js")
 ICON_MEMBER = "icon.png"
 TOP_LEVEL_KEYS = {
