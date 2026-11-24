@@ -56,7 +56,13 @@ assert loaded() == editor | set(FAMILY_MODULES['image_ops'])
 configure_tool_surface('all')
 assert editor < loaded() == set(TOOL_NAMES_BY_MODULE)
 """
-    subprocess.run([sys.executable, "-c", script], check=True, env={**os.environ, "KINOCUT_TOOLS": "profile:editor"})
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "KINOCUT_TOOLS": "profile:editor"},
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_add_audio_reads_each_input_once(sample_video, sample_audio_wav, tmp_path, monkeypatch):

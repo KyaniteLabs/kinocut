@@ -415,7 +415,7 @@ async def _core_calls(session: Any, media: Path, progress: dict[str, Any], gates
 
 async def _optional_calls(session: Any, media: Path, progress: dict[str, Any], gates: dict[str, str]) -> None:
     doctor = await _call(session, progress, "mcp_call_hyperframes_doctor_present", "hyperframes_doctor", {})
-    if doctor.get("success") is not True or "0.8.30" not in json.dumps(doctor, sort_keys=True):
+    if doctor.get("success") is not True or "0.8.104" not in json.dumps(doctor, sort_keys=True):
         raise RuntimeError("hyperframes_present_contract_failed")
     scene = await _call(
         session,
@@ -426,7 +426,7 @@ async def _optional_calls(session: Any, media: Path, progress: dict[str, Any], g
     )
     if scene.get("success") is not True:
         raise RuntimeError("scene_tool_callability_failed")
-    gates.update(hyperframes_0_8_30_detected="passed", scene_tool_callable="passed")
+    gates.update(hyperframes_0_8_104_detected="passed", scene_tool_callable="passed")
 
 
 async def _runtime_session(args: argparse.Namespace, media: Path, progress: dict[str, Any]) -> dict[str, str]:
@@ -512,7 +512,14 @@ async def _runtime_session(args: argparse.Namespace, media: Path, progress: dict
             await _deadline(diet_session.initialize())
             diet_tools = await _deadline(diet_session.list_tools())
             diet_names = {t.name for t in diet_tools.tools}
-            diet_required = {"video_info", "video_trim", "video_merge", "list_operations", "video_doctor", "video_shorts"}
+            diet_required = {
+                "video_info",
+                "video_trim",
+                "video_merge",
+                "list_operations",
+                "video_doctor",
+                "video_shorts",
+            }
             if not diet_required <= diet_names:
                 raise RuntimeError("default_diet_core_missing")
             if "video_ai_scene_detect" in diet_names:
@@ -757,7 +764,7 @@ def runtime(args: argparse.Namespace) -> int:
             receipt.update(
                 {
                     name: gates[name]
-                    for name in ("imagehash_detected", "hyperframes_0_8_30_detected", "scene_tool_callable")
+                    for name in ("imagehash_detected", "hyperframes_0_8_104_detected", "scene_tool_callable")
                 }
             )
         _write_json(args.receipt, receipt)

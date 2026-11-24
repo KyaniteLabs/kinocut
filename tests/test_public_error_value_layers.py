@@ -23,6 +23,7 @@ hide in a truncated or re-encoded message.
 
 from __future__ import annotations
 
+from kinocut.errors import MCPVideoError
 import asyncio
 import json
 
@@ -97,7 +98,7 @@ def test_a_refused_identifier_is_named_by_its_type_not_repeated():
     """A caller-chosen id is named by its type; the index still says which."""
     from kinocut.models import _validate_position
 
-    with pytest.raises(Exception) as raised:
+    with pytest.raises(MCPVideoError) as raised:
         _validate_position(SECRET)
     _assert_no_secret(str(raised.value), "position refusal")
     assert "str" in str(raised.value)
@@ -130,7 +131,7 @@ def test_merge_engine_refusal_never_repeats_the_submitted_value():
     """The engine's own guard refuses the same way."""
     from kinocut.engine_merge import _build_xfade_video_filter
 
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(MCPVideoError) as excinfo:
         _build_xfade_video_filter(2, 1, [SECRET], [0.0], 1.0)
     _assert_clean(excinfo.value, "merge engine transition")
 
@@ -143,7 +144,7 @@ def test_merge_engine_refusal_never_repeats_the_submitted_value():
 def test_resize_aspect_ratio_never_repeats_the_submitted_value():
     from kinocut.engine_resize import _resize_dimensions
 
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(MCPVideoError) as excinfo:
         _resize_dimensions(
             type("Info", (), {"width": 1920, "height": 1080, "display_width": 1920, "display_height": 1080})(),
             width=None,
@@ -166,7 +167,7 @@ def test_thumbnail_timestamp_never_repeats_the_submitted_value(monkeypatch):
 
     monkeypatch.setattr(engine_thumbnail, "get_duration", lambda _path: 10.0)
     monkeypatch.setattr(engine_thumbnail, "_validate_input_path", lambda path: path)
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(MCPVideoError) as excinfo:
         engine_thumbnail.thumbnail("/tmp/in.mp4", timestamp=SECRET, output_path="/tmp/out.jpg")
     error = excinfo.value
     _assert_clean(error, "thumbnail timestamp")
@@ -195,7 +196,7 @@ def test_shorts_probe_never_repeats_the_lower_level_exception_text(monkeypatch):
         raise OSError(f"could not open {SECRET}")
 
     monkeypatch.setattr("kinocut.engine_probe.probe", _explode, raising=False)
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(MCPVideoError) as excinfo:
         shorts_flow._validate_source_duration("/tmp/source.mp4", [(0.0, 1.0, None)])
     error = excinfo.value
     _assert_clean(error, "shorts source duration")
@@ -211,7 +212,7 @@ def test_shorts_trim_probe_never_repeats_the_lower_level_exception_text(monkeypa
         raise OSError(f"could not open {SECRET}")
 
     monkeypatch.setattr("kinocut.engine_probe.probe", _explode, raising=False)
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(MCPVideoError) as excinfo:
         shorts_flow._measured_segment_durations(["/tmp/trim.mp4"])
     error = excinfo.value
     _assert_clean(error, "shorts trim duration")

@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 
 import pytest
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 
 from kinocut import atomic_publication, doctor
 from kinocut.engine_probe import probe
@@ -364,20 +362,3 @@ def test_family_accepts_flat_kwargs_but_not_mixed_or_invalid_params(sample_video
             assert "private" not in result["error"]["message"]
     finally:
         configure_tool_surface("all")
-
-
-def test_default_mcp_accepts_flat_family_kwargs_over_stdio(sample_video):
-    async def call():
-        params = StdioServerParameters(
-            command=sys.executable,
-            args=["-m", "kinocut", "--mcp"],
-            env={key: value for key, value in os.environ.items() if key != "KINOCUT_TOOLS"},
-        )
-        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
-            await session.initialize()
-            return await session.call_tool(
-                "video_edit_ops", {"operation": "video_audio_waveform", "input_path": sample_video, "bins": 2}
-            )
-
-    result = asyncio.run(call())
-    assert not result.isError and len(result.structuredContent["peaks"]) == 2

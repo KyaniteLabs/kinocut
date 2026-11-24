@@ -108,7 +108,11 @@ def _passing_temporal_metrics() -> dict[str, dict[str, float | int]]:
 
 
 def test_temporal_oracle_accepts_complete_green_fixture() -> None:
-    verify._validate_temporal_metrics(_passing_temporal_metrics())
+    metrics = _passing_temporal_metrics()
+    verify._validate_temporal_metrics(metrics)
+    metrics["cue_1.20"]["changed_pixels"] = 0
+    with pytest.raises(verify.AcceptanceError, match="changed pixels"):
+        verify._validate_temporal_metrics(metrics)
 
 
 @pytest.mark.parametrize(
@@ -368,8 +372,12 @@ def test_success_receipt_records_every_temporal_tolerance(tmp_path: Path, monkey
 @pytest.mark.parametrize("line", [".. subtitles V->V\n", "... subtitles V->V\n"])
 def test_subtitles_filter_accepts_ffmpeg_capability_field_shapes(tmp_path: Path, monkeypatch, line: str) -> None:
     completed = subprocess.CompletedProcess(["ffmpeg"], 0, stdout=line, stderr="")
-    monkeypatch.setattr(verify, "_checked", lambda *args, **kwargs: completed)
+    from unittest.mock import Mock
+
+    probe = Mock(return_value=completed)
+    monkeypatch.setattr(verify, "_checked", probe)
     verify._require_subtitles_filter(tmp_path, 1)
+    probe.assert_called_once_with(["ffmpeg", "-hide_banner", "-filters"], cwd=tmp_path, timeout=1)
 
 
 def test_subtitles_filter_still_fails_when_capability_is_absent(tmp_path: Path, monkeypatch) -> None:

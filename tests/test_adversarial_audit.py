@@ -6,7 +6,9 @@ parameter bounds, and consistency across all engines.
 
 from __future__ import annotations
 
-import contextlib
+import wave
+
+from kinocut.models import _position_coords
 import os
 import pytest
 
@@ -111,15 +113,15 @@ class TestFFmpegFilterInjection:
 
     def test_position_valid_pixels_accepted(self) -> None:
         """Valid pixel positions pass validation."""
-        _validate_position({"x": 100, "y": 50})  # Should not raise
+        assert _position_coords({"x": 100, "y": 50}) == "x=100:y=50"
 
     def test_position_valid_pct_accepted(self) -> None:
         """Valid percentage positions pass validation."""
-        _validate_position({"x_pct": 0.5, "y_pct": 0.5})  # Should not raise
+        assert _position_coords({"x_pct": 0.5, "y_pct": 0.5}) == "x=w*0.5-text_w/2:y=h*0.5-text_h/2"
 
     def test_position_named_string_accepted(self) -> None:
         """Named position strings pass validation."""
-        _validate_position("center")  # Should not raise
+        assert _position_coords("center") == "x=(w-text_w)/2:y=(h-text_h)/2"
 
     # --- Color injection ---
 
@@ -138,23 +140,11 @@ class TestFFmpegFilterInjection:
         with pytest.raises(MCPVideoError, match="invalid_color"):
             _validate_color("white';evil")
 
-    def test_color_valid_hex_short(self) -> None:
-        """Valid 3-char hex color accepted."""
-        _validate_color("#F00")  # Should not raise
-
-    def test_color_valid_hex_full(self) -> None:
-        """Valid 6-char hex color accepted."""
-        _validate_color("#FF0000")  # Should not raise
-
-    def test_color_valid_hex_alpha(self) -> None:
-        """Valid 8-char hex color with alpha accepted."""
-        _validate_color("#FF000080")  # Should not raise
-
-    def test_color_valid_named(self) -> None:
-        """Valid CSS named color accepted."""
-        _validate_color("white")  # Should not raise
-        _validate_color("red")  # Should not raise
-        _validate_color("DarkBlue")  # Case-insensitive
+    @pytest.mark.parametrize("color", ["#F00", "#FF0000", "#FF000080", "white", "red", "DarkBlue"])
+    def test_color_accepts_literal_but_not_filter_syntax(self, color) -> None:
+        _validate_color(color)
+        with pytest.raises(MCPVideoError, match="invalid_color"):
+            _validate_color(color + ":text")
 
     def test_color_invalid_value_rejected(self) -> None:
         """Invalid color value rejected."""
@@ -432,16 +422,11 @@ class TestParameterBounds:
         from mcp_video.audio_engine import audio_synthesize
         from mcp_video.limits import MIN_FREQUENCY
 
-        # These should NOT raise - just validate params, don't actually run
-        # We can't easily test without creating a file, so just test validation
-        # by checking the function doesn't raise at boundary values
-        with contextlib.suppress(ProcessingError, FileNotFoundError, OSError):
-            audio_synthesize(
-                str(tmp_path / "test.wav"),
-                frequency=MIN_FREQUENCY,
-                duration=0.01,
-                volume=0.0,
-            )
+        output = tmp_path / "test.wav"
+        audio_synthesize(str(output), frequency=MIN_FREQUENCY, duration=0.01, volume=0.0)
+        with wave.open(str(output)) as wav:
+            assert wav.getnframes() == round(wav.getframerate() * 0.01)
+            assert not any(wav.readframes(wav.getnframes()))
 
 
 # ---------------------------------------------------------------------------

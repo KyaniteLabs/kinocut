@@ -9,6 +9,7 @@ path or raw prompt; the receipt digest is deterministic.
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut_sound.world import (
@@ -100,13 +101,13 @@ def test_audition_rejects_non_positive_target_duration():
 
 
 def test_audition_request_rejects_unbounded_codes_and_duplicate_layers():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         AuditionRequest(
             bed_id="not a bounded id",
             context=AuditionContext(reviewer_id="rev_1", project_id="proj", episode_id="ep"),
             reel_label="reel",
         )
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         AuditionRequest(
             bed_id="bed_x",
             context=AuditionContext(reviewer_id="rev_1", project_id="proj", episode_id="ep"),

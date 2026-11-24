@@ -67,7 +67,7 @@ class OpAdapter:
         whose JSON type cannot satisfy the engine parameter's annotation (e.g.
         ``width="20000"`` for ``int``, ``size="24,drawtext=…"`` for ``int``,
         ``start=[1,2]`` for ``str | float``). Non-scalar annotations (dict
-        positions, unresolved aliases) are passed through to the engine, which
+        positions, for example) are passed through to the engine, which
         owns their semantic validation.
         """
         hints = _engine_type_hints(self.engine_fn)
@@ -153,15 +153,11 @@ def _annotation_text(annotation: Any) -> str:
 
 @functools.cache
 def _engine_type_hints(engine_fn: Callable[..., Any]) -> dict[str, Any]:
-    """Resolved (non-string) type hints for an engine fn; empty on failure.
-
-    On failure the value checks are skipped for that op; the engine still guards
-    its own inputs, so this degrades safely rather than erroring.
-    """
+    """Resolve engine annotations before accepting any workflow parameters."""
     try:
         return get_type_hints(engine_fn)
-    except Exception:
-        return {}
+    except Exception as exc:
+        raise workflow_error("Cannot resolve workflow operation parameter types", INVALID_WORKFLOW_PARAMS) from exc
 
 
 def _scalar_kinds(hint: Any) -> set[str] | None:

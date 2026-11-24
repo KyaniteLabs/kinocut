@@ -142,6 +142,7 @@ def _assert_classification(result, values, workflow, code, docker):
         ("Dockerfile", True, False, True),
         (".dockerignore", False, False, True),
         (".github/workflows/ci.yml", True, True, True),
+        (".github/actions/cache-ffmpeg/action.yml", True, False, False),
         (".github/workflows/integration-smoke.yml", True, True, False),
         (".github/workflows/mcpb.yml", True, True, False),
         (".github/workflows/publish.yml", True, True, False),

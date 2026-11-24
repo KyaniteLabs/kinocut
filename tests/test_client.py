@@ -1,5 +1,7 @@
 """Tests for the Python client — needs FFmpeg."""
 
+from kinocut.errors import InputFileError
+from pydantic import ValidationError
 import os
 import inspect
 
@@ -225,7 +227,7 @@ class TestClientEdit:
         assert isinstance(result, EditResult)
 
     def test_edit_invalid_timeline_raises(self, editor):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             editor.edit({"width": "not_an_int"})
 
     def test_edit_rejects_invalid_image_position_before_input_validation(self, editor):
@@ -391,7 +393,7 @@ class TestClientValidators:
     def test_layout_grid_valid_layouts(self, editor):
         for layout in ("2x2", "3x1", "1x3", "2x3"):
             # Should not raise validation error (will fail at FFmpeg/input level but validation passes)
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(InputFileError) as exc_info:
                 editor.layout_grid(["/nonexistent/a.mp4"], layout, "/nonexistent/out.mp4")
             assert exc_info.value.error_type != "validation_error"
 
@@ -402,7 +404,7 @@ class TestClientValidators:
     def test_layout_pip_valid_positions(self, editor):
         for pos in ("top-left", "top-right", "bottom-left", "bottom-right"):
             # Should not raise validation error (will fail at FFmpeg/input level but validation passes)
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(InputFileError) as exc_info:
                 editor.layout_pip("/nonexistent/a.mp4", "/nonexistent/b.mp4", "/nonexistent/out.mp4", position=pos)
             assert exc_info.value.error_type != "validation_error"
 
@@ -446,7 +448,7 @@ class TestClientValidators:
         for fmt in ("mp4", "webm", "gif", "mov"):
             for q in ("low", "medium", "high", "ultra"):
                 # Should not raise ValueError (will fail at file-not-found or FFmpeg)
-                with pytest.raises(Exception) as exc_info:
+                with pytest.raises(InputFileError) as exc_info:
                     editor.convert("/nonexistent/video.mp4", format=fmt, quality=q)
                 assert not isinstance(exc_info.value, ValueError)
 

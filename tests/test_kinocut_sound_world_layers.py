@@ -9,6 +9,7 @@ W3.8 contract-side-only ducking declaration (S9 applies the envelope).
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import pytest
 
 from kinocut_sound.world import (
@@ -113,9 +114,9 @@ def test_ducking_contract_is_carried_but_not_applied():
 
 
 def test_ducking_contract_rejects_self_sidechain_and_bad_recovery():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         DuckingContract(source_bus_id="bus_dialog", target_bus_id="bus_dialog")
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         DuckingContract(
             source_bus_id="bus_dialog",
             target_bus_id="bus_bed",
@@ -129,7 +130,7 @@ def test_layer_stack_rejects_duplicate_and_unbounded_ids():
         LayerStack((_layer("l_dup"), _layer("l_dup")))
     assert exc.value.code == "layer_stack_invalid"
     # Unbounded asset_ref is rejected.
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         AmbientLayer(layer_id="l_x", asset_ref="beds/with/slashes", gain_db=-3.0)
 
 
