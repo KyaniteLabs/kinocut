@@ -65,11 +65,15 @@ def _cached_info(path: str, key: tuple, *, require_video: bool, alias: str | Non
 def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool, alias: str | None = None) -> None:
     if _cache_key(path) != key:
         raise InputFileError(path, "Media changed while probing; retry with a stable source")
+    cache_id = (os.path.normcase(path), key)
     aliases = frozenset({os.path.normcase(path), *({alias} if alias else ())})
     with _probe_cache_lock:
-        if len(_probe_cache) >= _MAX_PROBE_CACHE:
+        existing = _probe_cache.get(cache_id)
+        if existing is not None:
+            aliases |= existing.aliases
+        elif len(_probe_cache) >= _MAX_PROBE_CACHE:
             _probe_cache.pop(next(iter(_probe_cache)))
-        _probe_cache[os.path.normcase(path), key] = _ProbeCacheEntry(info.model_copy(deep=True), has_video, aliases)
+        _probe_cache[cache_id] = _ProbeCacheEntry(info.model_copy(deep=True), has_video, aliases)
 
 
 def _build_video_info(path: str, data: dict) -> VideoInfo:

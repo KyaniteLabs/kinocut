@@ -227,8 +227,11 @@ def test_invalidate_probe_cache_via_deleted_symlink_evicts_target(tmp_path, samp
     monkeypatch.setattr(engine_probe, "_run_ffprobe_json", counted_ffprobe)
     engine_probe.probe(str(alias))
     assert calls == 1
-    engine_probe.probe(str(target))
+    info = engine_probe.probe(str(target))
     assert calls == 1
+    # Simulate a concurrent direct-path probe finishing after the symlink probe.
+    real_target = os.path.realpath(target)
+    engine_probe._cache_info(real_target, engine_probe._cache_key(real_target), info, has_video=True, alias=real_target)
     alias.unlink()
     engine_probe.invalidate_probe_cache(str(alias))
     engine_probe.probe(str(target))
