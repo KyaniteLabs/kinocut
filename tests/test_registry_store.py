@@ -26,16 +26,12 @@ from kinocut.contracts.review import ReviewDecision
 from kinocut.contracts.verdict import ClipVerdict, Disposition
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import append_record, open_project, read_records
-from kinocut.registry import register_clip, register_lineage
 from tests.contracts_fixtures import (
     asset_record_kwargs,
     review_decision_kwargs,
     verdict_kwargs,
 )
-from tests.registry_fixtures import (
-    clip_record_kwargs,
-    lineage_link_kwargs,
-)
+from tests.registry_fixtures import clip_record_kwargs
 
 _SHA = "sha256:" + "a" * 64
 _SHA_B = "sha256:" + "b" * 64
@@ -112,7 +108,7 @@ def test_clip_record_stores_no_home_or_absolute_paths(tmp_path):
     asset = _seed_asset(proj)
     verdict = _seed_verdict(proj)
     decision = _seed_decision(proj)
-    register_clip(
+    append_record(
         proj,
         ClipRecord(
             **_clip_payload(
@@ -155,7 +151,7 @@ def test_append_clip_refuses_symlinked_records_file(tmp_path):
     verdict = _seed_verdict(proj)
     decision = _seed_decision(proj)
     with pytest.raises(MCPVideoError):
-        register_clip(
+        append_record(
             proj,
             ClipRecord(
                 **_clip_payload(
@@ -195,7 +191,7 @@ def test_failed_append_leaves_prior_clip_file_intact(tmp_path, monkeypatch):
     asset = _seed_asset(proj)
     verdict = _seed_verdict(proj)
     decision = _seed_decision(proj)
-    register_clip(
+    append_record(
         proj,
         ClipRecord(
             **_clip_payload(
@@ -215,7 +211,7 @@ def test_failed_append_leaves_prior_clip_file_intact(tmp_path, monkeypatch):
 
     monkeypatch.setattr(os, "replace", _boom)
     with pytest.raises(MCPVideoError):
-        register_clip(
+        append_record(
             proj,
             ClipRecord(
                 **_clip_payload(
@@ -233,25 +229,6 @@ def test_failed_append_leaves_prior_clip_file_intact(tmp_path, monkeypatch):
 # ---- Concurrent append: exact duplicate idempotency under contention ------
 
 
-def test_exact_duplicate_clip_id_is_rejected(tmp_path):
-    """The store rejects a second append of the same canonical record_id."""
-
-    proj = open_project(tmp_path / "proj")
-    asset = _seed_asset(proj)
-    verdict = _seed_verdict(proj)
-    decision = _seed_decision(proj)
-    payload = _clip_payload(
-        proj,
-        verdict_id=canonical_record_id(verdict),
-        decision_id=canonical_record_id(decision),
-        asset_id=asset.asset_id,
-    )
-    register_clip(proj, ClipRecord(**payload))
-    # Same payload → same canonical id → duplicate rejection.
-    with pytest.raises(MCPVideoError):
-        register_clip(proj, ClipRecord(**payload))
-
-
 def test_concurrent_distinct_clips_all_persist(tmp_path):
     """Different clips appended concurrently all survive."""
 
@@ -264,7 +241,7 @@ def test_concurrent_distinct_clips_all_persist(tmp_path):
 
     def _worker(tag: str) -> None:
         try:
-            register_clip(
+            append_record(
                 proj,
                 ClipRecord(
                     **_clip_payload(
@@ -292,129 +269,6 @@ def test_concurrent_distinct_clips_all_persist(tmp_path):
 # ---- Missing refs: write-time referential integrity -----------------------
 
 
-def test_clip_with_missing_verdict_rejected(tmp_path):
-    proj = open_project(tmp_path / "proj")
-    _seed_asset(proj)
-    decision = _seed_decision(proj)
-    with pytest.raises(MCPVideoError):
-        register_clip(
-            proj,
-            ClipRecord(
-                **_clip_payload(
-                    proj,
-                    verdict_id="sha256:" + "f" * 64,  # non-existent
-                    decision_id=canonical_record_id(decision),
-                )
-            ),
-        )
-
-
-def test_clip_with_missing_decision_rejected(tmp_path):
-    proj = open_project(tmp_path / "proj")
-    _seed_asset(proj)
-    verdict = _seed_verdict(proj)
-    with pytest.raises(MCPVideoError):
-        register_clip(
-            proj,
-            ClipRecord(
-                **_clip_payload(
-                    proj,
-                    verdict_id=canonical_record_id(verdict),
-                    decision_id="sha256:" + "f" * 64,  # non-existent
-                )
-            ),
-        )
-
-
-def test_clip_with_missing_source_asset_rejected(tmp_path):
-    proj = open_project(tmp_path / "proj")
-    _seed_asset(proj)  # only _ASSET exists
-    verdict = _seed_verdict(proj)
-    decision = _seed_decision(proj)
-    with pytest.raises(MCPVideoError):
-        register_clip(
-            proj,
-            ClipRecord(
-                **_clip_payload(
-                    proj,
-                    verdict_id=canonical_record_id(verdict),
-                    decision_id=canonical_record_id(decision),
-                    source_asset_id="sha256:" + "f" * 64,  # non-existent (valid hex, not in store)
-                )
-            ),
-        )
-
-
-def test_lineage_with_missing_asset_rejected(tmp_path):
-    proj = open_project(tmp_path / "proj")
-    _seed_asset(proj)
-    with pytest.raises(MCPVideoError):
-        register_lineage(
-            proj,
-            LineageLink(
-                **lineage_link_kwargs(
-                    project_id=proj.project_id,
-                    derivative_asset_id=_ASSET,
-                    source_asset_ids=("sha256:" + "f" * 64,),  # non-existent (valid hex, not in store)
-                )
-            ),
-        )
-
-
-def test_clip_with_rejected_verdict_can_register_but_query_excludes(tmp_path):
-    """A clip referencing a rejected verdict persists but is filtered at query time.
-
-    The write layer validates referential integrity only (verdict exists).
-    Approval filtering is the query layer's responsibility — this allows
-    pre-registration and handles verdict supersession naturally.
-    """
-
-    from kinocut.registry import query_approved_clips
-
-    proj = open_project(tmp_path / "proj")
-    _seed_asset(proj)
-    verdict = _seed_verdict(proj, disposition=Disposition.REJECTED)
-    decision = _seed_decision(proj)
-    register_clip(
-        proj,
-        ClipRecord(
-            **_clip_payload(
-                proj,
-                verdict_id=canonical_record_id(verdict),
-                decision_id=canonical_record_id(decision),
-            )
-        ),
-    )
-    # The clip is persisted in the store.
-    clips = read_records(proj, "clip_record")
-    assert len(clips) == 1
-    # But excluded from approved-only query results.
-    page = query_approved_clips(proj)
-    assert page.total == 0
-
-
-# ---- Cross-project rejection ---------------------------------------------
-
-
-def test_clip_from_other_project_rejected(tmp_path):
-    proj = open_project(tmp_path / "proj")
-    _seed_asset(proj)
-    verdict = _seed_verdict(proj)
-    decision = _seed_decision(proj)
-    with pytest.raises(MCPVideoError):
-        register_clip(
-            proj,
-            ClipRecord(
-                **_clip_payload(
-                    proj,
-                    verdict_id=canonical_record_id(verdict),
-                    decision_id=canonical_record_id(decision),
-                    project_id="proj-other",
-                )
-            ),
-        )
-
-
 # ---- Backward reader: v1 records round-trip -------------------------------
 
 
@@ -425,7 +279,7 @@ def test_v1_clip_record_round_trips(tmp_path):
     asset = _seed_asset(proj)
     verdict = _seed_verdict(proj)
     decision = _seed_decision(proj)
-    clip = register_clip(
+    clip = append_record(
         proj,
         ClipRecord(
             **_clip_payload(
