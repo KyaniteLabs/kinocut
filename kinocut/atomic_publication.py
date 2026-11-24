@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import contextlib
+import ctypes
+import errno
 import os
 import secrets
+import shutil
 import stat
+import sys
 from collections.abc import Callable, Iterator
 
 from .errors import MCPVideoError
 from .type_names import exception_kind
 from .staged_writers import owned_stage
+
+_LINK_UNSUPPORTED = {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV}
+_RENAME_UNSUPPORTED = _LINK_UNSUPPORTED | {errno.ENOSYS, errno.EINVAL}
 
 
 def _unsafe(message: str) -> MCPVideoError:
@@ -107,6 +114,80 @@ class _Directory:
         return basename if self.fd is not None else os.path.join(self.path, basename)
 
 
+def _rename_exclusive(anchor: _Directory, source: str, destination: str, *, exchange: bool = False) -> None:
+    """Rename without replacing a rival, or atomically exchange two entries."""
+    if os.name == "nt" and not exchange:
+        os.rename(anchor.name(source), anchor.name(destination))
+        return
+    libc = ctypes.CDLL(None, use_errno=True)
+    if sys.platform == "linux":
+        rename = getattr(libc, "renameat2", None)
+        flags = 2 if exchange else 1  # RENAME_EXCHANGE / RENAME_NOREPLACE
+    elif sys.platform == "darwin":
+        rename = getattr(libc, "renameatx_np", None)
+        flags = 2 if exchange else 4  # RENAME_SWAP / RENAME_EXCL
+    else:
+        rename = None
+    if rename is None or anchor.fd is None:
+        raise OSError(errno.ENOTSUP, "Exclusive rename is unavailable")
+    rename.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint)
+    if rename(anchor.fd, os.fsencode(source), anchor.fd, os.fsencode(destination), flags) != 0:
+        code = ctypes.get_errno()
+        raise OSError(code, os.strerror(code))
+
+
+def _same_inode(first: os.stat_result, second: os.stat_result) -> bool:
+    return (first.st_dev, first.st_ino) == (second.st_dev, second.st_ino)
+
+
+def _remove_owned(anchor: _Directory, name: str, identity: os.stat_result) -> None:
+    with contextlib.suppress(OSError):
+        current = os.stat(anchor.name(name), follow_symlinks=False, **anchor.options())
+        if _same_inode(current, identity):
+            os.unlink(anchor.name(name), **anchor.options())
+
+
+def _copy_exclusive(anchor: _Directory, basename: str, source_fd: int) -> os.stat_result:
+    """Last resort: reserve the destination and write only through its descriptor."""
+    anchor.check()
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    target_fd = os.open(anchor.name(basename), flags, 0o600, **anchor.options())
+    identity = os.fstat(target_fd)
+    try:
+        with os.fdopen(os.dup(source_fd), "rb") as source, os.fdopen(target_fd, "wb", closefd=False) as target:
+            source.seek(0)
+            shutil.copyfileobj(source, target)
+    except BaseException:
+        _remove_owned(anchor, basename, identity)
+        raise
+    finally:
+        os.close(target_fd)
+    return identity
+
+
+def _publish_without_overwrite(
+    anchor: _Directory, stage: str, basename: str, fd: int | None, identity: os.stat_result
+) -> os.stat_result:
+    try:
+        os.link(
+            anchor.name(stage),
+            anchor.name(basename),
+            **({"src_dir_fd": anchor.fd, "dst_dir_fd": anchor.fd} if anchor.fd is not None else {}),
+            follow_symlinks=False,
+        )
+    except OSError as exc:
+        if exc.errno not in _LINK_UNSUPPORTED and getattr(exc, "winerror", None) != 1:
+            raise
+        anchor.check()
+        try:
+            _rename_exclusive(anchor, stage, basename)
+        except OSError as rename_error:
+            if rename_error.errno not in _RENAME_UNSUPPORTED or fd is None:
+                raise
+            return _copy_exclusive(anchor, basename, fd)
+    return identity
+
+
 @contextlib.contextmanager
 def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
     """Publish only the original regular staging inode in the anchored directory."""
@@ -137,7 +218,7 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
         anchor.check()
         validate(final)
         current = os.stat(anchor.name(stage), follow_symlinks=False, **anchor.options())
-        if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino) != (identity.st_dev, identity.st_ino):
+        if not stat.S_ISREG(current.st_mode) or not _same_inode(current, identity):
             raise _unsafe("Output staging file changed during publication")
         from .output_policy import _OVERWRITE
 
@@ -149,15 +230,9 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
                 os.replace(stage, basename, src_dir_fd=anchor.fd, dst_dir_fd=anchor.fd)
             else:
                 os.replace(temporary, final)
+            published_identity = identity
         else:
-            # link() creates the destination exclusively: a target planted after
-            # validation must survive, even if it appeared during rendering.
-            os.link(
-                anchor.name(stage),
-                anchor.name(basename),
-                **({"src_dir_fd": anchor.fd, "dst_dir_fd": anchor.fd} if anchor.fd is not None else {}),
-                follow_symlinks=False,
-            )
+            published_identity = _publish_without_overwrite(anchor, stage, basename, fd, identity)
         published = True
         try:
             anchor.check()
@@ -166,7 +241,7 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
                 "Output directory changed after publication; inspect the output before reuse"
             ) from exc
         current = os.stat(anchor.name(basename), follow_symlinks=False, **anchor.options())
-        if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino) != (identity.st_dev, identity.st_ino):
+        if not stat.S_ISREG(current.st_mode) or not _same_inode(current, published_identity):
             raise _partial_output("Output identity changed after publication; inspect the output before reuse")
         _note_operation_write(final)
     except OSError as exc:
@@ -178,8 +253,5 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
             os.close(fd)
         if anchor is not None:
             if stage is not None and identity is not None:
-                with contextlib.suppress(OSError):
-                    current = os.stat(anchor.name(stage), follow_symlinks=False, **anchor.options())
-                    if (current.st_dev, current.st_ino) == (identity.st_dev, identity.st_ino):
-                        os.unlink(anchor.name(stage), **anchor.options())
+                _remove_owned(anchor, stage, identity)
             anchor.close()

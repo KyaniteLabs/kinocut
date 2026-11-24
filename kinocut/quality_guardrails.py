@@ -444,12 +444,10 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
 
         max_deviation = max(r_dev, g_dev, b_dev)
 
-        # Threshold for color cast detection (15% deviation)
-        threshold = 15.0
+        threshold = self.profile.color_balance_max_deviation
         passed = max_deviation < threshold
 
-        # Calculate score
-        score = float(max(0, 100 - max_deviation * 3))  # 3 points per % deviation
+        score = float(max(0, 100 - max_deviation * 45 / threshold))
 
         # Determine color cast
         cast = []
@@ -468,7 +466,9 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         elif b < avg * 0.9:
             cast.append("yellow")
 
-        if cast:
+        if cast and passed and threshold != QUALITY_PROFILES[DEFAULT_QUALITY_PROFILE].color_balance_max_deviation:
+            message = f"Color cast within {self.profile.name} tolerance (max deviation: {max_deviation:.1f}%)"
+        elif cast:
             cast_str = "/".join(cast)
             message = (
                 f"Color cast detected: {cast_str} (max deviation: {max_deviation:.1f}%). "
@@ -487,6 +487,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 "g_mean": g,
                 "b_mean": b,
                 "max_deviation": max_deviation,
+                "max_allowed_deviation": threshold,
                 "color_cast": cast if cast else None,
             },
         )
@@ -607,20 +608,13 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         ]
         return checks
 
-    # Checks that are advisory only: they surface as recommendations but do not
-    # flip the binary technical gate (all_passed) or weight the overall score.
-    # Temporal motion is advisory because a deliberately calm shot is valid
-    # creative output; the goal (issue #10) is to *warn* about unintended
-    # slideshows, not to hard-fail an otherwise technically clean video.
+    # Warn about slideshows without hard-failing a deliberately calm shot.
     ADVISORY_CHECKS = ("temporal_motion",)
 
     def generate_report(self, video: str) -> dict[str, Any]:
         """Generate comprehensive quality report."""
         checks = self.run_all_checks(video)
 
-        # The technical gate (overall_score, all_passed) is computed from the
-        # non-advisory checks only, so a low-motion finding stays a
-        # recommendation instead of silently failing a clean video.
         gating = [c for c in checks if c.check_name not in self.ADVISORY_CHECKS]
         overall_score = sum(c.score for c in gating) / len(gating) if gating else 0.0
         all_passed = all(c.passed for c in gating)
@@ -671,6 +665,8 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 baseline.check_saturation(video),
             )
         }
+        if self.profile.color_balance_max_deviation != baseline.profile.color_balance_max_deviation:
+            visual["color_balance"] = baseline.check_color_balance(video)
         rescored = [visual.get(c.check_name, c) for c in gating]
         score = sum(c.score for c in rescored) / len(rescored) if rescored else 0.0
         return {

@@ -7,13 +7,17 @@ render receipts from the plan; never posts or opens network connections.
 from __future__ import annotations
 
 import os
+import tempfile
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
+from ..atomic_publication import _Directory, _rename_exclusive
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _validate_artifact_path
 from .captions import CaptionArtifact
-from .package import _verify_video_checksum, package_approved_clip
-from .package_models import PackageConfig, PackageLineage, ThumbnailSpec
+from .package import package_approved_clip
+from .package_models import PackageLineage, ThumbnailSpec, canonical_manifest_bytes
 from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
 from .shorts_render import _file_sha256, expected_render_digests
 from .shorts_review import CandidateMoment, resolve_approved_candidate
@@ -63,21 +67,12 @@ def _renders_for(plan: ShortsPlan, candidate_id: str) -> tuple[RenderRecord, ...
     return tuple(record for record in plan.renders if record.candidate_id == candidate_id)
 
 
-def _gate_package_media(path: str, *, allow_fail: bool) -> dict[str, Any] | None:
-    """Run release quality on a packaged render. Dummy bytes use allow_fail."""
+def _gate_package_media(path: str) -> dict[str, Any]:
+    """Gate the exact copied render that will be published."""
     from ..defaults import DEFAULT_QUALITY_GATE_SCORE
     from ..quality_guardrails import assert_quality
 
-    try:
-        return assert_quality(path, min_score=DEFAULT_QUALITY_GATE_SCORE)
-    except Exception as exc:
-        from ..validation_errors import reason
-
-        if allow_fail:
-            # The gate's own reason is ours to publish; a foreign
-            # exception is named by its kind alone.
-            return {"quality_gate_failed": True, "error": reason(exc)}
-        raise
+    return assert_quality(path, min_score=DEFAULT_QUALITY_GATE_SCORE)
 
 
 def _require_renders_of_the_approved_cut(
@@ -95,33 +90,19 @@ def _require_renders_of_the_approved_cut(
         )
 
 
-def _gate_every_render(records: tuple[RenderRecord, ...], *, allow_fail: bool) -> dict[str, dict[str, Any] | None]:
-    """Verify and gate every render before publishing anything.
-
-    A failed check must not leave a visible package (or replace an earlier one) behind.
-    """
-    gates: dict[str, dict[str, Any] | None] = {}
-    for record in records:
-        if record.output_sha256 is not None:
-            _verify_video_checksum(record.output_sha256, _file_sha256(record.output_path))
-        gates[record.platform] = _gate_package_media(record.output_path, allow_fail=allow_fail)
-    return gates
-
-
 def _package_platform(
     record: RenderRecord,
     *,
     candidate: CandidateMoment,
-    base: str,
-    config: PackageConfig,
-    gate: dict[str, Any] | None,
+    base: Path,
+    stage: Path,
     review_decision_ref: str,
-) -> tuple[Any, dict[str, Any]]:
-    """Package one platform render; return the package result and its summary."""
+) -> dict[str, Any]:
+    """Assemble and gate one private platform package."""
     result = package_approved_clip(
-        package_dir=os.path.join(base, record.platform),
+        package_dir=str(stage / record.platform),
         vertical_video_path=record.output_path,
-        expected_video_sha256=record.output_sha256,
+        expected_video_sha256=record.output_sha256 or _file_sha256(record.output_path),
         caption_artifact=_caption_from_srt(record.editable_subtitles),
         candidate=candidate,
         thumbnail=ThumbnailSpec(image_path=record.thumbnail_path, timestamp=candidate.start),
@@ -130,17 +111,89 @@ def _package_platform(
             review_decision_ref=review_decision_ref,
             generation_lineage_ref=record.render_digest,
         ),
-        config=config,
     )
-    summary = {
+    root = base / record.platform
+    manifest_path = Path(result.manifest_path)
+    video = next(asset.relative_path for asset in result.manifest.assets if asset.role == "vertical_video")
+    gate = _gate_package_media(str(Path(result.package_root, video)))
+    if "video" in gate:
+        gate = {**gate, "video": str(root / video)}
+    thumbnail = result.manifest.thumbnail
+    manifest = result.manifest.model_copy(
+        update={
+            "package_root": str(root),
+            "thumbnail": thumbnail.model_copy(update={"image_path": str(root / Path(thumbnail.image_path).name)}),
+        }
+    )
+    manifest_path.write_bytes(canonical_manifest_bytes(manifest) + b"\n")
+    return {
         "platform": record.platform,
-        "package_root": result.package_root,
-        "manifest_path": result.manifest_path,
-        "asset_paths": list(result.asset_paths),
+        "package_root": str(root),
+        "manifest_path": str(root / manifest_path.name),
+        "asset_paths": [str(root / Path(path).name) for path in result.asset_paths],
         "external_posting": False,
         "quality": gate,
     }
-    return result, summary
+
+
+def _ensure_replaceable(base: Path, stage: Path, overwrite: bool) -> bool:
+    """Only exchange a dedicated package directory, never a mixed tree."""
+    if not os.path.lexists(base):
+        return False
+    if base.is_symlink() or not base.is_dir():
+        raise _package_error(
+            "Package destination is not a directory.",
+            code="unsafe_path",
+            cause="The destination is a symlink or a non-directory entry.",
+            recovery="Choose a new package_root under the plan output directory.",
+        )
+    if overwrite and all(
+        platform.is_dir()
+        and not platform.is_symlink()
+        and (stage / platform.name).is_dir()
+        and all(asset.is_file() and not asset.is_symlink() for asset in platform.iterdir())
+        and {asset.name for asset in platform.iterdir()} <= {asset.name for asset in (stage / platform.name).iterdir()}
+        for platform in base.iterdir()
+    ):
+        return True
+    raise _package_error(
+        "Package destination already exists.",
+        code="package_write_conflict",
+        cause="Overwrite consent is missing or the destination contains unrelated entries.",
+        recovery="Choose a new dedicated package_root or authorize replacement of the existing package.",
+    )
+
+
+def _publish_package_tree(anchor: _Directory, stage: Path, base: Path, overwrite: bool) -> None:
+    try:
+        anchor.check()
+        exchange = _ensure_replaceable(base, stage, overwrite)
+        anchor.check()
+        _rename_exclusive(anchor, str(stage.relative_to(base.parent)), base.name, exchange=exchange)
+    except OSError as exc:
+        raise _package_error(
+            "Could not atomically publish the package directory.",
+            code="package_write_conflict" if isinstance(exc, FileExistsError) else "shorts_package_publish_failed",
+            cause=own_reason(exception_kind(exc)),
+            recovery="Choose a new package_root on a filesystem that supports atomic directory publication.",
+        ) from exc
+
+
+def _stage_packages(
+    base: Path, records: tuple[RenderRecord, ...], candidate: CandidateMoment, job_id: str, overwrite: bool
+) -> list[dict[str, Any]]:
+    with (
+        closing(_Directory(str(base.parent))) as anchor,
+        tempfile.TemporaryDirectory(prefix=".kinocut_package_", dir=base.parent) as temporary,
+    ):
+        stage = Path(temporary, "packages")
+        stage.mkdir()
+        emitted = [
+            _package_platform(record, candidate=candidate, base=base, stage=stage, review_decision_ref=job_id)
+            for record in records
+        ]
+        _publish_package_tree(anchor, stage, base, overwrite)
+    return emitted
 
 
 def package_approved_candidate(
@@ -151,7 +204,7 @@ def package_approved_candidate(
     overwrite: bool = False,
     allow_fail: bool = False,
 ) -> dict[str, Any]:
-    """Package every platform draft for an approved candidate and persist the plan."""
+    """Package every platform draft after QC. Legacy ``allow_fail`` cannot bypass QC."""
     plan = load_shorts_plan(plan_path_or_dir)
     candidate = resolve_approved_candidate(plan, candidate_id)
     records = _renders_for(plan, candidate.candidate_id)
@@ -166,35 +219,19 @@ def package_approved_candidate(
     requested = package_root or os.path.join(plan.output_dir, candidate.candidate_id, "packages")
 
     _require_renders_of_the_approved_cut(plan, candidate, records)
-    gates = _gate_every_render(records, allow_fail=allow_fail)
-
-    base = os.path.realpath(os.path.expanduser(requested))
-    # Fail closed outside plan.output_dir; package_approved_clip re-validates write paths.
-    output_root = os.path.realpath(os.path.expanduser(plan.output_dir))
-    if os.path.commonpath((output_root, base)) != output_root:
+    requested_path = Path(requested).expanduser().absolute()
+    base = requested_path.parent.resolve() / requested_path.name
+    output_root = Path(plan.output_dir).expanduser().resolve()
+    if base == output_root or not base.is_relative_to(output_root) or base.name == "..":
         raise _package_error(
             "Package root escapes plan.output_dir.",
             code="unsafe_path",
             cause=f"{requested!r} is outside {plan.output_dir!r}.",
-            recovery="Pass a package_root under the plan output directory.",
+            recovery="Pass a dedicated package_root under the plan output directory.",
         )
-    os.makedirs(base, exist_ok=True)
-    config = PackageConfig(overwrite_package=overwrite)
-    emitted: list[dict[str, Any]] = []
-    manifests: list[str] = list(plan.package_manifests)
-
-    for record in records:
-        result, summary = _package_platform(
-            record,
-            candidate=candidate,
-            base=base,
-            config=config,
-            gate=gates[record.platform],
-            review_decision_ref=plan.job_id,
-        )
-        if result.manifest_path not in manifests:
-            manifests.append(result.manifest_path)
-        emitted.append(summary)
+    _validate_artifact_path(str(base))
+    emitted = _stage_packages(base, records, candidate, plan.job_id, overwrite)
+    manifests = dict.fromkeys((*plan.package_manifests, *(item["manifest_path"] for item in emitted)))
 
     revised = plan.model_copy(
         update={

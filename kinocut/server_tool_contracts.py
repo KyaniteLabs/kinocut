@@ -72,6 +72,20 @@ def forgive_argument_aliases(tool: Any, arguments: dict[str, Any]) -> dict[str, 
     return renamed
 
 
+def _fold_family_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Accept a flat payload for a known member, then validate it as normal params."""
+    operation = arguments.get("operation")
+    if not isinstance(operation, str) or FAMILY_OF_OPERATION.get(operation) != name or "params" in arguments:
+        return arguments
+    envelope = {"operation", "overwrite"}
+    if any(alias in arguments for alias in _ARGUMENT_ALIASES["params"]):
+        return arguments
+    params = {key: value for key, value in arguments.items() if key not in envelope}
+    if not params:
+        return arguments
+    return {**{key: arguments[key] for key in envelope if key in arguments}, "params": params}
+
+
 def call_shape(tool_name: str, tool: Any, *, operation: str | None = None) -> str:
     """One line showing a correct call, built from the schema's required names only."""
 
@@ -227,7 +241,7 @@ class _ContractFastMCP(FastMCP):
         if tool is None:
             self._raise_if_unlisted_operation(name)
             return await super().call_tool(name, arguments)
-        arguments = forgive_argument_aliases(tool, arguments)
+        arguments = _fold_family_arguments(name, forgive_argument_aliases(tool, arguments))
         try:
             validate_tool_arguments(name, tool, arguments)
         except MCPVideoError as error:
