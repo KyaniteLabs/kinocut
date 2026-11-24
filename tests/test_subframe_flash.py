@@ -35,3 +35,18 @@ def test_split_cannot_be_truncated(tmp_path):
     with pytest.raises(ValueError, match="beyond the clip"):
         render_subframe_flash(path, fps=10, target_onset_ms=950)
     assert not path.exists()
+
+
+@pytest.mark.parametrize("dimension", [True, False, 13.9, 0, -1])
+def test_only_positive_integral_dimensions(tmp_path, dimension):
+    path = tmp_path / "invalid.mp4"
+    with pytest.raises(ValueError, match="positive integers"):
+        render_subframe_flash(path, width=dimension)
+    with pytest.raises(ValueError, match="positive integers"):
+        render_subframe_flash_strip(path, height=dimension)
+    assert not path.exists()
+
+
+def test_finite_operand_overflow():
+    with pytest.raises(ValueError, match="position must be finite"):
+        compute_subframe_flash_split(1e308, 1e308)

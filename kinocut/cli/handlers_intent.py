@@ -205,6 +205,7 @@ def _register_te_project_commands(runner: CommandRunner) -> None:
             output_path=a.output,
             save_receipt=a.receipt,
             keep_intermediates=bool(a.keep_intermediates),
+            allow_external_producers=a.allow_external_producers,
         )
         _out(r, j, lambda res: f"cutfile render → {res.get('output_path')}")
 

@@ -12,7 +12,18 @@ from ..ffmpeg_helpers import _run_ffmpeg
 from ..publication import atomic_output
 
 
-_FIELDS = ("codec_type", "codec_name", "pix_fmt", "r_frame_rate", "time_base", "width", "height", "nb_read_frames")
+_FIELDS = (
+    "codec_type",
+    "codec_name",
+    "pix_fmt",
+    "r_frame_rate",
+    "avg_frame_rate",
+    "sample_aspect_ratio",
+    "time_base",
+    "width",
+    "height",
+    "nb_read_frames",
+)
 _MESSAGES = {
     name: f"Concat check failed: {name}" for name in (*_FIELDS, "probe", "stream layout", "clip count", "frame_count")
 }
@@ -48,13 +59,16 @@ def _probe(path):
     for field in _FIELDS:
         if stream.get(field) in (None, "unknown", "N/A", "", 0, "0/0"):
             _mismatch(field)
-    for field in ("r_frame_rate", "time_base"):
-        stream[field] = Fraction(stream[field])
+    for field in ("r_frame_rate", "avg_frame_rate", "sample_aspect_ratio", "time_base"):
+        try:
+            stream[field] = Fraction(stream[field].replace(":", "/"))
+        except (ValueError, ZeroDivisionError):
+            _mismatch(field)
     return stream, int(stream.pop("nb_read_frames"))
 
 
 def verify_concat_compatibility(clip_paths, expected_frame_counts=None) -> int:
-    paths = list(clip_paths)
+    paths = [_checked_path(path) for path in clip_paths]
     if not paths:
         raise ValueError("At least one clip is required")
     expected = None if expected_frame_counts is None else tuple(expected_frame_counts)
@@ -75,15 +89,23 @@ def verify_concat_compatibility(clip_paths, expected_frame_counts=None) -> int:
     return total
 
 
-def _manifest_entry(path):
-    name = str(Path(path).resolve())
-    if "\n" in name or "\r" in name:
-        raise ValueError("Concat filenames cannot contain line breaks")
-    return "file '" + name.replace("'", "'\\''") + "'\n"
+def _checked_path(path: str | Path) -> Path:
+    def check(name: str) -> None:
+        if any(ord(char) < 32 or ord(char) == 127 for char in name):
+            raise ValueError("Concat filenames cannot contain ASCII control characters")
+
+    check(str(path))
+    resolved = Path(path).resolve()
+    check(str(resolved))
+    return resolved
+
+
+def _manifest_entry(path: Path) -> str:
+    return "file '" + str(path).replace("'", "'\\''") + "'\n"
 
 
 def splice_shots_lossless(clip_paths, output_path, expected_frame_counts=None) -> int:
-    paths = tuple(clip_paths)
+    paths = tuple(_checked_path(path) for path in clip_paths)
     total = verify_concat_compatibility(paths, expected_frame_counts)
     with TemporaryDirectory() as temp, atomic_output(str(output_path)) as staged:
         manifest = Path(temp) / "shots.ffconcat"
