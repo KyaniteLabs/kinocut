@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from .defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP, DEFAULT_AUDIO_NORMALIZE_BITRATE
-from .engine_runtime_utils import _build_edit_result, _has_audio, _require_filter, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _get_audio_stream, _has_audio, _require_filter, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import (
     _atomic_output,
@@ -82,28 +82,14 @@ def _measurement(stderr: str) -> dict[str, float]:
 
 def _compute_loudnorm_fade_filter(probe: dict, fade: float) -> str:
     """Compute boundary fade filter string for the loudnorm pass."""
-    duration_value = next(
-        (
-            stream.get("duration")
-            for stream in probe.get("streams", [])
-            if stream.get("codec_type") == "audio" and stream.get("duration") is not None
-        ),
-        None,
-    )
-    if duration_value is None:
-        format_data = probe.get("format")
-        duration_value = format_data.get("duration") if isinstance(format_data, dict) else None
-    try:
-        duration = float(duration_value)
-    except (TypeError, ValueError):
-        duration = 0.0
-    if not math.isfinite(duration) or duration <= 0:
+    audio = _get_audio_stream(probe) or {}
+    duration = _timestamp(audio.get("duration"))
+    if duration is None or duration <= 0:
         raise MCPVideoError(
             "Could not determine a finite positive media duration for boundary fades",
             error_type="processing_error",
             code="invalid_media_duration",
         )
-    audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
     start = _timestamp(audio.get("start_time")) or 0.0
     origin = _timestamp(probe.get("format", {}).get("start_time")) or 0.0
     start -= origin
@@ -216,12 +202,9 @@ def _resample_filter(probe: dict) -> str:
 
 def _render_extra(probe: dict, video_container: bool) -> list[str]:
     extra = ["-xerror", "-map", "0:v:0?", "-map", "0:a:0"] if video_container else ["-xerror", "-vn", "-map", "0:a:0"]
-    audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
-    try:
-        duration = float(audio.get("duration") or probe.get("format", {}).get("duration") or 0)
-    except (TypeError, ValueError):
-        duration = 0
-    if math.isfinite(duration) and duration > 0 and not video_container:
+    audio = _get_audio_stream(probe) or {}
+    duration = _timestamp(audio.get("duration"))
+    if duration is not None and duration > 0 and not video_container:
         extra += ["-t", str(duration)]
     return extra
 

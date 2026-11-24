@@ -439,16 +439,27 @@ def test_actual_audio_decode_failure_preserves_previous_destination(media, tmp_p
 
 @pytest.mark.parametrize("limit", ["packets", "metadata"])
 def test_packet_duration_fallback_limit_never_publishes_a_truncated_mix(tmp_path, monkeypatch, limit):
-    from kinocut import engine_audio_mix as module
+    from functools import partial
+    from kinocut import engine_media_timeline as module
 
     source, added, output = tmp_path / "source.mkv", tmp_path / "added.wav", tmp_path / "previous.mp4"
     _ffmpeg(
-        "-f", "lavfi", "-i", "color=c=gray:s=160x90:r=25:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(source)
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=gray:s=160x90:r=25:d=2",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-live",
+        "1",
+        str(source),
     )
     _ffmpeg("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:d=1", str(added))
     output.write_bytes(b"prior result")
-    constant = "MAX_AUDIO_MIX_TIMELINE_PACKETS" if limit == "packets" else "MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES"
-    monkeypatch.setattr(module, constant, 2)
+    bound = "packet_limit" if limit == "packets" else "metadata_limit"
+    monkeypatch.setattr(module, "_packet_extent", partial(module._packet_extent, **{bound: 2}))
     with pytest.raises(MCPVideoError) as error:
         mix_audio(str(source), [{"path": str(added)}], str(output))
     assert error.value.code == "audio_mix_timeline_over_limit"
@@ -475,7 +486,8 @@ def test_decode_validation_checks_primary_audio_without_decoding_picture(media, 
 
 
 def test_packet_producer_cap_counts_selected_video_with_dense_interleaved_audio(tmp_path, monkeypatch):
-    from kinocut import engine_audio_mix as module
+    from functools import partial
+    from kinocut import engine_media_timeline as module
 
     source, added = tmp_path / "dense-audio.mkv", tmp_path / "tone.wav"
     # About47 AAC packets for each picture packet: an all-demux-packet cap would
@@ -499,10 +511,12 @@ def test_packet_producer_cap_counts_selected_video_with_dense_interleaved_audio(
         "yuv420p",
         "-c:a",
         "aac",
+        "-live",
+        "1",
         str(source),
     )
     _ffmpeg("-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:d=1", str(added))
-    monkeypatch.setattr(module, "MAX_AUDIO_MIX_TIMELINE_PACKETS", 3)
+    monkeypatch.setattr(module, "_packet_extent", partial(module._packet_extent, packet_limit=3))
     with pytest.raises(MCPVideoError) as error:
         mix_audio(str(source), [{"path": str(added)}], str(tmp_path / "must-not-publish.mp4"))
     assert error.value.code == "audio_mix_timeline_over_limit"
@@ -510,12 +524,11 @@ def test_packet_producer_cap_counts_selected_video_with_dense_interleaved_audio(
 
 
 def test_packet_without_presentation_timestamp_cannot_certify_partial_extent(media, monkeypatch):
-    from kinocut import engine_audio_mix as module
+    from kinocut import engine_media_timeline as module
 
     def malformed_metadata(args, **kwargs):
         kwargs["stdout_sink"].write(b"duration_time=0.04\npts_time=0.04|duration_time=0.04\n")
 
-    monkeypatch.setattr(module, "_run_command", malformed_metadata)
     with pytest.raises(MCPVideoError) as error:
-        module._packet_timeline(str(media[0]))
+        module._packet_extent(str(media[0]), "v:0", runner=malformed_metadata)
     assert error.value.code == "invalid_media_duration"

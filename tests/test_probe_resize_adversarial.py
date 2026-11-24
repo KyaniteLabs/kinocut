@@ -84,6 +84,34 @@ def test_probe_cache_returns_defensive_copies_without_second_subprocess(sample_v
     assert engine_probe.probe(sample_video).width == 640
 
 
+@pytest.mark.parametrize("change", ["unchanged", "replaced", "deleted"])
+def test_single_path_eviction_discards_old_identity(sample_video, tmp_path, monkeypatch, change):
+    from unittest.mock import Mock
+
+    source, other = tmp_path / "source.mp4", tmp_path / "other.mp4"
+    source.write_bytes(Path(sample_video).read_bytes())
+    other.write_bytes(source.read_bytes())
+    read = Mock(wraps=engine_probe._run_ffprobe_json)
+    monkeypatch.setattr(engine_probe, "_run_ffprobe_json", read)
+    engine_probe.probe(str(source))
+    engine_probe.probe(str(other))
+    engine_probe.probe(str(source))
+    assert read.call_count == 2
+    if change == "deleted":
+        source.unlink()
+    elif change == "replaced":
+        replacement = tmp_path / "replacement.mp4"
+        replacement.write_bytes(other.read_bytes())
+        replacement.replace(source)
+    engine_probe.invalidate_probe_cache(str(source))
+    assert len(engine_probe._probe_cache) == 1
+    if change == "deleted":
+        source.write_bytes(other.read_bytes())
+    engine_probe.probe(str(other))
+    engine_probe.probe(str(source))
+    assert read.call_count == 3 and read.call_args.args == (str(source),)
+
+
 def test_audio_probe_cannot_change_video_applicability(sample_audio_wav):
     with pytest.raises(InputFileError, match="No video stream"):
         engine_probe.probe(sample_audio_wav)

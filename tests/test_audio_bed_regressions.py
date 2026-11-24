@@ -17,6 +17,24 @@ import kinocut.engine_audio_bed as engine
 from kinocut.engine_audio_bed import _audio_sample_rate, audio_bed
 from kinocut.errors import ProcessingError
 
+
+def test_source_facts_use_one_probe_per_input(monkeypatch):
+    from kinocut import engine_audio_bed as bed
+
+    calls = []
+
+    def read(path, *, pass_fds):
+        calls.append((path, pass_fds))
+        streams = [{"codec_type": "video"}] if path == "voice" else [{"codec_type": "audio", "sample_rate": "44100"}]
+        return {"format": {"duration": "5" if path == "voice" else "3"}, "streams": streams}
+
+    monkeypatch.setattr(bed, "_run_ffprobe_json", read)
+    facts = bed._probe_sources("voice", "music", pass_fds=(3, 4))
+    assert calls == [("voice", (3, 4)), ("music", (3, 4))]
+    assert facts.voice_has_video and not facts.voice_has_audio and facts.music_has_audio
+    assert (facts.voice_duration, facts.bed_duration, facts.output_sample_rate) == (5, 3, 44100)
+
+
 pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg not installed")
 
 

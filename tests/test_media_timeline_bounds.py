@@ -6,6 +6,14 @@ from kinocut.engine_media_timeline import _packet_extent, _primary_audio_timelin
 from kinocut.errors import MCPVideoError
 
 
+def test_matroska_duration_tag_is_relative_to_picture_start():
+    from kinocut.engine_media_timeline import _picture_extent
+
+    video = {"codec_type": "video", "start_time": "2.5", "tags": {"duration-eng": "00:01:01.750"}}
+    metadata = {"format": {"format_name": "matroska,webm", "duration": "78"}, "streams": [video]}
+    assert _picture_extent("unused", metadata) == (2.5, 59.25)
+
+
 def _producer(text, source=None):
     def write(args, **kwargs):
         assert kwargs["timeout"] > 0

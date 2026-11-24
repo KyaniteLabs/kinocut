@@ -44,7 +44,14 @@ from .defaults import (
     DEFAULT_AUDIO_BED_TARGET_LUFS,
     DEFAULT_AUDIO_BITRATE,
 )
-from .engine_runtime_utils import _check_filter_available, _movflags_args, _timed_operation
+from .engine_media_timeline import _parse_probe_duration
+from .engine_runtime_utils import (
+    _get_audio_stream,
+    _get_video_stream,
+    _check_filter_available,
+    _movflags_args,
+    _timed_operation,
+)
 from .engine_audio_bed_filters import (
     _build_duck_filtergraph,
     _build_loop_filtergraph,
@@ -99,34 +106,26 @@ def _verified_audio_sources(
 # ---------------------------------------------------------------------------
 
 
-def _has_video_stream(path: str, *, pass_fds: tuple[int, ...] = ()) -> bool:
-    data = _run_ffprobe_json(path, pass_fds=pass_fds)
-    return any(s.get("codec_type") == "video" for s in data.get("streams", []))
+def _source_facts(path: str, pass_fds: tuple[int, ...]) -> tuple[dict, float]:
+    try:
+        data = _run_ffprobe_json(path, pass_fds=pass_fds)
+    except MCPVideoError:
+        raise _validation_error("could not probe source duration", "probe_failed") from None
+    duration = _parse_probe_duration(data.get("format", {}).get("duration"))
+    if duration is None:
+        raise _validation_error("could not probe source duration", "probe_failed")
+    return data, duration
 
 
-def _has_audio_stream(path: str, *, pass_fds: tuple[int, ...] = ()) -> bool:
-    data = _run_ffprobe_json(path, pass_fds=pass_fds)
-    return any(s.get("codec_type") == "audio" for s in data.get("streams", []))
+def _sample_rate(audio: dict | None) -> int | None:
+    try:
+        return int((audio or {}).get("sample_rate"))
+    except (TypeError, ValueError):
+        return None
 
 
 def _audio_sample_rate(path: str, *, pass_fds: tuple[int, ...] = ()) -> int | None:
-    """First audio stream's sample rate, or None when there is no readable one."""
-    data = _run_ffprobe_json(path, pass_fds=pass_fds)
-    for stream in data.get("streams", []):
-        if stream.get("codec_type") == "audio" and stream.get("sample_rate"):
-            try:
-                return int(stream["sample_rate"])
-            except (TypeError, ValueError):
-                return None
-    return None
-
-
-def _probe_duration(path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
-    """Probe a media file's duration using the shared ffprobe helper."""
-    try:
-        return _get_video_duration(path, pass_fds=pass_fds)
-    except (ProcessingError, MCPVideoError):
-        raise _validation_error("could not probe source duration", "probe_failed") from None
+    return _sample_rate(_get_audio_stream(_run_ffprobe_json(path, pass_fds=pass_fds)))
 
 
 # ---------------------------------------------------------------------------
@@ -524,17 +523,16 @@ class _BedProbe:
 
 def _probe_sources(voice_source: str, music_path: str, *, pass_fds: tuple[int, ...] = ()) -> _BedProbe:
     """Probe durations, stream topology and the output rate (the voice's, so loudnorm's 192 kHz never reaches the encoder)."""
+    voice, voice_duration = _source_facts(voice_source, pass_fds)
+    music, bed_duration = _source_facts(music_path, pass_fds)
+    voice_audio, music_audio = _get_audio_stream(voice), _get_audio_stream(music)
     return _BedProbe(
-        voice_duration=_probe_duration(voice_source, pass_fds=pass_fds),
-        bed_duration=_probe_duration(music_path, pass_fds=pass_fds),
-        voice_has_audio=_has_audio_stream(voice_source, pass_fds=pass_fds),
-        voice_has_video=_has_video_stream(voice_source, pass_fds=pass_fds),
-        music_has_audio=_has_audio_stream(music_path, pass_fds=pass_fds),
-        output_sample_rate=(
-            _audio_sample_rate(voice_source, pass_fds=pass_fds)
-            or _audio_sample_rate(music_path, pass_fds=pass_fds)
-            or 48000
-        ),
+        voice_duration=voice_duration,
+        bed_duration=bed_duration,
+        voice_has_audio=voice_audio is not None,
+        voice_has_video=_get_video_stream(voice) is not None,
+        music_has_audio=music_audio is not None,
+        output_sample_rate=_sample_rate(voice_audio) or _sample_rate(music_audio) or 48000,
     )
 
 

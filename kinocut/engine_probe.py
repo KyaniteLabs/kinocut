@@ -9,6 +9,7 @@ import threading
 from typing import Any, NamedTuple
 
 from .errors import InputFileError, MCPVideoError, ProcessingError
+from .engine_media_timeline import _parse_probe_duration
 from .defaults import DEFAULT_FPS
 from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
 from .models import ExactVideoInfo, VideoInfo
@@ -42,7 +43,7 @@ def _cache_key(path: str) -> tuple[Any, ...]:
 
 def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | None:
     with _probe_cache_lock:
-        cached = _probe_cache.get(key)
+        cached = _probe_cache.get((os.path.normcase(path), key))
     if cached is None:
         return None
     if _cache_key(path) != key:
@@ -58,15 +59,7 @@ def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool) -> N
     with _probe_cache_lock:
         if len(_probe_cache) >= _MAX_PROBE_CACHE:
             _probe_cache.pop(next(iter(_probe_cache)))
-        _probe_cache[key] = _ProbeCacheEntry(info.model_copy(deep=True), has_video)
-
-
-def _parse_probe_duration(value: Any) -> float | None:
-    try:
-        duration = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return duration if math.isfinite(duration) and duration >= 0 else None
+        _probe_cache[os.path.normcase(path), key] = _ProbeCacheEntry(info.model_copy(deep=True), has_video)
 
 
 def _build_video_info(path: str, data: dict) -> VideoInfo:
@@ -314,7 +307,7 @@ def invalidate_probe_cache(path: str | None = None) -> None:
         if path is None:
             _probe_cache.clear()
         else:
-            path = os.path.realpath(path)
+            path = os.path.normcase(os.path.realpath(path))
             keys_to_remove = [k for k in _probe_cache if k[0] == path]
             for k in keys_to_remove:
                 del _probe_cache[k]
