@@ -304,6 +304,7 @@ def test_package_overwrite_preserves_file_added_after_verification(tmp_path, mon
     preserved = list(root.parent.glob(f".{root.name}.preserved_*"))
     assert len(preserved) == 1
     assert (preserved[0] / "youtube-shorts" / "late_file.txt").read_text(encoding="utf-8") == "do not delete"
+    assert (preserved[0] / "youtube-shorts" / "captions.srt").is_file()
 
 
 def test_windows_contested_rollback_preserves_old_package_outside_tempdir(tmp_path, monkeypatch):

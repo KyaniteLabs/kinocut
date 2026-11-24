@@ -9,8 +9,8 @@ from __future__ import annotations
 import contextlib
 import os
 import secrets
+import shutil
 import stat
-import tempfile
 from contextlib import closing
 from pathlib import Path
 from typing import Any
@@ -226,87 +226,81 @@ def _matches_snapshot(displaced: Path, snapshot: _PackageSnapshot) -> bool:
     return seen_platforms == set(expected_platforms) and seen_files == set(expected_files)
 
 
-def _unlink_verified_entries_posix(displaced: Path, snapshot: _PackageSnapshot) -> bool:
+def _restore_quarantined(moved: list[tuple[Path, Path]], trash: Path) -> None:
+    for src, dst in reversed(moved):
+        with contextlib.suppress(OSError):
+            if dst.exists() and not os.path.lexists(src):
+                os.rename(dst, src)
+    with contextlib.suppress(OSError):
+        trash.rmdir()
+
+
+def _quarantine_verified_entries(displaced: Path, trash: Path, snapshot: _PackageSnapshot) -> list[tuple[Path, Path]]:
+    """Move expected files into private 0o700 quarantine and re-verify inodes before any unlink."""
     expected_dir, expected_platforms, expected_files = snapshot
-    dir_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-    disp_fd = os.open(displaced, dir_flags)
-    try:
-        dstat = os.fstat(disp_fd)
-        if (dstat.st_dev, dstat.st_ino) != expected_dir:
-            return False
-        for plat_name, expected_plat_id in expected_platforms.items():
-            plat_fd = os.open(plat_name, dir_flags, dir_fd=disp_fd)
-            try:
-                pstat = os.fstat(plat_fd)
-                if (pstat.st_dev, pstat.st_ino) != expected_plat_id:
-                    return False
-                for (p, asset_name), expected_file_id in expected_files.items():
-                    if p != plat_name:
-                        continue
-                    astat = os.stat(asset_name, dir_fd=plat_fd, follow_symlinks=False)
-                    if (
-                        stat.S_ISLNK(astat.st_mode)
-                        or not stat.S_ISREG(astat.st_mode)
-                        or (astat.st_dev, astat.st_ino) != expected_file_id
-                    ):
-                        return False
-                    os.unlink(asset_name, dir_fd=plat_fd)
-            finally:
-                os.close(plat_fd)
-            os.rmdir(plat_name, dir_fd=disp_fd)
-    finally:
-        os.close(disp_fd)
-    displaced.rmdir()
-    return True
-
-
-def _unlink_verified_entries_fallback(displaced: Path, snapshot: _PackageSnapshot) -> bool:
-    _, expected_platforms, expected_files = snapshot
-    for (plat_name, asset_name), expected_id in expected_files.items():
-        target = displaced / plat_name / asset_name
-        astat = os.stat(target, follow_symlinks=False)
+    moved: list[tuple[Path, Path]] = []
+    if not _matches_snapshot(displaced, snapshot):
+        raise OSError("snapshot mismatch")
+    dstat = os.stat(displaced, follow_symlinks=False)
+    if (dstat.st_dev, dstat.st_ino) != expected_dir or not stat.S_ISDIR(dstat.st_mode):
+        raise OSError("displaced root identity changed")
+    for idx, ((plat_name, asset_name), expected_id) in enumerate(expected_files.items()):
+        src = displaced / plat_name / asset_name
+        dst = trash / f"{idx}_{asset_name}"
+        pstat = os.stat(displaced / plat_name, follow_symlinks=False)
+        if stat.S_ISLNK(pstat.st_mode) or (pstat.st_dev, pstat.st_ino) != expected_platforms.get(plat_name):
+            raise OSError("platform dir identity changed")
+        os.rename(src, dst)
+        moved.append((src, dst))
+        qstat = os.stat(dst, follow_symlinks=False)
         if (
-            stat.S_ISLNK(astat.st_mode)
-            or not stat.S_ISREG(astat.st_mode)
-            or (astat.st_dev, astat.st_ino) != expected_id
+            stat.S_ISLNK(qstat.st_mode)
+            or not stat.S_ISREG(qstat.st_mode)
+            or (qstat.st_dev, qstat.st_ino) != expected_id
         ):
-            return False
-        target.unlink()
-    for plat_name in expected_platforms:
-        (displaced / plat_name).rmdir()
-    displaced.rmdir()
-    return True
+            raise OSError("quarantined file identity mismatch")
+    return moved
 
 
 def _remove_verified_displaced(displaced: Path, base: Path, snapshot: _PackageSnapshot) -> None:
-    """Delete only exact verified snapshot entries; preserve displaced tree on any concurrent change."""
+    """Quarantine and verify every inode before unlinking; restore intact tree on any race."""
+    _, expected_platforms, _ = snapshot
+    trash = base.parent / f".{base.name}.trash_{secrets.token_hex(6)}"
+    os.mkdir(trash, mode=0o700)
+    moved: list[tuple[Path, Path]] = []
     try:
-        if not _matches_snapshot(displaced, snapshot):
-            _preserve_displaced(displaced, base)
-        if os.name == "posix" and hasattr(os, "O_NOFOLLOW") and os.open in os.supports_dir_fd:
-            removed = _unlink_verified_entries_posix(displaced, snapshot)
-        else:
-            removed = _unlink_verified_entries_fallback(displaced, snapshot)
+        moved = _quarantine_verified_entries(displaced, trash, snapshot)
+        for plat_name in expected_platforms:
+            (displaced / plat_name).rmdir()
+        displaced.rmdir()
     except OSError:
+        _restore_quarantined(moved, trash)
         _preserve_displaced(displaced, base)
-    if not removed:
-        _preserve_displaced(displaced, base)
+    for _, qpath in moved:
+        qpath.unlink()
+    trash.rmdir()
 
 
-def _publish_package_tree(anchor: _Directory, stage: Path, base: Path, overwrite: bool) -> None:
+def _publish_package_tree(
+    anchor: _Directory, stage: Path, base: Path, overwrite: bool, *, exchanged: list[bool] | None = None
+) -> None:
+    """Publish staged package dir; marks ``exchanged[0] = True`` the instant stage leaves caller ownership."""
     try:
         anchor.check()
         snapshot = _snapshot_replaceable(base, stage, overwrite)
         anchor.check()
         if snapshot is None:
-            _rename_exclusive(anchor, str(stage.relative_to(base.parent)), base.name, exchange=False)
+            _rename_exclusive(anchor, stage.name, base.name, exchange=False)
+            if exchanged is not None:
+                exchanged[0] = True
             return
-        displaced = base.parent / f".{base.name}.displaced_{secrets.token_hex(6)}"
         if os.name == "nt":
-            # Keep displaced tree in a durable sibling outside TemporaryDirectory so contested rollback never deletes it.
+            displaced = base.parent / f".{base.name}.displaced_{secrets.token_hex(6)}"
             os.rename(base, displaced)
             try:
                 os.rename(stage, base)
+                if exchanged is not None:
+                    exchanged[0] = True
             except BaseException:
                 with contextlib.suppress(OSError):
                     if not os.path.lexists(base) and os.path.lexists(displaced):
@@ -314,10 +308,10 @@ def _publish_package_tree(anchor: _Directory, stage: Path, base: Path, overwrite
                 raise
             _remove_verified_displaced(displaced, base, snapshot)
             return
-        _rename_exclusive(anchor, str(stage.relative_to(base.parent)), base.name, exchange=True)
-        # Immediately move displaced tree outside TemporaryDirectory so no exception path can rmtree it.
-        os.rename(stage, displaced)
-        _remove_verified_displaced(displaced, base, snapshot)
+        _rename_exclusive(anchor, stage.name, base.name, exchange=True)
+        if exchanged is not None:
+            exchanged[0] = True
+        _remove_verified_displaced(stage, base, snapshot)
     except OSError as exc:
         raise _package_error(
             "Could not atomically publish the package directory.",
@@ -330,17 +324,19 @@ def _publish_package_tree(anchor: _Directory, stage: Path, base: Path, overwrite
 def _stage_packages(
     base: Path, records: tuple[RenderRecord, ...], candidate: CandidateMoment, job_id: str, overwrite: bool
 ) -> list[dict[str, Any]]:
-    with (
-        closing(_Directory(str(base.parent))) as anchor,
-        tempfile.TemporaryDirectory(prefix=".kinocut_package_", dir=base.parent) as temporary,
-    ):
-        stage = Path(temporary, "packages")
-        stage.mkdir()
-        emitted = [
-            _package_platform(record, candidate=candidate, base=base, stage=stage, review_decision_ref=job_id)
-            for record in records
-        ]
-        _publish_package_tree(anchor, stage, base, overwrite)
+    with closing(_Directory(str(base.parent))) as anchor:
+        stage = base.parent / f".kinocut_package_{secrets.token_hex(8)}"
+        os.mkdir(stage, mode=0o700)
+        exchanged = [False]
+        try:
+            emitted = [
+                _package_platform(record, candidate=candidate, base=base, stage=stage, review_decision_ref=job_id)
+                for record in records
+            ]
+            _publish_package_tree(anchor, stage, base, overwrite, exchanged=exchanged)
+        finally:
+            if not exchanged[0] and stage.exists():
+                shutil.rmtree(stage, ignore_errors=True)
     return emitted
 
 
