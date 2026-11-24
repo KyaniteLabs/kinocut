@@ -20,7 +20,8 @@ from kinocut.ffmpeg_helpers import (
     _validate_artifact_location,
     _validate_artifact_path,
 )
-from kinocut.output_policy import output_operation
+from kinocut.projectstore import _filelock
+from kinocut.publication import output_operation
 
 _LOCKS_GUARD = threading.Lock()
 _SESSION_LOCKS: dict[str, threading.Lock] = {}
@@ -28,29 +29,22 @@ _SESSION_LOCKS: dict[str, threading.Lock] = {}
 
 @contextlib.contextmanager
 def _session_lock(path: Path) -> Iterator[None]:
-    """Serialize session read-modify-write across threads and POSIX processes."""
+    """Serialize session read-modify-write across threads and processes."""
     key = str(path.resolve())
     with _LOCKS_GUARD:
         lock = _SESSION_LOCKS.setdefault(key, threading.Lock())
     with lock:
-        lock_fd: int | None = None
-        if os.name == "posix":
-            import fcntl
-
-            lock_path = path.parent / ".session.lock"
-            flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
-            lock_fd = os.open(str(lock_path), flags, 0o600)
-            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        lock_path = path.parent / ".session.lock"
+        flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+        lock_fd = os.open(lock_path, flags, 0o600)
         try:
-            yield
+            _filelock.lock_exclusive(lock_fd)
+            try:
+                yield
+            finally:
+                _filelock.unlock(lock_fd)
         finally:
-            if lock_fd is not None:
-                import fcntl
-
-                try:
-                    fcntl.flock(lock_fd, fcntl.LOCK_UN)
-                finally:
-                    os.close(lock_fd)
+            os.close(lock_fd)
 
 
 def _write_json(path: Path, state: dict[str, Any], *, recorded: bool = False) -> None:

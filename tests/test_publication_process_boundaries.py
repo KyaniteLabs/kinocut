@@ -109,7 +109,7 @@ def test_bound_artifact_writer_ignores_replaced_filename(tmp_path):
 
 @pytest.mark.parametrize("writer", ["ffmpeg", "artifact"])
 def test_copied_context_cannot_reuse_closed_stage_descriptor(tmp_path, writer):
-    from kinocut import staged_writers
+    from kinocut.publication import _staging as staged_writers
     from kinocut.ffmpeg_helpers import _open_staged_writer, _run_ffmpeg
 
     with _atomic_output(str(tmp_path / "output.wav")) as stage:

@@ -52,7 +52,7 @@ def _deny_root_read_open(monkeypatch):
 
     Returns the ``(path, flags)`` pairs the replacement observed.
     """
-    from kinocut import atomic_publication
+    from kinocut.publication import _anchor as atomic_publication
 
     real_open = os.open
     observed = []
@@ -86,7 +86,7 @@ def test_publication_succeeds_when_root_read_open_is_denied(tmp_path, monkeypatc
 @pytest.mark.skipif(os.name != "posix", reason="POSIX descriptor-anchored creation")
 @pytest.mark.skipif(not hasattr(os, "O_PATH"), reason="O_PATH required")
 def test_root_anchor_fallback_uses_path_mode(tmp_path, monkeypatch):
-    from kinocut import atomic_publication
+    from kinocut.publication import _anchor as atomic_publication
 
     observed = _deny_root_read_open(monkeypatch)
     descriptor = atomic_publication._open_root_descriptor()
@@ -103,7 +103,7 @@ def test_root_anchor_fallback_uses_path_mode(tmp_path, monkeypatch):
 @pytest.mark.skipif(not hasattr(os, "O_PATH"), reason="O_PATH required")
 def test_hostile_ancestry_symlink_still_blocked_on_hardened_hosts(tmp_path, monkeypatch):
     """The fallback must not weaken the no-follow guarantee."""
-    from kinocut import atomic_publication
+    from kinocut.publication import _anchor as atomic_publication
 
     _deny_root_read_open(monkeypatch)
     safe, victim = tmp_path / "safe", tmp_path / "victim"

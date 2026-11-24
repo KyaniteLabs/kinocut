@@ -27,8 +27,7 @@ import time
 
 from kinocut.projectstore._filelock import lock_exclusive
 from kinocut.errors import MCPVideoError
-from kinocut.output_policy import with_output_policy
-from .receipt_ownership import durable_receipt_ownership
+from kinocut.publication import durable_receipt_ownership, with_output_policy
 from kinocut.projectstore.render_jobs import (
     RenderJobStatus,
     get_render_job,
