@@ -200,14 +200,16 @@ def ai_transcribe(
     if chunk_longform is True or (chunk_longform is None and duration > DEFAULT_LONGFORM_TRANSCRIBE_SECONDS):
         from .transcribe_longform import transcribe_longform
 
+        raw_segments: list[dict[str, Any]] = []
         merged = transcribe_longform(
-            str(video_path), model=model, language=language, scene_aware=False, deduplicate_segments=True
+            str(video_path),
+            model=model,
+            language=language,
+            scene_aware=False,
+            deduplicate_segments=True,
+            _raw_segments_out=raw_segments,
         )
-        segments = [
-            {"id": index, **segment.model_dump(exclude={"chunk_index"}, exclude_none=True)}
-            for index, segment in enumerate(merged.segments)
-        ]
-        result = {"transcript": merged.transcript, "segments": segments, "language": merged.language}
+        result = {"transcript": merged.transcript, "segments": raw_segments, "language": merged.language}
     else:
         result = _single_pass(video_path, whisper, model, language)
     if output_srt:

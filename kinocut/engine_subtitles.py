@@ -155,18 +155,18 @@ def subtitles(
                 )
             )
             result = _build_edit_result(staged, "subtitles", timing)
+        result.output_path = output
+        result.elapsed_ms = timing["elapsed_ms"]
+        if check_captions:
+            from .aivideo.subtitle_advisory import subtitle_advisory
+
+            summary = subtitle_advisory(input_path, subtitle_path, burn_ass=temp_ass)
+            if not summary["passed"]:
+                counts = ", ".join(f"{kind}={count}" for kind, count in summary.get("findings", {}).items())
+                result.warnings.append(f"Subtitle QA: {summary['status']} ({counts or 'no verified cues'}).")
     finally:
         if temp_ass is not None and os.path.exists(temp_ass):
             with contextlib.suppress(OSError):
                 os.remove(temp_ass)
 
-    result.output_path = output
-    result.elapsed_ms = timing["elapsed_ms"]
-    if check_captions:
-        from .aivideo.subtitle_advisory import subtitle_advisory
-
-        summary = subtitle_advisory(input_path, subtitle_path)
-        if not summary["passed"]:
-            counts = ", ".join(f"{kind}={count}" for kind, count in summary.get("findings", {}).items())
-            result.warnings.append(f"Subtitle QA: {summary['status']} ({counts or 'no verified cues'}).")
     return result

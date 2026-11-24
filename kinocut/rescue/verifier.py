@@ -261,17 +261,31 @@ def _caption_segments(path: str | None) -> list[tuple[float, float, str]]:
         return []
 
     def seconds(value: str) -> float:
-        hours, minutes, rest = value.replace(",", ".").split(":")
-        return int(hours) * 3600 + int(minutes) * 60 + float(rest)
+        parts = value.strip().replace(",", ".").split(":")
+        if len(parts) == 2:
+            minutes, rest = parts
+            return int(minutes) * 60 + float(rest)
+        if len(parts) == 3:
+            hours, minutes, rest = parts
+            return int(hours) * 3600 + int(minutes) * 60 + float(rest)
+        raise ValueError("invalid subtitle timestamp")
 
     segments = []
-    for block in re.split(r"\n\s*\n", Path(path).read_text(encoding="utf-8").strip()):
+    raw_text = Path(path).read_text(encoding="utf-8-sig").replace("\r\n", "\n").replace("\r", "\n").strip()
+    for block in re.split(r"\n\s*\n", raw_text):
         lines = block.splitlines()
+        first = lines[0].strip() if lines else ""
+        if first in {"STYLE", "REGION"} or first == "NOTE" or first.startswith(("NOTE ", "NOTE\t")):
+            continue
         timing_index = next((i for i, line in enumerate(lines) if " --> " in line), None)
         if timing_index is None:
             continue
-        start, end = lines[timing_index].split(" --> ", 1)
-        segments.append((seconds(start), seconds(end), " ".join(lines[timing_index + 1 :]).strip()))
+        start_raw, end_raw = lines[timing_index].split(" --> ", 1)
+        start_tokens = start_raw.strip().split()
+        end_tokens = end_raw.strip().split()
+        if not start_tokens or not end_tokens:
+            raise ValueError("invalid subtitle timing line")
+        segments.append((seconds(start_tokens[0]), seconds(end_tokens[0]), " ".join(lines[timing_index + 1 :]).strip()))
     return segments
 
 

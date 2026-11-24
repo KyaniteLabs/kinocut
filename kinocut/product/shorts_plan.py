@@ -182,6 +182,15 @@ class ShortsPlan(_StrictModel):
                 raise ValueError(f"render references unknown candidate {render.candidate_id!r}")
             if render.platform not in self.platforms:
                 raise ValueError(f"render platform {render.platform!r} is not in plan.platforms")
+        if any(segment.end > self.intake.duration for segment in self.transcript):
+            raise ValueError("shorts plan transcript segments must stay within intake.duration")
+        if any(word.end > self.intake.duration for word in self.transcript_words):
+            raise ValueError("shorts plan transcript words must stay within intake.duration")
+        for proposal in self.proposals:
+            if proposal.end > self.intake.duration:
+                raise ValueError("shorts plan proposals must stay within intake.duration")
+            if any(signal.timestamp > self.intake.duration for signal in proposal.source_signals):
+                raise ValueError("shorts plan proposal signals must stay within intake.duration")
         if self.external_posting is not False:
             raise ValueError("external_posting must remain False")
         return self
@@ -266,6 +275,49 @@ def _safe_output_dir(plan: ShortsPlan) -> str:
     return resolved
 
 
+def _validate_source_bounds(
+    intake: IntakeReport,
+    *,
+    transcript: tuple[TranscriptSegment, ...] = (),
+    transcript_words: tuple[TranscriptWord, ...] = (),
+    signals: tuple[SourceSignal, ...] = (),
+    proposals: tuple[CandidateMoment, ...] = (),
+) -> None:
+    """Reject transcript, signal, or candidate timestamps outside intake.duration."""
+    duration = intake.duration
+    if any(segment.end > duration for segment in transcript):
+        raise _plan_error(
+            "The Shorts transcript extends past the source duration.",
+            code="shorts_out_of_range",
+            cause=own_reason("one or more transcript segments exceed intake.duration."),
+            recovery="Provide transcript segments whose timestamps stay within the source duration.",
+        )
+    if any(word.end > duration for word in transcript_words):
+        raise _plan_error(
+            "The Shorts transcript words extend past the source duration.",
+            code="shorts_out_of_range",
+            cause=own_reason("one or more transcript words exceed intake.duration."),
+            recovery="Provide transcript words whose timestamps stay within the source duration.",
+        )
+    if any(signal.timestamp > duration for signal in signals):
+        raise _plan_error(
+            "The Shorts source signals extend past the source duration.",
+            code="shorts_out_of_range",
+            cause=own_reason("one or more source signals exceed intake.duration."),
+            recovery="Provide source signals whose timestamps stay within the source duration.",
+        )
+    if any(
+        proposal.end > duration or any(signal.timestamp > duration for signal in proposal.source_signals)
+        for proposal in proposals
+    ):
+        raise _plan_error(
+            "The Shorts proposals extend past the source duration.",
+            code="shorts_out_of_range",
+            cause=own_reason("one or more candidate proposals exceed intake.duration."),
+            recovery="Provide proposals whose timestamps stay within the source duration.",
+        )
+
+
 def propose_shorts_plan(
     *,
     job_id: str,
@@ -281,6 +333,13 @@ def propose_shorts_plan(
     fallback_proposals: tuple[CandidateMoment, ...] = (),
 ) -> ShortsPlan:
     """Persist new proposals for review; never recompute a saved candidate or transfer an approval."""
+    _validate_source_bounds(
+        intake,
+        transcript=transcript,
+        transcript_words=transcript_words,
+        signals=signals,
+        proposals=fallback_proposals,
+    )
     selection = discover_highlights(transcript, signals=signals, examples=examples, config=config)
     proposals = selection.candidates or fallback_proposals
     if not proposals:
@@ -290,6 +349,7 @@ def propose_shorts_plan(
             cause=own_reason("no complete transcript window met the requested bounds."),
             recovery="Provide more timed transcript or supply fallback proposals for review.",
         )
+    _validate_source_bounds(intake, proposals=proposals)
     return save_shorts_plan(
         ShortsPlan(
             job_id=job_id,
