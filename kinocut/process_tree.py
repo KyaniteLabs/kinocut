@@ -41,10 +41,12 @@ class ProcessTree:
     def __init__(
         self, cmd: list[str], *, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds: tuple[int, ...] = ()
     ):
+        from .offline import offline_media_command
         from .process_windows import CREATE_SUSPENDED, WindowsJob
 
         from .process_guardian_owner import prepare_guardian
 
+        cmd = offline_media_command(cmd)
         self.guardian = prepare_guardian(cmd, pass_fds)
         if self.guardian is not None:
             cmd, pass_fds = self.guardian.cmd, self.guardian.pass_fds

@@ -242,6 +242,9 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
             "null",
             "-",
         ]
+        from .offline import offline_media_command
+
+        cmd = offline_media_command(cmd)
         try:
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT

@@ -24,7 +24,7 @@ from .limits import (
     MAX_FFMPEG_PIPE_BYTES,
 )
 from . import publication
-from .offline import is_offline_mode
+from .offline import offline_media_command as _offline_media_command
 from .publication import _staging, note_operation_write as _note_operation_write, record_operation_input
 from .publication._operation import _reject_self_overwrite as _reject_self_overwrite
 from .publication._policy import _validate_write_path as _validate_write_path
@@ -38,28 +38,6 @@ _reset_operation_inputs = publication.reset_operation_inputs
 _validate_artifact_location = publication.validate_artifact_location
 _validate_artifact_path = publication.validate_artifact_path
 _validate_output_path = publication.validate_output_path
-
-
-def _offline_media_command(cmd: list[str], *, probe: bool = False) -> list[str]:
-    """Apply FFmpeg's per-input protocol policy, including nested demuxer I/O."""
-    if not is_offline_mode() or len(cmd) < 2 or cmd[1:] == ["-version"]:
-        return cmd
-    policy = ("-protocol_whitelist", "file,pipe")
-    restricted = [cmd[0]]
-    args = iter(cmd[1:])
-    for arg in args:
-        if arg == "-protocol_whitelist":
-            next(args)
-            restricted.extend(policy)
-        elif not probe and arg == "-i":
-            restricted.extend((*policy, arg, next(args)))
-        else:
-            restricted.append(arg)
-    if probe:
-        restricted[1:1] = policy
-    elif "-i" in restricted:
-        restricted[-1:-1] = policy
-    return restricted
 
 
 def _validate_input_path(path: str, *, record_operation: bool = True) -> str:

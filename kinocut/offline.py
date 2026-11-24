@@ -64,3 +64,81 @@ def require_offline_local_artifact(path: Path, *, feature: str, env_hint: str) -
     if is_offline_mode() and not path.is_file():
         raise OfflineModelMissing(path, feature=feature, env_hint=env_hint)
     return path
+
+
+_INFO_FLAGS = frozenset({"-version", "-h", "-help", "--help", "-filters", "-encoders", "-decoders", "-formats"})
+_LAVFI_OFFLINE_OPT = r":format_opts=protocol_whitelist=file\,pipe"
+
+
+def _restrict_lavfi_movie(expr: str) -> str:
+    if not expr.startswith("movie=") or _LAVFI_OFFLINE_OPT in expr:
+        return expr
+    in_quote = False
+    escaped = False
+    for idx, ch in enumerate(expr):
+        if escaped:
+            escaped = False
+            continue
+        if ch == "\\" and not in_quote:
+            escaped = True
+        elif ch == "'":
+            in_quote = not in_quote
+        elif not in_quote and ch in ",;":
+            return expr[:idx] + _LAVFI_OFFLINE_OPT + expr[idx:]
+    return expr + _LAVFI_OFFLINE_OPT
+
+
+def offline_media_command(cmd: list[str], *, probe: bool | None = None) -> list[str]:
+    """Apply FFmpeg/ffprobe's local-only protocol policy when offline mode is enabled."""
+    if not is_offline_mode() or len(cmd) < 2:
+        return cmd
+    if any(arg in _INFO_FLAGS for arg in cmd[1:]):
+        return cmd
+    name = os.path.basename(cmd[0]).lower()
+    if probe is None:
+        if name in {"ffprobe", "ffprobe.exe"}:
+            probe = True
+        elif name in {"ffmpeg", "ffmpeg.exe"}:
+            probe = False
+        else:
+            return cmd
+    policy = ("-protocol_whitelist", "file,pipe")
+    cleaned: list[str] = [cmd[0]]
+    args = iter(cmd[1:])
+    lavfi_next = False
+    for arg in args:
+        if arg == "-protocol_whitelist":
+            next(args, None)
+            continue
+        if arg == "-f":
+            fmt = next(args, None)
+            cleaned.append(arg)
+            if fmt is not None:
+                lavfi_next = fmt == "lavfi"
+                cleaned.append(fmt)
+            continue
+        if arg == "-i" and lavfi_next:
+            lavfi_next = False
+            val = next(args, None)
+            cleaned.append(arg)
+            if val is not None:
+                cleaned.append(_restrict_lavfi_movie(val))
+            continue
+        cleaned.append(arg)
+    if probe:
+        return [cleaned[0], *policy, *cleaned[1:]]
+    restricted: list[str] = [cleaned[0]]
+    rest = iter(cleaned[1:])
+    has_input = False
+    for arg in rest:
+        if arg == "-i":
+            has_input = True
+            value = next(rest, None)
+            restricted.extend((*policy, arg))
+            if value is not None:
+                restricted.append(value)
+        else:
+            restricted.append(arg)
+    if has_input and len(restricted) >= 2:
+        restricted[-1:-1] = policy
+    return restricted

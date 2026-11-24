@@ -323,18 +323,75 @@ def test_doctor_reports_offline_readiness(monkeypatch, tmp_path):
 
 
 @pytest.mark.skipif(not all(shutil.which(name) for name in ("ffmpeg", "ffprobe")), reason="needs FFmpeg and ffprobe")
-@pytest.mark.parametrize("operation", ["probe", "full_audio", "chunk_audio"])
+@pytest.mark.parametrize(
+    "operation", ["probe", "full_audio", "chunk_audio", "signalstats_ffprobe", "signalstats_ffmpeg", "thumbnail"]
+)
 def test_offline_media_subprocess_refuses_playlist_http(tmp_path, operation):
-    playlist = tmp_path / "input.m3u8"
-    playlist.write_text(
-        "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\nhttp://192.0.2.1/sample.ts\n#EXT-X-ENDLIST\n"
-    )
-    with pytest.raises(ProcessingError) as caught:
-        if operation == "probe":
-            _get_video_duration(str(playlist))
-        elif operation == "full_audio":
-            transcribe._extract_transcription_audio(playlist, str(tmp_path / "audio.wav"))
-        else:
-            transcribe._extract_audio_segment(str(playlist), 0.0, 1.0, output_dir=str(tmp_path))
-    assert "Protocol 'http' not on whitelist 'file,pipe'" in caught.value.full_stderr
-    assert not list(tmp_path.glob("*.wav"))
+    from kinocut import engine_runtime_utils, quality_signal_reader
+
+    hits: list[str] = []
+
+    class TrapHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            hits.append(self.path)
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, format, *args):
+            return None
+
+    with ThreadingHTTPServer(("127.0.0.1", 0), TrapHandler) as server:
+        worker = Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        try:
+            playlist = tmp_path / "input.m3u8"
+            playlist.write_text(
+                "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\n"
+                f"http://127.0.0.1:{server.server_port}/sample.ts\n#EXT-X-ENDLIST\n"
+            )
+            if operation == "thumbnail":
+                assert engine_runtime_utils._generate_thumbnail_base64(str(playlist)) is None
+                assert hits == []
+                return
+            with pytest.raises(ProcessingError) as caught:
+                if operation == "probe":
+                    _get_video_duration(str(playlist))
+                elif operation == "full_audio":
+                    transcribe._extract_transcription_audio(playlist, str(tmp_path / "audio.wav"))
+                elif operation == "chunk_audio":
+                    transcribe._extract_audio_segment(str(playlist), 0.0, 1.0, output_dir=str(tmp_path))
+                elif operation == "signalstats_ffprobe":
+                    quality_signal_reader.read_signalstats(
+                        [
+                            "ffprobe",
+                            "-v",
+                            "error",
+                            "-f",
+                            "lavfi",
+                            "-i",
+                            f"movie={playlist},signalstats",
+                            "-show_entries",
+                            "frame_tags=lavfi.signalstats.YAVG",
+                            "-of",
+                            "default=noprint_wrappers=1",
+                        ]
+                    )
+                else:
+                    quality_signal_reader.read_ffmpeg_signalstats(
+                        [
+                            "ffmpeg",
+                            "-i",
+                            str(playlist),
+                            "-vf",
+                            "signalstats,metadata=mode=print",
+                            "-f",
+                            "null",
+                            "-",
+                        ]
+                    )
+            assert "Protocol 'http' not on whitelist 'file,pipe'" in caught.value.full_stderr
+            assert hits == []
+            assert not list(tmp_path.glob("*.wav"))
+        finally:
+            server.shutdown()
+            worker.join()
