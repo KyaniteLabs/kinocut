@@ -44,5 +44,5 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     package.add_argument(
         "--allow-fail",
         action="store_true",
-        help="Package even if release quality fails (still records quality_gate_failed)",
+        help="Deprecated no-op retained for CLI compatibility; quality gate failures cannot be bypassed",
     )

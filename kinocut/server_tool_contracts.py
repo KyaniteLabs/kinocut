@@ -21,6 +21,8 @@ from .errors import MCPVideoError
 from .tool_docstrings import fold_args
 from .tool_families import DESCRIBE_TOOL_NAME, FAMILY_OF_OPERATION
 
+_FAMILY_TOOL_NAMES = frozenset(FAMILY_OF_OPERATION.values())
+
 
 def _numeric_boolean_validator(model: Any) -> Any:
     numeric_fields = set()
@@ -233,6 +235,8 @@ class _ContractFastMCP(FastMCP):
         )
         tool.fn_metadata.arg_model = model
         tool.parameters = model.model_json_schema(by_alias=True, schema_generator=_UntitledSchema)
+        if name in _FAMILY_TOOL_NAMES:
+            tool.parameters["additionalProperties"] = True
         tool.description = fold_args(tool.description, tool.parameters)
         _compact_tool_metadata(tool)
 

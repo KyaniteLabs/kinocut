@@ -7,7 +7,6 @@ import ctypes
 import errno
 import os
 import secrets
-import shutil
 import stat
 import sys
 from collections.abc import Callable, Iterator
@@ -17,7 +16,6 @@ from .type_names import exception_kind
 from .staged_writers import owned_stage
 
 _LINK_UNSUPPORTED = {errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV}
-_RENAME_UNSUPPORTED = _LINK_UNSUPPORTED | {errno.ENOSYS, errno.EINVAL}
 
 
 def _unsafe(message: str) -> MCPVideoError:
@@ -147,26 +145,8 @@ def _remove_owned(anchor: _Directory, name: str, identity: os.stat_result) -> No
             os.unlink(anchor.name(name), **anchor.options())
 
 
-def _copy_exclusive(anchor: _Directory, basename: str, source_fd: int) -> os.stat_result:
-    """Last resort: reserve the destination and write only through its descriptor."""
-    anchor.check()
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-    target_fd = os.open(anchor.name(basename), flags, 0o600, **anchor.options())
-    identity = os.fstat(target_fd)
-    try:
-        with os.fdopen(os.dup(source_fd), "rb") as source, os.fdopen(target_fd, "wb", closefd=False) as target:
-            source.seek(0)
-            shutil.copyfileobj(source, target)
-    except BaseException:
-        _remove_owned(anchor, basename, identity)
-        raise
-    finally:
-        os.close(target_fd)
-    return identity
-
-
 def _publish_without_overwrite(
-    anchor: _Directory, stage: str, basename: str, fd: int | None, identity: os.stat_result
+    anchor: _Directory, stage: str, basename: str, identity: os.stat_result
 ) -> os.stat_result:
     try:
         os.link(
@@ -179,12 +159,7 @@ def _publish_without_overwrite(
         if exc.errno not in _LINK_UNSUPPORTED and getattr(exc, "winerror", None) != 1:
             raise
         anchor.check()
-        try:
-            _rename_exclusive(anchor, stage, basename)
-        except OSError as rename_error:
-            if rename_error.errno not in _RENAME_UNSUPPORTED or fd is None:
-                raise
-            return _copy_exclusive(anchor, basename, fd)
+        _rename_exclusive(anchor, stage, basename)
     return identity
 
 
@@ -232,7 +207,7 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
                 os.replace(temporary, final)
             published_identity = identity
         else:
-            published_identity = _publish_without_overwrite(anchor, stage, basename, fd, identity)
+            published_identity = _publish_without_overwrite(anchor, stage, basename, identity)
         published = True
         try:
             anchor.check()

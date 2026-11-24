@@ -98,7 +98,11 @@ def resize(
     _validate_output_path(output)
 
     if fit_mode == "crop":
-        vf = f"scale={w}:{h}:force_original_aspect_ratio=increase:force_divisible_by=2,crop={w}:{h}"
+        vf = (
+            f"scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,"
+            f"scale={w}:{h}:force_original_aspect_ratio=increase:force_divisible_by=2,"
+            f"crop={w}:{h},setsar=1"
+        )
     else:
         vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
 

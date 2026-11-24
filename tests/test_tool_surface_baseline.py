@@ -163,8 +163,8 @@ def test_headline_baseline_numbers_are_pinned():
     Shorts crop help and removal of the packaging QC bypass changed the totals
     to 15,357 B, 121,009 B and 82,508 B, respectively.
     """
-    assert BASELINE["captured"]["git_commit"] == "06f456a8e8a270446c71e06712695ce13d308e71"
-    for mode, count, total in (("default", 18, 15_357), ("all", 208, 121_009), ("profile:editor", 115, 82_508)):
+    assert BASELINE["captured"]["git_commit"] == "1f87d401bb2ed10bc88c99ab7df48fa559d14f38"
+    for mode, count, total in (("default", 18, 15_349), ("all", 208, 121_009), ("profile:editor", 115, 82_500)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -234,7 +234,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_357), ("all", 208, 121_009)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_349), ("all", 208, 121_009)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

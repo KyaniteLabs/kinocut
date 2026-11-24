@@ -717,13 +717,11 @@ def _report_missing_audio_stream(report: dict[str, Any]) -> bool:
 
 def _profile_gate_failures(report: dict[str, Any]) -> list[str]:
     """Visual checks that fail a profile which makes its bands hard limits."""
-    if not (report.get("profile") or {}).get("visual_checks_gate"):
+    profile = report.get("profile") or {}
+    if not profile.get("visual_checks_gate"):
         return []
-    return [
-        check["name"]
-        for check in report.get("checks", [])
-        if check.get("name") in VISUAL_PROFILE_CHECKS and check.get("passed") is not True
-    ]
+    gated = (*VISUAL_PROFILE_CHECKS, "color_balance") if profile.get("name") == "dark-grade" else VISUAL_PROFILE_CHECKS
+    return [c["name"] for c in report.get("checks", []) if c.get("name") in gated and c.get("passed") is not True]
 
 
 def assert_quality(

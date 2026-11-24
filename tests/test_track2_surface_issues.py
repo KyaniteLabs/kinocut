@@ -132,14 +132,13 @@ def test_doctor_rejects_an_installed_but_unimportable_upscale_backend(monkeypatc
     assert "backend import failed" in check["install_hint"]
 
 
-@pytest.mark.skipif(os.name != "posix", reason="POSIX exclusive-open fallback")
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux renameat2(RENAME_NOREPLACE) fallback")
 @pytest.mark.parametrize("failure", sorted({errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV}))
-def test_publication_falls_back_without_hardlinks_or_exclusive_rename(tmp_path, monkeypatch, failure):
+def test_publication_falls_back_atomically_without_hardlinks(tmp_path, monkeypatch, failure):
     def unsupported(*_args, **_kwargs):
         raise OSError(failure, "not supported")
 
     monkeypatch.setattr(os, "link", unsupported)
-    monkeypatch.setattr(atomic_publication, "_rename_exclusive", unsupported)
     output = tmp_path / "output.mp4"
     with atomic_publication.anchored_output(str(output), str) as stage:
         Path(stage).write_bytes(b"all the staged bytes")
@@ -147,8 +146,8 @@ def test_publication_falls_back_without_hardlinks_or_exclusive_rename(tmp_path, 
     assert list(tmp_path.iterdir()) == [output]
 
 
-@pytest.mark.skipif(os.name != "posix", reason="POSIX exclusive-open fallback")
-def test_publication_fallback_does_not_follow_a_racing_symlink(tmp_path, monkeypatch):
+@pytest.mark.skipif(os.name != "posix", reason="POSIX fail-closed fallback")
+def test_publication_fails_closed_without_atomic_primitive_or_symlink_follow(tmp_path, monkeypatch):
     output = tmp_path / "output.mp4"
     target = tmp_path / "other.mp4"
     target.write_bytes(b"untouched")
@@ -169,19 +168,132 @@ def test_publication_fallback_does_not_follow_a_racing_symlink(tmp_path, monkeyp
         Path(stage).write_bytes(b"unsafe if followed")
     assert output.is_symlink() and target.read_bytes() == b"untouched"
 
+    # Without symlink, failing both link and exclusive rename must never leave a 0-byte file.
+    missing = tmp_path / "missing.mp4"
+    monkeypatch.setattr(os, "link", no_rename)
+    with (
+        pytest.raises(MCPVideoError, match="preserve directory identity"),
+        atomic_publication.anchored_output(str(missing), str) as stage,
+    ):
+        Path(stage).write_bytes(b"staged bytes")
+    assert not missing.exists()
+
+
+def test_crop_normalizes_nonsquare_sar_to_9_16_display_aspect(tmp_path):
+    import json
+    import subprocess
+
+    anamorphic = tmp_path / "anamorphic.mp4"
+    cropped = tmp_path / "cropped.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=s=720x480:r=25:d=0.5",
+            "-vf",
+            "setsar=8/9",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(anamorphic),
+        ],
+        check=True,
+    )
+    resize(str(anamorphic), aspect_ratio="9:16", fit_mode="crop", output_path=str(cropped))
+    meta = json.loads(
+        subprocess.check_output(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_streams", "-of", "json", str(cropped)]
+        )
+    )
+    vs = meta["streams"][0]
+    assert (int(vs["width"]), int(vs["height"])) == (1080, 1920)
+    assert vs["display_aspect_ratio"] == "9:16"
+    assert vs["sample_aspect_ratio"] == "1:1"
+
+
+def test_dark_grade_color_balance_failure_gates_assert_quality(monkeypatch):
+    from kinocut import quality_guardrails
+
+    fake_report = {
+        "video": "clip.mp4",
+        "overall_score": 92.0,
+        "all_passed": False,
+        "profile": {"name": "dark-grade", "visual_checks_gate": True, "color_balance_max_deviation": 30.0},
+        "checks": [
+            {"name": "brightness", "passed": True, "score": 95.0, "details": {}},
+            {"name": "contrast", "passed": True, "score": 95.0, "details": {}},
+            {"name": "saturation", "passed": True, "score": 95.0, "details": {}},
+            {"name": "color_balance", "passed": False, "score": 50.0, "details": {}},
+        ],
+        "recommendations": ["Reduce color cast"],
+    }
+    monkeypatch.setattr(quality_guardrails, "quality_check", lambda *a, **kw: fake_report)
+    with pytest.raises(MCPVideoError, match="color_balance"):
+        quality_guardrails.assert_quality("clip.mp4", profile="dark-grade", require_audio=False)
+
+
+def test_compact_family_schema_advertises_additional_properties_true():
+    from kinocut.server import configure_tool_surface, mcp
+    from kinocut.tool_families import FAMILY_OF_OPERATION
+
+    configure_tool_surface()
+    try:
+        tools = asyncio.run(mcp.list_tools())
+        by_name = {tool.name: tool for tool in tools}
+        for family in set(FAMILY_OF_OPERATION.values()):
+            assert by_name[family].inputSchema["additionalProperties"] is True, family
+    finally:
+        configure_tool_surface("all")
+
+
+@pytest.mark.usefixtures("overwrite_consent")
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux directory exchange preservation")
+def test_package_overwrite_preserves_concurrently_added_unrelated_file(tmp_path, monkeypatch):
+    from kinocut.product import shorts_package
+
+    plan = _plan_with_renders(tmp_path)
+    candidate = {"candidate_id": "candidate_01"}
+    review_shorts_plan(plan, **candidate, decision="approve")
+    monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda path, **kwargs: {"video": path})
+    first = package_approved_candidate(plan, **candidate)
+    root = Path(first["packages"][0]["package_root"]).parent
+    real_exchange = shorts_package._rename_exclusive
+
+    def inject_unrelated(anchor, src, dst, *, exchange=False):
+        if exchange:
+            (root / "youtube-shorts" / "user_notes.txt").write_text("keep me", encoding="utf-8")
+        return real_exchange(anchor, src, dst, exchange=exchange)
+
+    monkeypatch.setattr(shorts_package, "_rename_exclusive", inject_unrelated)
+    with pytest.raises(MCPVideoError) as exc_info:
+        package_approved_candidate(plan, **candidate, overwrite=True)
+    assert exc_info.value.code == "package_write_conflict"
+    preserved = list(root.parent.glob(f".{root.name}.preserved_*"))
+    assert len(preserved) == 1
+    assert (preserved[0] / "youtube-shorts" / "user_notes.txt").read_text(encoding="utf-8") == "keep me"
+
 
 def test_family_accepts_flat_kwargs_but_not_mixed_or_invalid_params(sample_video):
     from kinocut.server import configure_tool_surface
 
     configure_tool_surface()
-    family = "video_edit_ops"
-    flat = {"operation": "video_audio_waveform", "input_path": sample_video, "bins": 2}
-    result = _payload(asyncio.run(_call(family, flat)))
-    assert result["success"] and len(result["peaks"]) == 2
-    for invalid in ({**flat, "params": {}}, {**flat, "bins": True}, {**flat, "unexpected": "private"}):
-        result = _payload(asyncio.run(_call(family, invalid)))
-        assert result["error"]["code"] == "invalid_parameter"
-        assert "private" not in result["error"]["message"]
+    try:
+        family = "video_edit_ops"
+        flat = {"operation": "video_audio_waveform", "input_path": sample_video, "bins": 2}
+        result = _payload(asyncio.run(_call(family, flat)))
+        assert result["success"] and len(result["peaks"]) == 2
+        for invalid in ({**flat, "params": {}}, {**flat, "bins": True}, {**flat, "unexpected": "private"}):
+            result = _payload(asyncio.run(_call(family, invalid)))
+            assert result["error"]["code"] == "invalid_parameter"
+            assert "private" not in result["error"]["message"]
+    finally:
+        configure_tool_surface("all")
 
 
 def test_default_mcp_accepts_flat_family_kwargs_over_stdio(sample_video):
