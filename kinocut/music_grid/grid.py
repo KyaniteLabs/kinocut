@@ -143,6 +143,22 @@ def resolve_timeline_times(data):
         raise ValueError("Invalid grid settings") from exc
     relative = replace(grid, offset_s=0, floor_ms=0)
 
+    def _require_finite(value):
+        if value is None:
+            return
+        if isinstance(value, bool):
+            raise ValueError("Expected finite numeric timeline value")
+        if isinstance(value, (int, float)):
+            if not math.isfinite(value):
+                raise ValueError("Expected finite numeric timeline value")
+        elif isinstance(value, str):
+            try:
+                parsed = float(value)
+            except ValueError as exc:
+                raise ValueError("Expected finite numeric timeline value") from exc
+            if not math.isfinite(parsed):
+                raise ValueError("Expected finite numeric timeline value")
+
     def resolve(item):
         if isinstance(item, dict):
             for key in ("start", "duration", "trim_start", "trim_end", "fade_in", "fade_out"):
@@ -154,16 +170,13 @@ def resolve_timeline_times(data):
                 if isinstance(value, str) and ":" in value:
                     item[key] = (grid if key == "start" else relative).parse_time(value)
                     continue
-                if isinstance(value, (int, float)):
-                    if not math.isfinite(value):
-                        raise ValueError("Expected finite numeric timeline time")
-                elif isinstance(value, str):
-                    try:
-                        parsed = float(value)
-                    except ValueError as exc:
-                        raise ValueError("Expected finite numeric timeline time") from exc
-                    if not math.isfinite(parsed):
-                        raise ValueError("Expected finite numeric timeline time")
+                _require_finite(value)
+            for key in ("volume", "opacity", "x", "y", "width", "height", "after_clip"):
+                _require_finite(item.get(key))
+            pos = item.get("position")
+            if isinstance(pos, dict):
+                for coord in pos.values():
+                    _require_finite(coord)
 
     resolve(data)
     tracks = data.get("tracks", [])

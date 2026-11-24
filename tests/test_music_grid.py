@@ -241,6 +241,13 @@ def test_cross_style_block_keyframes_are_resolved():
     report = lint_composition_keyframes(html, MusicalGrid(120), tolerance_ms=0)
     assert not report["passed"]
     assert any(row["name"] == "pulse.13%" and not row["passed"] for row in report["keyframes"])
+    comment_split = (
+        '<div data-start="0"></div>'
+        "<style>/* unclosed</style>"
+        "<style>@keyframes pulse { 13% { opacity: 1; } } .box { animation-name: pulse; animation-duration: 1s; }</style>"
+    )
+    bad_report = lint_composition_keyframes(comment_split, MusicalGrid(120), tolerance_ms=0)
+    assert not bad_report["passed"] and bad_report["errors"]
 
 
 @pytest.mark.parametrize("bad_time", [float("nan"), float("inf"), float("-inf"), "Infinity", "-Infinity", "NaN"])
@@ -248,12 +255,16 @@ def test_timeline_grid_rejects_non_finite_times(bad_time):
     from kinocut.models import Timeline
     from pydantic import ValidationError
 
-    payload = {
-        "grid": {"bpm": 120},
-        "tracks": [{"type": "video", "clips": [{"source": "clip.mp4", "trim_start": bad_time}]}],
-    }
-    with pytest.raises((ValueError, ValidationError)):
-        Timeline.model_validate(payload)
+    for payload in (
+        {
+            "grid": {"bpm": 120},
+            "tracks": [{"type": "video", "clips": [{"source": "clip.mp4", "trim_start": bad_time}]}],
+        },
+        {"grid": {"bpm": 120}, "tracks": [{"type": "video", "clips": [{"source": "clip.mp4", "volume": bad_time}]}]},
+        {"grid": {"bpm": 120}, "tracks": [{"type": "image", "images": [{"source": "logo.png", "opacity": bad_time}]}]},
+    ):
+        with pytest.raises((ValueError, ValidationError)):
+            Timeline.model_validate(payload)
 
 
 def test_decimal_endpoint_and_linter_exit_status(tmp_path):
