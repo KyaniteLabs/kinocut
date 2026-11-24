@@ -256,6 +256,7 @@ class ThumbnailResult(EditResult):
 # --- Quality settings ---
 
 QualityLevel = Literal["low", "medium", "high", "ultra"]
+VALID_QUALITIES = set(get_args(QualityLevel))
 
 # Derive quality presets from the canonical default CRF
 QUALITY_PRESETS: dict[QualityLevel, dict[str, Any]] = {

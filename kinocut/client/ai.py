@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ..models import EditResult
+
 
 class ClientAiMixin:
     """Ai operations mixin."""
@@ -13,7 +15,7 @@ class ClientAiMixin:
         silence_threshold: float = -50,
         min_silence_duration: float = 0.5,
         keep_margin: float = 0.1,
-    ) -> str:
+    ) -> EditResult:
         """Remove silent sections from video."""
         from ..ai_engine import ai_remove_silence
 
@@ -127,7 +129,7 @@ class ClientAiMixin:
 
         return ai_stem_separation(video, output_dir, stems, model)
 
-    def ai_upscale(self, video: str, output: str, scale: int = 2, model: str = "realesrgan") -> str:
+    def ai_upscale(self, video: str, output: str, scale: int = 2, model: str = "realesrgan") -> EditResult:
         """Upscale video using AI super-resolution.
 
         Args:
@@ -145,7 +147,7 @@ class ClientAiMixin:
 
     def ai_color_grade(
         self, video: str, output: str, reference: str | None = None, style: str = "auto", lut_path: str | None = None
-    ) -> str:
+    ) -> EditResult:
         """Color grade video using a style, reference, or explicit .cube LUT."""
         from ..ai_engine import ai_color_grade
 

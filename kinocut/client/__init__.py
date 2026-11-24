@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from .estimates import ClientEstimatesMixin
+from .planning import ClientPlanningMixin
+from .projects import ClientProjectsMixin
+from .productions import ClientProductionsMixin
 from .base import ClientBase
 from .media import ClientMediaMixin
 from .effects import ClientEffectsMixin
@@ -11,22 +13,14 @@ from .ai import ClientAiMixin
 from .hyperframes import ClientHyperframesMixin
 from .image import ClientImageMixin
 from .quality import ClientQualityMixin
-from .meta import ClientMetaMixin
-from .rescue import ClientRescueMixin
-from .postrescue import ClientPostRescueMixin
 from .workflow import ClientWorkflowMixin
-from .inspection import ClientInspectionMixin
-from .aivideo import ClientAIVideoMixin
-from .release import ClientReleaseMixin
-from .shorts import ClientShortsMixin
-from .sound import ClientSoundMixin
-from .sphere import ClientSphereMixin
-from .revideo import ClientRevideoMixin
 
 
 class Client(
     ClientBase,
-    ClientEstimatesMixin,
+    ClientPlanningMixin,
+    ClientProjectsMixin,
+    ClientProductionsMixin,
     ClientMediaMixin,
     ClientEffectsMixin,
     ClientAudioMixin,
@@ -34,17 +28,7 @@ class Client(
     ClientHyperframesMixin,
     ClientImageMixin,
     ClientQualityMixin,
-    ClientMetaMixin,
     ClientWorkflowMixin,
-    ClientRescueMixin,
-    ClientPostRescueMixin,
-    ClientInspectionMixin,
-    ClientAIVideoMixin,
-    ClientReleaseMixin,
-    ClientShortsMixin,
-    ClientSoundMixin,
-    ClientSphereMixin,
-    ClientRevideoMixin,
 ):
     """mcp-video client for programmatic video editing.
 

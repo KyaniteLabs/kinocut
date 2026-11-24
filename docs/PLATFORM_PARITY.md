@@ -19,7 +19,7 @@ service. Published 1.16.0 and the matching development checkout have **203 MCP t
 Published 1.16.0 also exposes `video_mix_audio` and `video_record_motion_acceptance`.
 Frame extraction uses the same omitted-timestamp policy across interfaces;
 CLI goal/source compilation and explicit 360 review use existing shared engines.
-The estimator in [Client](../kinocut/client/estimates.py), MCP
+The estimator in [Client](../kinocut/client/planning.py), MCP
 `video_estimate_operation`, and CLI `estimate` calls the same local oracle.
 See [CLI reference](CLI_REFERENCE.md), [tools](TOOLS.md), and
 [quality evidence](QUALITY_EVIDENCE.md) for exact semantics.

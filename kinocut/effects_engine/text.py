@@ -26,11 +26,10 @@ from ..ffmpeg_helpers import (
 )
 from ..validation import _validate_color, _validate_timing_against_duration
 import warnings as _warnings
+from ..validation import VALID_TEXT_POSITIONS
 from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
-
-VALID_TEXT_POSITIONS = {"center", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"}
 
 
 def _validate_text_position(position: str) -> None:

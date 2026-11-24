@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import Any
 
 from ..engine import (
     add_audio as _add_audio,
@@ -30,10 +30,8 @@ from ..engine import (
     rotate as _rotate,
     split_screen as _split_screen,
     stabilize as _stabilize,
-    storyboard as _storyboard,
     subtitles as _subtitles,
     speed as _speed,
-    thumbnail as _thumbnail,
     trim as _trim,
     watermark as _watermark,
     write_metadata as _write_metadata,
@@ -53,7 +51,9 @@ from ..defaults import (
 )
 from ..engine_audio_bed import audio_bed as _audio_bed
 from ..errors import MCPVideoError
+from ..validation import VALID_FORMATS
 from ..models import (
+    VALID_QUALITIES,
     EditResult,
     ImageSequenceResult,
     MetadataResult,
@@ -241,11 +241,6 @@ class ClientMediaMixin(ClientMasksMixin):
             output_path=output,
         )
 
-    _VALID_FORMATS: ClassVar[set[str]] = {"mp4", "webm", "gif", "mov", "hevc", "av1", "prores"}
-    _VALID_QUALITIES: ClassVar[set[str]] = {"low", "medium", "high", "ultra"}
-    _VALID_HLS_QUALITIES: ClassVar[set[str]] = {"low", "medium", "high", "ultra"}
-    _VALID_QUALITY_METRICS: ClassVar[set[str]] = {"psnr", "ssim"}
-
     def convert(
         self,
         video: str,
@@ -268,8 +263,8 @@ class ClientMediaMixin(ClientMasksMixin):
         Raises:
             ValueError: If format or quality is invalid
         """
-        self._validate_choice("format", format, self._VALID_FORMATS)
-        self._validate_choice("quality", quality, self._VALID_QUALITIES)
+        self._validate_choice("format", format, VALID_FORMATS)
+        self._validate_choice("quality", quality, VALID_QUALITIES)
         return _convert(
             video, format=format, quality=quality, output_path=output, two_pass=two_pass, target_bitrate=target_bitrate
         )
@@ -292,6 +287,8 @@ class ClientMediaMixin(ClientMasksMixin):
         output: str | None = None,
     ) -> ThumbnailResult:
         """Extract a frame from a video."""
+        from ..engine_thumbnail import thumbnail as _thumbnail
+
         return _thumbnail(video, timestamp=timestamp, output_path=output)
 
     def extract_frame(
@@ -301,6 +298,8 @@ class ClientMediaMixin(ClientMasksMixin):
         output: str | None = None,
     ) -> ThumbnailResult:
         """Extract a frame from a video. Alias for thumbnail()."""
+        from ..engine_thumbnail import thumbnail as _thumbnail
+
         return _thumbnail(video, timestamp=timestamp, output_path=output)
 
     def preview(
@@ -319,6 +318,8 @@ class ClientMediaMixin(ClientMasksMixin):
         frame_count: int = 8,
     ) -> StoryboardResult:
         """Extract key frames as storyboard for human review."""
+        from ..engine_storyboard import storyboard as _storyboard
+
         return _storyboard(video, output_dir=output_dir, frame_count=frame_count)
 
     def subtitles(
@@ -441,8 +442,8 @@ class ClientMediaMixin(ClientMasksMixin):
         Raises:
             ValueError: If quality is invalid
         """
-        self._validate_choice("quality", quality, self._VALID_QUALITIES)
-        self._validate_choice("format", format, self._VALID_FORMATS)
+        self._validate_choice("quality", quality, VALID_QUALITIES)
+        self._validate_choice("format", format, VALID_FORMATS)
         return _export_video(
             video,
             output_path=output,
@@ -763,7 +764,7 @@ class ClientMediaMixin(ClientMasksMixin):
                 code="invalid_parameter",
             )
         for quality in qualities or []:
-            self._validate_choice("qualities", quality, self._VALID_HLS_QUALITIES)
+            self._validate_choice("qualities", quality, VALID_QUALITIES)
         return _hls_segment(
             video,
             output_dir=output_dir,

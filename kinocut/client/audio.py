@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from ..errors import MCPVideoError
+from typing import Any, Literal
+
 from ..defaults import (
     DEFAULT_AUDIO_MIX_BITRATE,
-    DEFAULT_DUCK_MUSIC_VOLUME,
-    DEFAULT_DUCK_THRESHOLD,
-    DEFAULT_DUCK_RATIO,
     DEFAULT_DUCK_ATTACK_MS,
+    DEFAULT_DUCK_MUSIC_VOLUME,
+    DEFAULT_DUCK_RATIO,
     DEFAULT_DUCK_RELEASE_MS,
+    DEFAULT_DUCK_THRESHOLD,
 )
-
-from typing import Literal
-
 from ..engine import (
     audio_waveform as _audio_waveform,
 )
+from ..errors import MCPVideoError
 from ..models import (
     EditResult,
     WaveformResult,
@@ -107,16 +106,13 @@ class ClientAudioMixin:
         """
         from ..audio_engine import audio_synthesize
 
-        return self._to_edit_result(
-            audio_synthesize(
-                output=output,
-                waveform=waveform,
-                frequency=frequency,
-                duration=duration,
-                volume=volume,
-                effects=effects,
-            ),
-            operation="audio_synthesize",
+        return audio_synthesize(
+            output=output,
+            waveform=waveform,
+            frequency=frequency,
+            duration=duration,
+            volume=volume,
+            effects=effects,
         )
 
     def audio_preset(
@@ -142,22 +138,18 @@ class ClientAudioMixin:
         """
         from ..audio_engine import audio_preset
 
-        output = self._resolve_alias("output_path", output_path, "output", output)
-        if output is None:
+        if output_path is None:
             raise MCPVideoError(
                 "audio_preset() requires output_path= (or legacy output=) so agents can read result.output_path.",
                 error_type="validation_error",
                 code="missing_output_path",
             )
-        return self._to_edit_result(
-            audio_preset(
-                preset=preset,
-                output=output,
-                pitch=pitch,
-                duration=duration,
-                intensity=intensity,
-            ),
-            operation="audio_preset",
+        return audio_preset(
+            preset=preset,
+            output=output_path,
+            pitch=pitch,
+            duration=duration,
+            intensity=intensity,
         )
 
     def audio_sequence(
@@ -178,7 +170,7 @@ class ClientAudioMixin:
             raise MCPVideoError("sequence cannot be empty", error_type="validation_error", code="empty_sequence")
         from ..audio_engine import audio_sequence
 
-        return self._to_edit_result(audio_sequence(sequence=sequence, output=output), operation="audio_sequence")
+        return audio_sequence(sequence=sequence, output=output)
 
     def audio_compose(
         self,
@@ -220,10 +212,7 @@ class ClientAudioMixin:
                 )
         from ..audio_engine import audio_compose
 
-        return self._to_edit_result(
-            audio_compose(tracks=tracks, duration=duration, output=output),
-            operation="audio_compose",
-        )
+        return audio_compose(tracks=tracks, duration=duration, output=output)
 
     def audio_effects(
         self,
@@ -243,10 +232,7 @@ class ClientAudioMixin:
         """
         from ..audio_engine import audio_effects
 
-        return self._to_edit_result(
-            audio_effects(input_path=input_path, output=output, effects=effects),
-            operation="audio_effects",
-        )
+        return audio_effects(input_path=input_path, output=output, effects=effects)
 
     def add_generated_audio(
         self,
@@ -266,10 +252,7 @@ class ClientAudioMixin:
         """
         from ..audio_engine import add_generated_audio
 
-        return self._to_edit_result(
-            add_generated_audio(video=video, audio_config=audio_config, output=output),
-            operation="add_generated_audio",
-        )
+        return add_generated_audio(video=video, audio_config=audio_config, output=output)
 
     # ------------------------------------------------------------------
     # Visual Effects (P1 Features)
@@ -279,4 +262,72 @@ class ClientAudioMixin:
         """Apply 3D spatial audio positioning."""
         from ..ai_engine import audio_spatial
 
-        return self._to_edit_result(audio_spatial(video, output, positions, method), operation="audio_spatial")
+        return audio_spatial(video, output, positions, method)
+
+    def sound_capabilities(self) -> dict[str, Any]:
+        """Discover the public sound operation set."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        return invoke_sound_operation("sound-capabilities")
+
+    def sound_plan_validate(self, plan: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Validate a SoundPlan payload (or a built-in minimal plan)."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        return invoke_sound_operation("sound-plan-validate", plan=plan)
+
+    def sound_voice_batch(
+        self,
+        plan: dict[str, Any] | None = None,
+        *,
+        request: dict[str, Any] | None = None,
+        project_root: str | None = None,
+    ) -> dict[str, Any]:
+        """Retain local caption speech from a request, or run the synthetic plan demo."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        if request is None and project_root is None:
+            return invoke_sound_operation("sound-voice-batch", plan=plan)
+        return invoke_sound_operation("sound-voice-batch", plan=plan, request=request, project_root=project_root)
+
+    def sound_mix_render(
+        self, request: dict[str, Any] | None = None, project_root: str | None = None
+    ) -> dict[str, Any]:
+        """Assemble supplied WAVs into a new ZIP; omit both arguments for a demo."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        if request is None and project_root is None:
+            return invoke_sound_operation("sound-mix-render")
+        return invoke_sound_operation("sound-mix-render", request=request, project_root=project_root)
+
+    def sound_master_render(self, request: dict[str, Any], project_root: str) -> dict[str, Any]:
+        """Retain a two-pass master only after final measured policy compliance."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        return invoke_sound_operation("sound-master-render", request=request, project_root=project_root)
+
+    def sound_qa_loudness(
+        self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
+    ) -> dict[str, Any]:
+        """Measure supplied audio and report actual compliance; omit inputs for a demo."""
+        from kinocut.sound_joins.loudness import invoke_sound_operation
+
+        arguments: dict[str, Any] = {}
+        if request is not None or project_root is not None:
+            arguments.update(request=request, project_root=project_root)
+        if wav_bytes is not None:
+            arguments["wav_bytes"] = wav_bytes
+        if delivery is not None:
+            arguments["delivery"] = delivery
+        return invoke_sound_operation("sound-qa-loudness", **arguments)
+
+    def sound_qa_asr(
+        self,
+        *,
+        request: dict[str, Any] | str,
+        project_root: str,
+    ) -> dict[str, Any]:
+        """Recognize supplied audio locally against a reference script."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        return invoke_sound_operation("sound-qa-asr", request=request, project_root=project_root)

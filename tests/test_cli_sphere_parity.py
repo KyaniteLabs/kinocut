@@ -14,7 +14,7 @@ import pytest
 import kinocut
 from kinocut.cli.handlers_intent import handle_intent_commands
 from kinocut.cli.parser import build_parser
-from kinocut.client.estimates import ClientEstimatesMixin
+from kinocut import Client
 from kinocut.errors import MCPVideoError
 from kinocut.te import estimate_operation, propose_sphere_plan
 
@@ -226,9 +226,9 @@ def test_review_decide_overwrite_flag_positions_via_real_cli(sphere_scene, tmp_p
 
 
 def test_client_estimates_use_shared_local_oracle():
-    result = ClientEstimatesMixin().estimate_operation("trim", 10, complexity=2)
+    result = Client().estimate_operation("trim", 10, complexity=2)
     assert result == estimate_operation("trim", duration_seconds=10, complexity=2)
     assert result["currency"] is None
     assert result["dry_run"] is True
     with pytest.raises(MCPVideoError):
-        ClientEstimatesMixin().estimate_operation("trim", -1)
+        Client().estimate_operation("trim", -1)
