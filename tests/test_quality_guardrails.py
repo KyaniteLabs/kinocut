@@ -332,6 +332,17 @@ class TestVisualQualityGuardrails:
         source = guardrails._movie_source("C:\\Users\\me\\clip.mp4", "signalstats")
         assert source == "movie='C\\:\\\\Users\\\\me\\\\clip.mp4',signalstats"
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX filenames can include colons and backslashes")
+    def test_lavfi_probes_read_paths_with_quotes_colons_and_backslashes(self, guardrails, tmp_path):
+        path = create_test_video(str(tmp_path / "editor's:take\\one.mp4"), color="blue")
+        tag = "lavfi.signalstats.YAVG"
+        batch = guardrails._get_all_signalstats(path)
+        single = guardrails._run_ffprobe(path, tag)
+        motion = guardrails._measure_temporal_motion(path)
+        assert batch[tag] > 0
+        assert single["mean"] == pytest.approx(batch[tag])
+        assert motion["frames"] > 0 and motion["mean"] < 1
+
     def test_run_ffprobe_logs_nonzero_exit(self, guardrails):
         from kinocut.errors import ProcessingError
 

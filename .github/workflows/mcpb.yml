@@ -320,7 +320,7 @@ jobs:
       - name: Install exact optional capabilities in task-local roots
         run: |
           python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-ai-venv" --extra ai-scene
-          npm install --ignore-scripts --prefix "$RUNNER_TEMP/hyperframes" hyperframes@0.8.30
+          npm install --ignore-scripts --prefix "$RUNNER_TEMP/hyperframes" hyperframes@0.8.104
           python .github/scripts/mcpb-ci.py extract --bundle "mcpb-artifacts/${{ needs.build-validate.outputs.bundle_file }}" --destination "$RUNNER_TEMP/staged-mcpb"
       - name: Prove discovery and public-tool callability
         run: |

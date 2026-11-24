@@ -33,13 +33,14 @@ def test_observation_is_noop_outside_supervision(monkeypatch: pytest.MonkeyPatch
     assert not marker.exists()
 
 
-def test_supervision_without_both_marker_variables_is_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_supervision_without_both_marker_variables_is_noop(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     from kinocut._mcpb_observation import observe_mcp_run_boundary
 
-    monkeypatch.setenv("KINOCUT_MCPB_SUPERVISED_PROCESS_TREE", "1")
+    marker = _request(monkeypatch, tmp_path)
     monkeypatch.delenv("KINOCUT_MCPB_INTERPRETER_FILE", raising=False)
     monkeypatch.delenv("KINOCUT_MCPB_INTERPRETER_TOKEN", raising=False)
     observe_mcp_run_boundary()
+    assert not marker.exists()
 
 
 def test_observation_writes_closed_actual_interpreter_identity(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

@@ -158,7 +158,9 @@ class TestRequireHyperframesDeps:
 
         mock_which.side_effect = _which
 
-        _require_hyperframes_deps()  # should not raise
+        _require_hyperframes_deps()
+        mock_which.assert_any_call("node")
+        mock_which.assert_any_call("hyperframes")
 
     def test_prefers_configured_hyperframes_command(self, monkeypatch):
         monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, "/opt/hyperframes/bin/hyperframes --project-root /srv/app")
@@ -1801,7 +1803,8 @@ class TestHyperframesIntegration:
 
     def test_require_hyperframes_deps_with_real_node(self):
         """Verify deps check passes with a real Node.js install."""
-        _require_hyperframes_deps()  # should not raise
+        _require_hyperframes_deps()
+        assert _has_real_hyperframes_cli()
 
     def test_validate_real_project(self, tmp_path):
         """Validate a well-formed project structure."""

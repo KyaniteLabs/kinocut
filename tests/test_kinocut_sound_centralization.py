@@ -17,6 +17,7 @@ These tests verify that:
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 import ast
 import re
 from pathlib import Path
@@ -403,7 +404,7 @@ def test_centralized_limits_match_field_metadata():
     # Latency residual ceiling — construct at ceiling, reject above.
     lc = LatencyCompensation(policy="sample_accurate", residual_samples=MAX_LATENCY_RESIDUAL_SAMPLES)
     assert lc.residual_samples == MAX_LATENCY_RESIDUAL_SAMPLES
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         LatencyCompensation(policy="sample_accurate", residual_samples=MAX_LATENCY_RESIDUAL_SAMPLES + 1)
 
 
@@ -418,9 +419,9 @@ def test_centralized_validation_patterns_match_usage():
     ta = TypeAdapter(Sha256)
     good = "sha256:" + "a" * 64
     ta.validate_python(good)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ta.validate_python("sha256:" + "z" * 64)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ta.validate_python("sha256:" + "A" * 64)
 
 

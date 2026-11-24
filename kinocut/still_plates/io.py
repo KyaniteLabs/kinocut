@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from enum import StrEnum
@@ -11,6 +10,7 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_artifact_location, _validate_input_path
+from ..hashing import file_sha256 as file_sha256
 
 
 class ReceiptStatus(StrEnum):
@@ -94,15 +94,6 @@ def save_rgb_array(arr, path: str | Path) -> Path:
     with _atomic_output(target) as staged:
         Image.fromarray(u8, mode="RGB").save(staged)
     return Path(target).resolve()
-
-
-def file_sha256(path: str | Path) -> str:
-    """Content hash for receipts."""
-    h = hashlib.sha256()
-    with open(path, "rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def write_receipt(path: str | Path, payload: dict[str, Any]) -> Path:

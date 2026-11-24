@@ -106,11 +106,11 @@ def _base_receipts(tmp_path: Path) -> tuple[str, str, list[Path]]:
                 "cleanup": "passed",
                 "gates": {
                     "imagehash_detected": "passed",
-                    "hyperframes_0_8_30_detected": "passed",
+                    "hyperframes_0_8_104_detected": "passed",
                     "scene_tool_callable": "passed",
                 },
                 "imagehash_detected": "passed",
-                "hyperframes_0_8_30_detected": "passed",
+                "hyperframes_0_8_104_detected": "passed",
                 "scene_tool_callable": "passed",
             },
         )

@@ -477,7 +477,10 @@ class TestRender:
 
 class TestRequireRevideoDepsVersion:
     @staticmethod
-    def _fake_env(monkeypatch, version_stdout: str) -> None:
+    def _fake_env(monkeypatch, version_stdout: str):
+        from unittest.mock import Mock
+
+        probe = Mock(return_value=_completed(stdout=version_stdout))
         monkeypatch.setattr(
             revideo_engine.shutil,
             "which",
@@ -486,8 +489,9 @@ class TestRequireRevideoDepsVersion:
         monkeypatch.setattr(
             revideo_engine.subprocess,
             "run",
-            lambda *a, **k: _completed(stdout=version_stdout),
+            probe,
         )
+        return probe
 
     def test_rejects_node_below_floor(self, monkeypatch):
         self._fake_env(monkeypatch, "v16.14.0\n")
@@ -495,12 +499,14 @@ class TestRequireRevideoDepsVersion:
             revideo_engine._require_revideo_deps()
 
     def test_accepts_node_at_floor(self, monkeypatch):
-        self._fake_env(monkeypatch, "v18.0.0\n")
-        revideo_engine._require_revideo_deps()  # must not raise
+        probe = self._fake_env(monkeypatch, "v18.0.0\n")
+        revideo_engine._require_revideo_deps()
+        assert probe.call_args.args == (["/usr/bin/node", "--version"],)
 
     def test_accepts_modern_node(self, monkeypatch):
-        self._fake_env(monkeypatch, "v22.14.0\n")
-        revideo_engine._require_revideo_deps()  # must not raise
+        probe = self._fake_env(monkeypatch, "v22.14.0\n")
+        revideo_engine._require_revideo_deps()
+        assert probe.call_args.args == (["/usr/bin/node", "--version"],)
 
     def test_rejects_nonzero_node_probe(self, monkeypatch):
         monkeypatch.setattr(revideo_engine.shutil, "which", lambda _name: "/usr/bin/node")

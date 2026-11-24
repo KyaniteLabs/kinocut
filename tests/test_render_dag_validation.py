@@ -337,9 +337,9 @@ def test_null_byte_path_fails_closed():
 
 
 def test_confined_relative_paths_are_accepted():
-    DAGSource(path="input/hero.mp4")
-    DAGOutput(path="output/final.mp4")
-    DAGSource(path="nested/dir/clip.mp4")
+    assert DAGSource(path="input/hero.mp4").path == "input/hero.mp4"
+    assert DAGOutput(path="output/final.mp4").path == "output/final.mp4"
+    assert DAGSource(path="nested/dir/clip.mp4").path == "nested/dir/clip.mp4"
 
 
 # --- cycles ------------------------------------------------------------------

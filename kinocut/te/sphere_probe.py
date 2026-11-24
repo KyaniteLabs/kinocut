@@ -9,7 +9,7 @@ from kinocut.defaults import DEFAULT_HASH_CACHE_MAX
 from kinocut.engine_probe import _cache_key
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
-from kinocut.source_identity import stream_source_identity
+from kinocut.source_identity import stable_source_sha256
 from kinocut.validation import (
     SPHERE_EQUIRECT_ASPECT,
     SPHERE_EQUIRECT_ASPECT_TOLERANCE,
@@ -38,7 +38,7 @@ def probe_360_source(path: str) -> dict[str, Any]:
     width, height, duration, spherical, tag_blob = _probe_geometry(resolved)
     # Equal-size writes can share stat markers on coarse filesystems. This
     # boundary must compare current bytes rather than reusing the hash cache.
-    if stream_source_identity(resolved).asset_id != digest:
+    if stable_source_sha256(resolved) != digest:
         raise MCPVideoError(
             "360 source changed while probing", error_type="validation_error", code="source_identity_changed"
         )
@@ -141,7 +141,7 @@ def _file_sha256(path: str) -> str:
     cached = _HASH_CACHE.get(key)
     if cached:
         return cached
-    value = stream_source_identity(resolved).asset_id
+    value = stable_source_sha256(resolved)
     if _cache_key(resolved) != key:
         raise MCPVideoError(
             "360 source changed while hashing", error_type="validation_error", code="source_identity_changed"

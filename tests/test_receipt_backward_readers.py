@@ -175,8 +175,8 @@ _EXPECTED = {
 
 def test_rescue_fixtures_validate_against_producer_models():
     # The rescue fixtures are produced by the real models, so they round-trip.
-    RescueReceipt.model_validate(_rescue_receipt())
-    RescuePlan.model_validate(_rescue_plan_receipt())
+    assert RescueReceipt.model_validate(_rescue_receipt()).model_dump(mode="json") == _rescue_receipt()
+    assert RescuePlan.model_validate(_rescue_plan_receipt()).model_dump(mode="json") == _rescue_plan_receipt()
 
 
 # Exact producer v2 top-level keys — a drift guard against a hand-shaped fixture.

@@ -21,6 +21,35 @@ def test_durable_receipt_is_owned_after_restart(tmp_path):
     assert '"completed"' in target.read_text()
 
 
+@pytest.mark.parametrize("legacy_context", [False, True])
+def test_receipt_witness_survives_cross_import_and_rejects_replacement(tmp_path, legacy_context):
+    from kinocut.artifacts import receipt_ownership as artifacts
+    from kinocut.ffmpeg_helpers import _atomic_artifact, _open_staged_writer
+    from kinocut.projectstore import receipt_ownership as legacy
+
+    owner, writer = (legacy, artifacts) if legacy_context else (artifacts, legacy)
+    target = tmp_path / "receipt.json"
+    with (
+        output_operation(),
+        owner.durable_receipt_ownership(target),
+        _atomic_artifact(str(target)) as staged,
+        _open_staged_writer(staged) as stream,
+    ):
+        stream.write(b"{}")
+        writer.witness_receipt_stage(str(target), staged)
+    with output_operation(), writer.durable_receipt_ownership(target):
+        _write_receipt({"status": "completed"}, str(target), tmp_path, overwrite=True)
+    replacement = tmp_path / "foreign.json"
+    replacement.write_bytes(target.read_bytes())
+    replacement.replace(target)
+    with (
+        output_operation(True),
+        pytest.raises(MCPVideoError, match="no job-created inode witness"),
+        owner.durable_receipt_ownership(target),
+    ):
+        pytest.fail("An unwitnessed inode was admitted")
+
+
 @pytest.mark.parametrize("replace_owned", [False, True])
 def test_foreign_receipt_cannot_be_adopted(tmp_path, replace_owned):
     target = tmp_path / "receipt.json"

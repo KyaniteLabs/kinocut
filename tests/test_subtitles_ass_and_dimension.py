@@ -126,7 +126,10 @@ def test_render_validate_entries_accepts_mapping_records():
     from kinocut.engine_subtitle_generate import _validate_entries
 
     seg = ClampedSegment(0.0, 2.0, {"text": "hi"})
-    _validate_entries([seg])  # a Mapping record must be accepted, not just dict
+    _validate_entries([seg])
+
+    with pytest.raises(MCPVideoError, match="less than"):
+        _validate_entries([ClampedSegment(2.0, 2.0, {"text": "hi"})])
 
 
 def test_render_build_srt_content_reads_mapping_entries():

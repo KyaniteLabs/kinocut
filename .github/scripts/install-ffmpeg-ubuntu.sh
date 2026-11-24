@@ -11,6 +11,19 @@ if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
 fi
 
 shopt -s nullglob
+cache_options=()
+if [[ "${KINOCUT_FFMPEG_CACHE:-}" == 1 ]]; then
+  cache_dir="$HOME/.cache/kinocut-ffmpeg"
+  mkdir -p "$cache_dir"
+  cache_options=(-o "Dir::Cache::archives=$cache_dir")
+  cached=("$cache_dir"/*.deb)
+  if (( ${#cached[@]} )) && sudo timeout --kill-after=10s 60s apt-get "${cache_options[@]}" \
+      --no-download --yes --no-install-recommends install "${cached[@]}" \
+      && ffmpeg -version && ffprobe -version; then
+    echo "Used cached FFmpeg packages without network access."
+    exit 0
+  fi
+fi
 for source_file in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
   if [[ -f "$source_file" ]]; then
     sudo sed -E -i \
@@ -23,7 +36,8 @@ apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=10 -o Acquire::http
 attempt=1
 max_attempts=2
 until sudo timeout --kill-after=10s 45s apt-get "${apt_options[@]}" update \
-  && sudo timeout --kill-after=10s 60s apt-get "${apt_options[@]}" install \
+  && sudo timeout --kill-after=10s 60s apt-get "${apt_options[@]}" "${cache_options[@]}" \
+    -o APT::Keep-Downloaded-Packages=true install \
     --yes --no-install-recommends ffmpeg; do
   if (( attempt >= max_attempts )); then
     echo "apt FFmpeg install failed after ${max_attempts} attempts; falling back to static build." >&2

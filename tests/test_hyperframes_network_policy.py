@@ -112,8 +112,11 @@ def test_unverified_preview_cannot_stop_existing_preview(monkeypatch, tmp_path, 
 
 @pytest.mark.parametrize("version", ["0.8.104", "0.8.140"])
 def test_verified_preview_versions_pass(monkeypatch, tmp_path, version):
-    monkeypatch.setattr(engine, "_run_hyperframes", lambda *a, **kw: subprocess.CompletedProcess(a, 0, stdout=version))
+    probe = MagicMock(return_value=subprocess.CompletedProcess(["--version"], 0, stdout=version))
+    monkeypatch.setattr(engine, "_run_hyperframes", probe)
     engine._require_private_preview(tmp_path)
+    assert probe.call_args.args == (["--version"],)
+    assert probe.call_args.kwargs["cwd"] == tmp_path
 
 
 def test_docker_refused_before_any_command(monkeypatch):

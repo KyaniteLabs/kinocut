@@ -322,32 +322,33 @@ def _fontconfig_sans_font() -> str | None:
 
 
 def _default_font() -> str:
-    """Return a sensible default font path for the current OS."""
+    """Return a verified default font file or raise a typed dependency error."""
     import platform
 
     system = platform.system()
     if system == "Darwin":
-        return "/System/Library/Fonts/Helvetica.ttc"
+        candidates = ("/System/Library/Fonts/Helvetica.ttc", "/System/Library/Fonts/Supplemental/Arial.ttf")
     elif system == "Windows":
-        return r"C:/Windows/Fonts/arial.ttf"
+        windows = os.environ.get("WINDIR", "C:/Windows").replace("\\", "/")
+        candidates = (f"{windows}/Fonts/arial.ttf", f"{windows}/Fonts/segoeui.ttf")
     else:
-        # Linux — check common locations
-        for p in [
+        candidates = (
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/TTF/DejaVuSans.ttf",
             "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-        ]:
-            if os.path.isfile(p):
-                return p
+        )
+    for candidate in candidates:
+        if os.path.isfile(candidate):
+            return candidate
+    if system not in {"Darwin", "Windows"}:
         fallback = _fontconfig_sans_font()
         if fallback:
             return fallback
-        raise MCPVideoError(
-            "No suitable font file found on Linux. Install a TrueType/OpenType font "
-            "(for example DejaVu) or specify a font path.",
-            error_type="dependency_error",
-            code="font_not_found",
-        )
+    raise MCPVideoError(
+        "No suitable font file found. Install a TrueType/OpenType font or specify a font path.",
+        error_type="dependency_error",
+        code="font_not_found",
+    )
 
 
 def _get_video_stream(data: dict) -> dict | None:

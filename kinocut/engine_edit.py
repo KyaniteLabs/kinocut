@@ -6,10 +6,10 @@ from collections.abc import Callable
 
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _format_ffmpeg_number, _sanitize_ffmpeg_number
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
-from .engine_runtime_utils import _build_edit_result, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _movflags_args, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
-from .errors import MCPVideoError
+from .errors import CodecError, MCPVideoError, ProcessingError
 from .models import EditResult
 from .validation import MAX_TRIM_TIME_TEXT_LENGTH
 
@@ -118,14 +118,20 @@ def trim(
     output_path: str | None = None,
     accurate: bool = False,
     on_progress: Callable[[float], None] | None = None,
+    *,
+    stream_copy: bool = False,
 ) -> EditResult:
     """Trim a video by start time and duration or end time.
 
     Args:
-        accurate: Kept for compatibility. Both values use frame-accurate
-            input seeking because this operation always re-encodes.
+        accurate: Kept for compatibility. Both values re-encode frame-accurately
+            unless stream_copy is explicitly enabled.
         on_progress: Called with the render's percent complete (0-100).
+        stream_copy: Copy compressed streams without re-encoding. Cut boundaries
+            can shift to keyframes; incompatible output containers are refused.
     """
+    if not isinstance(stream_copy, bool):
+        raise MCPVideoError("stream_copy must be a boolean", error_type="validation_error", code="invalid_parameter")
     input_path = _validate_input_path(input_path)
     output = output_path or _auto_output(input_path, "trimmed")
     _validate_output_path(output)
@@ -134,7 +140,6 @@ def trim(
 
     prefix: list[str] = []
     if start_sec > 0:
-        # Re-encoding uses FFmpeg's default accurate input seek.
         prefix.extend(["-ss", _format_ffmpeg_number(start_sec)])
     prefix.extend(["-i", input_path])
     clip_seconds: float | None = None
@@ -152,12 +157,31 @@ def trim(
 
     with _atomic_output(output) as staged:
         _validate_output_path(staged)
+        encode = (
+            ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", *_movflags_args(staged), staged]
+            if stream_copy
+            else _build_ffmpeg_cmd(output_path=staged)
+        )
         with _timed_operation() as timing:
-            args = prefix + _build_ffmpeg_cmd(output_path=staged)
-            if on_progress is None:
-                _run_ffmpeg(args)
-            else:
-                _run_ffmpeg_with_progress(args, clip_seconds, on_progress)
+            try:
+                if on_progress is None:
+                    _run_ffmpeg(prefix + encode)
+                else:
+                    _run_ffmpeg_with_progress(prefix + encode, clip_seconds, on_progress)
+            except (CodecError, ProcessingError) as exc:
+                if not stream_copy or (isinstance(exc, ProcessingError) and exc.returncode == -1):
+                    raise
+                raise MCPVideoError(
+                    "Trim stream copy failed. Use a container compatible with the source codecs, "
+                    "or retry with stream_copy=False to re-encode.",
+                    error_type="processing_error",
+                    code="trim_stream_copy_failed",
+                ) from None
         result = _build_edit_result(staged, "trim", timing)
 
-    return result.model_copy(update={"output_path": output})
+    warnings = list(result.warnings)
+    if stream_copy:
+        warnings.append(
+            "Stream copy can snap cuts to nearby keyframes; the output may not match the requested boundaries."
+        )
+    return result.model_copy(update={"output_path": output, "warnings": warnings})

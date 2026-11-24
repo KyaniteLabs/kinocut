@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from kinocut.defaults import DEFAULT_CRF, DEFAULT_PRESET, DEFAULT_REFRAME_PIXEL_FORMAT, DEFAULT_REFRAME_VIDEO_CODEC
 from kinocut.engine_probe import _cache_key, probe
 from kinocut.errors import MCPVideoError, ValidationError
 from kinocut.ffmpeg_helpers import _atomic_output, _run_ffmpeg, _validate_input_path, _validate_output_path
 from kinocut.source_identity import assert_source_identity, stream_source_identity
+from kinocut.source_identity import stable_source_sha256 as _sha256
 from kinocut.workflow._versions import ffmpeg_version
 
 from .models import CropTrackSample, ReframePlan, StrictModel
@@ -29,10 +28,6 @@ def _axis_expression(samples: tuple[CropTrackSample, ...], axis: str, source_siz
         boundary = (samples[index].timestamp_seconds + samples[index + 1].timestamp_seconds) / 2.0
         expression = f"if(lt(t,{boundary:.6f}),{values[index]},{expression})"
     return expression
-
-
-def _sha256(path: Path) -> str:
-    return stream_source_identity(str(path)).asset_id
 
 
 def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, target_id: str) -> ReframeRenderReceipt:
@@ -92,7 +87,7 @@ def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, ta
             plan_sha256=plan.plan_sha256,
             target_id=target_id,
             ffmpeg_version=ffmpeg_version(),
-            output_sha256=_sha256(Path(staged)),
+            output_sha256=_sha256(staged),
             sample_count=len(variant.crop_track),
         )
     return receipt

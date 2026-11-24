@@ -192,5 +192,5 @@ def test_cli_add_audio_dispatch_forwards_duration_policy_to_engine(monkeypatch):
         duration_policy="pad_audio",
     )
     handlers_core.handle_initial_command(args, use_json=True)
-    assert captured["engine_fn"] == "mcp_video.engine:add_audio"
+    assert captured["engine_fn"] == "kinocut.engine_audio_ops:add_audio"
     assert captured["duration_policy"] == "pad_audio"

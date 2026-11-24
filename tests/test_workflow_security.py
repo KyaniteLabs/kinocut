@@ -296,6 +296,27 @@ def test_valid_param_values_still_pass(tmp_path):
     assert verdict["valid"] is True
 
 
+@pytest.mark.parametrize("name", sorted(OP_ADAPTERS))
+def test_registered_engine_annotations_resolve(name):
+    from kinocut.workflow.ops import _engine_type_hints
+
+    adapter = OP_ADAPTERS[name]
+    assert _engine_type_hints(adapter.engine_fn).keys() == adapter.engine_fn.__annotations__.keys()
+    assert _engine_type_hints(adapter.engine_fn)
+
+
+def test_unresolvable_registered_annotation_refuses_workflow(tmp_path, monkeypatch):
+    def unresolved(input_path: str, width: int):
+        raise AssertionError("validation must not execute the engine")
+
+    unresolved.__annotations__["width"] = "MissingPrivateEngineType"
+    monkeypatch.setitem(OP_ADAPTERS, "resize", OpAdapter("resize", unresolved, "src", "input_path"))
+    with pytest.raises(MCPVideoError) as exc:
+        validate_workflow_spec(_write_spec(tmp_path, _single_step_spec("resize", {"width": "not-an-int"})))
+    assert exc.value.code == "invalid_workflow_params"
+    assert "MissingPrivateEngineType" not in str(exc.value)
+
+
 def test_int_param_rejects_float_and_bool(tmp_path):
     for bad in (1080.5, True):
         spec = _single_step_spec("resize", {"width": bad, "height": 1920})

@@ -1648,6 +1648,7 @@ def test_validate_analysis_output_paths_allows_safe_paths(tmp_path, monkeypatch)
         output_md="relative/path.md",
         output_json=None,
     )
+    assert not list(tmp_path.iterdir()), "validation must not create output directories or files"
 
 
 def test_run_analysis_returns_result_on_success():

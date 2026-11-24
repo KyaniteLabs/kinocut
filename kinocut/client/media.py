@@ -83,7 +83,7 @@ class ClientMediaMixin(ClientMasksMixin):
     ) -> EditResult:
         """Trim a clip by start time and duration.
 
-        Set ``accurate=True`` for frame-accurate output seeking (slower).
+        Both values of ``accurate`` produce a frame-accurate re-encode.
         """
         return _trim(input, start=start, duration=duration, end=end, output_path=output, accurate=accurate)
 
