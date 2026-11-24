@@ -189,7 +189,7 @@ _SOURCE_EOF_TOLERANCE = 0.05
 
 
 def _caption_receipt(
-    caption_entries: list[dict[str, Any]],
+    caption_entries: Sequence[Mapping[str, Any]],
     generated: Any,
     truncated_captions: int,
 ) -> dict[str, Any]:
@@ -293,7 +293,7 @@ def _prepare_captions(
             "the measured segment durations do not match the requested segments; refusing to time the captions"
         )
 
-    caption_entries: list[dict[str, Any]] = []
+    caption_entries: list[Mapping[str, Any]] = []
     offset = 0.0
     for index, (_start, _end, text) in enumerate(parsed):
         # The caption timeline follows the media that actually rendered, not
@@ -406,10 +406,15 @@ def _shorts_result(
     if fit_mode == "crop":
         steps[3]["fit_mode"] = fit_mode
         steps[2], steps[3] = steps[3], steps[2]
+    try:
+        size_bytes = Path(output_path).stat().st_size
+    except OSError:
+        size_bytes = None
     return {
         "success": True,
         "operation": "video_shorts",
         "output_path": output_path,
+        "size_bytes": size_bytes,
         "external_posting": False,
         "receipt": {"schema_version": 2, "receipt_kind": "video_shorts", "steps": steps},
     }

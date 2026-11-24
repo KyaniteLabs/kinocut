@@ -32,11 +32,48 @@ test('start -> progress -> complete', () => {
 })
 
 test('failure is detected', () => {
-  for (const extra of [{ error: 'boom' }, { ok: false }, { result: { error: 'x' } }]) {
+  for (const extra of [{ error: 'boom' }, { ok: false }, { is_error: true }, { result: { error: 'x' } }]) {
     let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'f', name: T }))
     s = reduceRenders(s, ev('complete', { tool_id: 'f', name: T, ...extra }))
     assert.equal(s.recent[0].status, 'failed')
   }
+})
+
+test('running estimates use advancing progress samples', () => {
+  const progress = (percent, now) => ev('progress', { tool_id: 'eta', name: T, percent }, now)
+  let s = reduceRenders(initialRenders(), progress(20, 1000))
+  assert.equal(s.active.eta.remainingMs, null)
+  s = reduceRenders(s, progress(50, 2500))
+  assert.equal(s.active.eta.remainingMs, 2500)
+  s = reduceRenders(s, progress(100, 5000))
+  assert.equal(s.active.eta.remainingMs, null)
+})
+
+test('finished renders retain the output size reported by Kinocut', () => {
+  const result = JSON.stringify({ result: JSON.stringify({ success: true, size_bytes: 1048576 }) })
+  const s = reduceRenders(initialRenders(), ev('complete', { tool_id: 'size', name: T, result }))
+  assert.equal(s.recent[0].sizeBytes, 1048576)
+})
+
+test('message-only progress retains the last valid percentage and ETA', () => {
+  const payload = { tool_id: 'progress', name: T }
+  let state = reduceRenders(initialRenders(), ev('progress', { ...payload, percent: 10 }, 0))
+  state = reduceRenders(state, ev('progress', { ...payload, percent: 40 }, 1000))
+  for (const percent of [undefined, ' ', false, []]) {
+    state = reduceRenders(state, ev('progress', { ...payload, percent, message: 'encoding' }, 2000))
+    assert.equal(state.active.progress.percent, 40)
+    assert.equal(state.active.progress.remainingMs, 2000)
+  }
+})
+
+test('nested gateway failure retains its cause and never reports an output size', () => {
+  const result = JSON.stringify({ is_error: true, content: [{ text: 'render stopped' }], size_bytes: 16 })
+  const state = reduceRenders(initialRenders(), ev('complete', { tool_id: 'constructor', name: T, result }))
+  const [row] = state.recent
+  assert.equal(row.historyId, 1)
+  assert.equal(row.status, 'failed')
+  assert.equal(row.message, 'render stopped')
+  assert.equal(row.sizeBytes, null)
 })
 
 test('non-Kinocut tools are ignored', () => {
