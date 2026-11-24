@@ -35,6 +35,7 @@ def _generic_with_chapter_payload(script_payloads):
         }
     )
     payload["scenes"][0]["event_ids"].append("chapter_review")
+    parser.ParsedScript.model_validate(payload)
     return payload
 
 
