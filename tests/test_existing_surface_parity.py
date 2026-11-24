@@ -374,7 +374,9 @@ def test_mcp_frame_sampling_matches_client_engine_and_preserves_explicit_zero(ti
 def test_real_mcp_frame_extraction_shares_automatic_sampling_with_client(parity_source, tmp_path, monkeypatch):
     from kinocut.server_tools_guardrails import video_extract_frame
 
-    monkeypatch.setattr("kinocut.aesthetic.smart_thumbnail.find_best_thumbnail_timestamp", lambda _: 0.25)
+    from contextlib import nullcontext
+
+    monkeypatch.setattr("kinocut.aesthetic.smart_thumbnail.selected_frame", lambda *a, **kw: nullcontext((0.25, None)))
     automatic = video_extract_frame(str(parity_source), output_path=str(tmp_path / "mcp.jpg"))
     client = Client().extract_frame(str(parity_source), output=str(tmp_path / "client.jpg"))
     first = video_extract_frame(str(parity_source), timestamp=0.0, output_path=str(tmp_path / "first.jpg"))

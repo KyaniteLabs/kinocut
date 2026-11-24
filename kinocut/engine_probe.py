@@ -168,16 +168,25 @@ def probe(path: str) -> VideoInfo:
     if cached is not None:
         return cached
 
+    data = _read_input_metadata(path, require_video=True)
+    info = _build_video_info(path, data)
+
+    _cache_info(path, key, info, has_video=True)
+    return info
+
+
+def _read_input_metadata(path: str, *, require_video: bool = False) -> dict:
+    key = _cache_key(path)
     try:
         data = _run_ffprobe_json(path)
     except ProcessingError as exc:
         if _is_probe_timeout(exc):
             raise
-        raise InputFileError(path, "Not a valid video file") from exc
-    info = _build_video_info(path, data)
-
-    _cache_info(path, key, info, has_video=True)
-    return info
+        kind = "video" if require_video else "media"
+        raise InputFileError(path, f"Not a valid {kind} file") from exc
+    if _cache_key(path) != key:
+        raise InputFileError(path, "Media changed while probing; retry with a stable source")
+    return data
 
 
 def _raw_rational_rate(value: object) -> str | None:
@@ -252,13 +261,13 @@ def probe_audio_input(path: str) -> VideoInfo:
     if cached is not None:
         return cached
 
-    try:
-        data = _run_ffprobe_json(path)
-    except ProcessingError as exc:
-        if _is_probe_timeout(exc):
-            raise
-        raise InputFileError(path, "Not a valid media file") from exc
+    data = _read_input_metadata(path)
+    info = _build_audio_input_info(path, data)
+    _cache_info(path, key, info, has_video=_get_video_stream(data) is not None)
+    return info
 
+
+def _build_audio_input_info(path: str, data: dict) -> VideoInfo:
     # Try video first — reuses the same ffprobe data (no second subprocess)
     try:
         info = _build_video_info(path, data)
@@ -296,7 +305,6 @@ def probe_audio_input(path: str) -> VideoInfo:
             format=fmt.get("format_name"),
         )
 
-    _cache_info(path, key, info, has_video=_get_video_stream(data) is not None)
     return info
 
 

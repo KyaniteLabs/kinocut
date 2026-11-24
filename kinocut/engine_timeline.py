@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import tempfile
 
 from .engine_audio_ops import add_audio
@@ -14,6 +13,7 @@ from .engine_probe import probe
 from .engine_resize import resize
 from .engine_runtime_utils import (
     _default_font,
+    _intermediate_outputs,
 )
 from .paths import (
     _auto_output,
@@ -166,8 +166,7 @@ def edit_timeline(timeline: Timeline | dict, output_path: str | None = None) -> 
         timeline = expand_sequence_shortcut(timeline)
         timeline = Timeline.model_validate(timeline)
     _validate_timeline_positions(timeline)
-    tmpdir = tempfile.mkdtemp(prefix="mcp_video_timeline_")
-    try:
+    with tempfile.TemporaryDirectory(prefix="mcp_video_timeline_") as tmpdir, _intermediate_outputs(tmpdir):
         video_clips, audio_clips, text_elements, image_overlays = _collect_tracks(timeline, tmpdir)
         if not video_clips:
             raise MCPVideoError("Timeline must have at least one video clip")
@@ -191,8 +190,6 @@ def edit_timeline(timeline: Timeline | dict, output_path: str | None = None) -> 
         output = output_path or _auto_output(video_clips[0], "timeline", ext=f".{timeline.export.format}")
         _validate_output_path(output)
         return export_video(current, output_path=output, quality=timeline.export.quality, format=timeline.export.format)
-    finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def _apply_timeline_audio(current: str, audio_clips: list[TimelineClip], tmpdir: str) -> str:
@@ -447,5 +444,6 @@ def _encode_args(output_path: str, extra: list[str] | None = None) -> list[str]:
         output_path=output_path,
         video_codec="libx264",
         audio_codec="copy",
+        movflags=False,
         extra=extra,
     )

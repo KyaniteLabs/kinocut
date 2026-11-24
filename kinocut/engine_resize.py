@@ -7,7 +7,7 @@ from collections.abc import Callable
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_probe import probe
-from .engine_runtime_utils import _build_edit_result, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _run_video_only, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
 from .errors import MCPVideoError
@@ -111,13 +111,14 @@ def resize(
             input_path,
             output_path=staged,
             video_filter=vf,
+            audio_codec="copy",
             crf=preset["crf"],
             preset=preset["preset"],
         )
         if on_progress is None:
-            _run_ffmpeg(args)
+            _run_video_only(_run_ffmpeg, args)
         else:
-            _run_ffmpeg_with_progress(args, info.duration, on_progress)
+            _run_video_only(_run_ffmpeg_with_progress, args, info.duration, on_progress)
         result = _build_edit_result(staged, "resize", timing)
     result.output_path = output
     result.elapsed_ms = timing["elapsed_ms"]
