@@ -40,6 +40,7 @@ import stat
 import sys
 import uuid
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
@@ -50,6 +51,7 @@ _LOG_NAME = "request_log.jsonl"
 _MAX_REQUEST_TEXT = 8192
 _MAX_SCAN_CHARS = _MAX_REQUEST_TEXT * 2
 _MAX_REDACT_ITEMS = 256
+_MAX_REDACT_NODES = 512
 _MAX_REDACT_DEPTH = 16
 _PLACEHOLDER = "<redacted>"
 _PATH_PLACEHOLDER = "<path>"
@@ -111,9 +113,25 @@ _EXACT_PATH_KEYS = frozenset(
         "variables_file",
         "plan",
         "plan_path_or_dir",
+        "playlist_name",
+        "filename",
+        "file_name",
+        "output_name",
     }
 )
-_PATH_KEY_SUFFIXES = ("_path", "_paths", "_file", "_files", "_dir", "_dirs", "_folder", "_video", "_audio", "_image")
+_PATH_KEY_SUFFIXES = (
+    "_path",
+    "_paths",
+    "_file",
+    "_files",
+    "_filename",
+    "_dir",
+    "_dirs",
+    "_folder",
+    "_video",
+    "_audio",
+    "_image",
+)
 
 # Ordered redaction rules: (pattern, replacement).  Order matters — URLs are
 # rewritten before path rules so `scheme://host/path` is not half-eaten, and
@@ -204,59 +222,77 @@ def redact_text(text: str) -> str:
     return text
 
 
+@dataclass
+class _RedactBudget:
+    chars: int = _MAX_SCAN_CHARS
+    nodes: int = _MAX_REDACT_NODES
+
+    def consume_node(self) -> bool:
+        if self.nodes <= 0:
+            return False
+        self.nodes -= 1
+        return True
+
+
 def _is_path_key(key: str) -> bool:
     lowered = key.strip().lower()
     return lowered in _EXACT_PATH_KEYS or lowered.endswith(_PATH_KEY_SUFFIXES)
 
 
-def _redact_path_value(value: object, budget: list[int], depth: int) -> object:
+def _redact_path_value(value: object, budget: _RedactBudget, depth: int) -> object:
+    if depth >= _MAX_REDACT_DEPTH or not budget.consume_node():
+        return "<truncated>"
     if isinstance(value, str):
         return _PATH_PLACEHOLDER
     if isinstance(value, (list, tuple)):
-        return [
-            _redact_path_value(item, budget, depth + 1)
-            for item in cast(list[object] | tuple[object, ...], value)[:_MAX_REDACT_ITEMS]
-        ]
+        items: list[object] = []
+        for index, item in enumerate(cast(list[object] | tuple[object, ...], value)):
+            if index >= _MAX_REDACT_ITEMS or budget.nodes <= 0:
+                items.append("<truncated>")
+                break
+            items.append(_redact_path_value(item, budget, depth + 1))
+        return items
     return _redact_value(value, budget=budget, depth=depth + 1)
 
 
-def _redact_bounded_str(text: str, budget: list[int]) -> str:
-    remaining = budget[0]
+def _redact_bounded_str(text: str, budget: _RedactBudget) -> str:
+    remaining = budget.chars
     if remaining <= 0:
         return "<truncated>"
     clipped = len(text) > remaining
     chunk = text[:remaining] if clipped else text
-    budget[0] = max(0, remaining - len(chunk))
+    budget.chars = max(0, remaining - len(chunk))
     redacted = redact_text(chunk)
     return redacted + ("...<truncated>" if clipped else "")
 
 
-def _redact_value(value: object, *, budget: list[int] | None = None, depth: int = 0) -> object:
+def _redact_value(value: object, *, budget: _RedactBudget | None = None, depth: int = 0) -> object:
     """Return a bounded redacted copy of ``value``; never mutates the input."""
-    active_budget = budget if budget is not None else [_MAX_SCAN_CHARS]
-    if depth >= _MAX_REDACT_DEPTH or active_budget[0] <= 0:
+    active_budget = budget if budget is not None else _RedactBudget()
+    if depth >= _MAX_REDACT_DEPTH or active_budget.chars <= 0 or not active_budget.consume_node():
         return "<truncated>"
     if isinstance(value, str):
         return _redact_bounded_str(value, active_budget)
     if isinstance(value, dict):
         result: dict[str, object] = {}
         for index, (raw_key, item) in enumerate(cast(dict[object, object], value).items()):
-            if index >= _MAX_REDACT_ITEMS or active_budget[0] <= 0:
+            if index >= _MAX_REDACT_ITEMS or active_budget.chars <= 0 or active_budget.nodes <= 0:
                 result["<truncated>"] = True
                 break
             key_str = str(raw_key)
             safe_key = _redact_bounded_str(key_str, active_budget)
             if _SENSITIVE_KEY_RE.search(key_str):
+                active_budget.consume_node()
                 result[safe_key] = _PLACEHOLDER
             elif _is_path_key(key_str):
-                result[safe_key] = _redact_path_value(item, active_budget, depth)
+                result[safe_key] = _redact_path_value(item, active_budget, depth + 1)
             else:
                 result[safe_key] = _redact_value(item, budget=active_budget, depth=depth + 1)
         return result
     if isinstance(value, (list, tuple)):
         items: list[object] = []
         for index, item in enumerate(cast(list[object] | tuple[object, ...], value)):
-            if index >= _MAX_REDACT_ITEMS or active_budget[0] <= 0:
+            if index >= _MAX_REDACT_ITEMS or active_budget.chars <= 0 or active_budget.nodes <= 0:
                 items.append("<truncated>")
                 break
             items.append(_redact_value(item, budget=active_budget, depth=depth + 1))

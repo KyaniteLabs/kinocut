@@ -296,3 +296,23 @@ def test_unrecognized_or_cross_family_operation_is_not_logged(enabled_log: Path)
     finally:
         configure_tool_surface("all")
     assert _records(enabled_log) == []
+
+
+def test_hls_playlist_name_is_redacted_and_nested_path_tree_is_bounded(enabled_log: Path) -> None:
+    import time
+
+    _call("video_hls_segment", {"input_path": "/nonexistent/clip.mp4", "playlist_name": "Spring Recital.m3u8"})
+    records = _records(enabled_log)
+    assert len(records) == 1
+    assert records[0]["chosen_operation"] == "video_hls_segment"
+    assert "Spring Recital" not in records[0]["request_text"]
+    assert ".m3u8" not in records[0]["request_text"]
+
+    # Deeply nested wide path tree must stop at the shared node/depth budget.
+    wide_paths = [["/tmp/a.mp4"] * 200 for _ in range(200)]
+    start = time.monotonic()
+    log_invocation("video_merge", {"clips": wide_paths})
+    assert time.monotonic() - start < 0.5
+    latest = _records(enabled_log)[-1]["request_text"]
+    assert len(latest.encode("utf-8")) <= request_log._MAX_REQUEST_TEXT
+    assert "<truncated>" in latest
