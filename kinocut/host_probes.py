@@ -154,6 +154,14 @@ def default_expected_whisper_sha256(model: str = "base") -> str | None:
     return WHISPER_MODEL_SHA256.get(model)
 
 
+def _expand_home(raw: str, home: Callable[[], Path]) -> Path:
+    if raw == "~":
+        return home()
+    if raw.startswith(("~/", "~\\")):
+        return home() / raw[2:]
+    return Path(raw).expanduser()
+
+
 def whisper_model_path(
     model: str = "base",
     *,
@@ -163,7 +171,7 @@ def whisper_model_path(
     env = os.environ if environ is None else environ
     home_fn = Path.home if home is None else home
     xdg = env.get("XDG_CACHE_HOME", "").strip()
-    cache = Path(xdg) if xdg else home_fn() / ".cache"
+    cache = _expand_home(xdg, home_fn) if xdg else home_fn() / ".cache"
     return cache / "whisper" / f"{model}.pt"
 
 
@@ -222,10 +230,10 @@ class HostProbes:
     def crush_sources(self) -> Path | None:
         env_path = self.environ.get("MCP_VIDEO_CRUSH_PATH", "").strip()
         if env_path:
-            path = Path(env_path).expanduser().resolve()
+            path = _expand_home(env_path, self.home).resolve()
             return path if (path / "common.glsl").is_file() else None
         data_dir = self.environ.get("KINOCUT_DATA_DIR", "").strip()
-        root = Path(data_dir).expanduser().resolve() if data_dir else self.home() / ".mcp-video"
+        root = _expand_home(data_dir, self.home).resolve() if data_dir else self.home() / ".mcp-video"
         path = root / "crush-js" / "src"
         return path if (path / "common.glsl").is_file() else None
 

@@ -95,10 +95,14 @@ def test_legacy_package_callbacks_do_not_spawn_upscale_subprocess(monkeypatch):
 
 
 def test_injected_environ_home_and_hyperframes_resolvers_control_discovery(tmp_path):
+    fake_home = tmp_path / "home"
     cache_dir = tmp_path / "xdg_cache"
-    crush_dir = tmp_path / "data" / "crush-js" / "src"
+    crush_dir = fake_home / "data" / "crush-js" / "src"
     crush_dir.mkdir(parents=True)
     (crush_dir / "common.glsl").write_text("// shader", encoding="utf-8")
+    tilde_shaders = fake_home / "shaders"
+    tilde_shaders.mkdir(parents=True)
+    (tilde_shaders / "common.glsl").write_text("// tilde shader", encoding="utf-8")
 
     host = HostProbes(
         which=lambda name: "/fake/hyperframes" if name == "hyperframes" else None,
@@ -108,13 +112,18 @@ def test_injected_environ_home_and_hyperframes_resolvers_control_discovery(tmp_p
         import_module=lambda _name: SimpleNamespace(),
         resolve_executable=lambda path: path,
         hyperframes_metadata=lambda _path: "0.8.140",
-        environ={"XDG_CACHE_HOME": str(cache_dir), "KINOCUT_DATA_DIR": str(tmp_path / "data")},
-        home=lambda: tmp_path / "home",
+        environ={"XDG_CACHE_HOME": str(cache_dir), "KINOCUT_DATA_DIR": "~/data"},
+        home=lambda: fake_home,
         cwd=lambda: tmp_path,
     )
     assert host.whisper_weights_path("base") == cache_dir / "whisper" / "base.pt"
-    assert host.matte_weights()[0].is_relative_to(tmp_path / "home")
-    assert host.crush_sources() == crush_dir
+    assert host.matte_weights()[0].is_relative_to(fake_home)
+    assert host.crush_sources() == crush_dir.resolve()
+    tilde_host = HostProbes(
+        environ={"MCP_VIDEO_CRUSH_PATH": "~/shaders"},
+        home=lambda: fake_home,
+    )
+    assert tilde_host.crush_sources() == tilde_shaders.resolve()
     report = run_diagnostics(probes=host)
     hf = next(check for check in report["checks"] if check["name"] == "hyperframes")
     assert hf["ok"] is True and hf["version"] == "0.8.140"
