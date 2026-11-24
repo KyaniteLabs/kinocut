@@ -5,7 +5,8 @@ import hashlib
 import pytest
 
 from kinocut.errors import MCPVideoError
-from kinocut.rescue import capabilities, operations
+from kinocut.host_probes import local_digest
+from kinocut.rescue import operations
 from kinocut.still_plates import io as still_io
 from kinocut.te import sphere_probe
 from kinocut.visual_intelligence import reframe_render
@@ -20,13 +21,13 @@ def test_raw_byte_hash_formats_at_receipt_boundaries(tmp_path, data):
     expected = hashlib.sha256(data).hexdigest()
     prefixed = "sha256:" + expected
     assert file_sha256(path) == still_io.file_sha256(str(path)) == expected
-    assert prefixed_file_sha256(str(path)) == operations._sha256(path) == capabilities._file_sha256(path) == prefixed
+    assert prefixed_file_sha256(str(path)) == operations._sha256(path) == local_digest(path) == prefixed
     assert sphere_probe._file_sha256(str(path)) == reframe_render._sha256(path) == prefixed
 
 
 def test_missing_model_digest_is_none_for_directory_or_missing_path(tmp_path):
-    assert capabilities._file_sha256(tmp_path) is None
-    assert capabilities._file_sha256(tmp_path / "absent") is None
+    assert local_digest(tmp_path) is None
+    assert local_digest(tmp_path / "absent") is None
 
 
 @pytest.mark.parametrize("digest", [sphere_probe._file_sha256, reframe_render._sha256])

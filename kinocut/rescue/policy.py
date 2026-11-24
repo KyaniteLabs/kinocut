@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from .capabilities import captions_available
 from .models import Disposition, Finding, Repair, RepairType
 
 POLICY_ID = "local_content_preserving"
@@ -41,8 +42,7 @@ def _executor_available(executor: str | None, capabilities: Mapping[str, Any]) -
             return filters[filter_name] is True
         return True
     if executor == "openai-whisper":
-        whisper = capabilities.get("whisper", {})
-        return isinstance(whisper, Mapping) and whisper.get("available") is True
+        return captions_available(capabilities)
     return False
 
 
