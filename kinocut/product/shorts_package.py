@@ -187,7 +187,7 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _PackageS
 def _preserve_displaced(displaced: Path, base: Path) -> None:
     preserved = base.parent / f".{base.name}.preserved_{secrets.token_hex(6)}"
     with contextlib.suppress(OSError):
-        if displaced.exists():
+        if os.path.lexists(displaced):
             os.rename(displaced, preserved)
     raise _package_error(
         "Package destination changed concurrently during replacement; prior contents were preserved.",
@@ -229,11 +229,11 @@ def _matches_snapshot(displaced: Path, snapshot: _PackageSnapshot) -> bool:
 def _restore_quarantined(moved: list[tuple[Path, Path]], moved_dirs: list[tuple[Path, Path]], trash: Path) -> None:
     for src, dst in reversed(moved_dirs):
         with contextlib.suppress(OSError):
-            if dst.exists() and not os.path.lexists(src):
+            if os.path.lexists(dst) and not os.path.lexists(src):
                 os.rename(dst, src)
     for src, dst in reversed(moved):
         with contextlib.suppress(OSError):
-            if dst.exists() and not os.path.lexists(src):
+            if os.path.lexists(dst) and not os.path.lexists(src):
                 src.parent.mkdir(parents=True, exist_ok=True)
                 os.rename(dst, src)
     with contextlib.suppress(OSError):
