@@ -76,8 +76,8 @@ def test_mcp_trim_accepts_numeric_seconds_and_rejects_booleans(field):
 def test_cli_trim_and_conversion_forward_new_controls(monkeypatch, capsys):
     trim = Mock(return_value=EditResult(output_path="trimmed.mp4"))
     convert = Mock(return_value=EditResult(output_path="converted.mp4"))
-    monkeypatch.setattr("kinocut.engine.trim", trim)
-    monkeypatch.setattr("kinocut.engine.convert", convert)
+    monkeypatch.setattr("kinocut.engine_edit.trim", trim)
+    monkeypatch.setattr("kinocut.engine_convert.convert", convert)
     parser = build_parser()
     args = parser.parse_args(["trim", "source.mp4", "--start", "0.25", "--duration", "0.5", "--accurate"])
     assert handle_initial_command(args, use_json=True)

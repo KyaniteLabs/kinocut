@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.util
-import hashlib
 import os
 import re
 import subprocess
@@ -14,6 +13,7 @@ from typing import Any
 from pathlib import Path
 
 from ..errors import FFmpegNotFoundError, FFprobeNotFoundError, ProcessingError
+from ..hashing import prefixed_file_sha256
 from ..workflow._versions import _binary_identity, ffmpeg_version
 
 
@@ -32,11 +32,7 @@ def whisper_model_path(model: str = "base") -> Path:
 def _file_sha256(path: Path) -> str | None:
     if not path.is_file():
         return None
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
+    return prefixed_file_sha256(path)
 
 
 @lru_cache(maxsize=4)

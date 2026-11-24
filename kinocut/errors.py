@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import argparse
 import re
 import contextlib
 from contextvars import ContextVar
-from functools import lru_cache
 from typing import Any
 
+from .cli.command_names import COMMAND_NAMES
 from .type_names import _register_exception_kinds, builtin_type_name, type_label
 
 # Caller-supplied values echoed into error messages are capped so a hostile
@@ -162,22 +161,9 @@ def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
     return clean
 
 
-@lru_cache(maxsize=1)
 def _cli_command_set() -> frozenset[str]:
-    """The real ``kino`` subcommands — the only CLI routes hints may name.
-
-    Enumerated from the actual argparse parser (built lazily, once). If the
-    parser cannot be built, returns an empty set so hint derivation omits CLI
-    routes instead of inventing one.
-    """
-
-    try:
-        from .cli.parser import build_parser
-
-        subparsers = [a for a in build_parser()._actions if isinstance(a, argparse._SubParsersAction)]
-        return frozenset(subparsers[0].choices) if subparsers else frozenset()
-    except Exception:  # conservative fallback: omit the CLI route, never invent one
-        return frozenset()
+    """The real ``kino`` subcommands — the only CLI routes hints may name."""
+    return COMMAND_NAMES
 
 
 def cli_route_for_operation(operation: str) -> str | None:

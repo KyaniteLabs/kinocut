@@ -37,7 +37,7 @@ def _register_diagnostics_commands(runner: CommandRunner) -> None:
 
     runner.register("doctor", _doctor)
     _info_default = plain_cmd(
-        "mcp_video.engine:probe",
+        "kinocut.engine_probe:probe",
         "input",
         formatter=_format_info_text,
         json_transform=lambda r: {
@@ -46,7 +46,7 @@ def _register_diagnostics_commands(runner: CommandRunner) -> None:
         },
     )
     _info_exact = plain_cmd(
-        "mcp_video.engine:probe_exact",
+        "kinocut.engine_probe:probe_exact",
         "input",
         formatter=_format_info_text,
         json_transform=lambda r: {
@@ -65,7 +65,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "extract-frame",
         engine_cmd(
-            "mcp_video.engine:thumbnail",
+            "kinocut.engine_thumbnail:thumbnail",
             "Extracting frame...",
             "input",
             formatter=_format_thumbnail_text,
@@ -80,7 +80,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "trim",
         engine_cmd(
-            "mcp_video.engine:trim",
+            "kinocut.engine_edit:trim",
             "Trimming...",
             "input",
             formatter=_format_edit_text,
@@ -94,7 +94,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "merge",
         engine_cmd(
-            "mcp_video.engine:merge",
+            "kinocut.engine_merge:merge",
             "Merging...",
             "inputs",
             formatter=_format_edit_text,
@@ -107,7 +107,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "thumbnail",
         plain_cmd(
-            "mcp_video.engine:thumbnail",
+            "kinocut.engine_thumbnail:thumbnail",
             "input",
             formatter=_format_edit_text,
             timestamp="timestamp",
@@ -117,7 +117,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "preview",
         engine_cmd(
-            "mcp_video.engine:preview",
+            "kinocut.engine_preview:preview",
             "Generating preview...",
             "input",
             formatter=_format_edit_text,
@@ -128,7 +128,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "storyboard",
         engine_cmd(
-            "mcp_video.engine:storyboard",
+            "kinocut.engine_storyboard:storyboard",
             "Extracting storyboard...",
             "input",
             formatter=_format_storyboard_text,
@@ -179,7 +179,7 @@ def _register_text_commands(runner: CommandRunner) -> None:
     runner.register(
         "watermark",
         engine_cmd(
-            "mcp_video.engine:watermark",
+            "kinocut.engine_watermark:watermark",
             "Adding watermark...",
             "input",
             formatter=_format_edit_text,
@@ -198,7 +198,7 @@ def _register_audio_commands(runner: CommandRunner) -> None:
     runner.register(
         "add-audio",
         engine_cmd(
-            "mcp_video.engine:add_audio",
+            "kinocut.engine_audio_ops:add_audio",
             "Adding audio...",
             "video",
             "audio",
@@ -215,7 +215,7 @@ def _register_audio_commands(runner: CommandRunner) -> None:
     runner.register(
         "extract-audio",
         engine_cmd(
-            "mcp_video.engine:extract_audio",
+            "kinocut.engine_extract_audio:extract_audio",
             "Extracting audio...",
             "input",
             formatter=_format_extract_audio_text,
@@ -230,7 +230,7 @@ def _register_transform_commands(runner: CommandRunner) -> None:
     runner.register(
         "resize",
         engine_cmd(
-            "mcp_video.engine:resize",
+            "kinocut.engine_resize:resize",
             "Resizing...",
             "input",
             formatter=_format_edit_text,
@@ -244,7 +244,7 @@ def _register_transform_commands(runner: CommandRunner) -> None:
     runner.register(
         "speed",
         engine_cmd(
-            "mcp_video.engine:speed",
+            "kinocut.engine_speed:speed",
             "Changing speed...",
             "input",
             formatter=_format_edit_text,
@@ -255,7 +255,7 @@ def _register_transform_commands(runner: CommandRunner) -> None:
     runner.register(
         "convert",
         engine_cmd(
-            "mcp_video.engine:convert",
+            "kinocut.engine_convert:convert",
             "Converting...",
             "input",
             formatter=_format_edit_text,
@@ -269,7 +269,7 @@ def _register_transform_commands(runner: CommandRunner) -> None:
     runner.register(
         "crop",
         engine_cmd(
-            "mcp_video.engine:crop",
+            "kinocut.engine_crop:crop",
             "Cropping...",
             "input",
             formatter=_format_edit_text,
@@ -283,7 +283,7 @@ def _register_transform_commands(runner: CommandRunner) -> None:
     runner.register(
         "rotate",
         engine_cmd(
-            "mcp_video.engine:rotate",
+            "kinocut.engine_rotate:rotate",
             "Rotating...",
             "input",
             formatter=_format_edit_text,
@@ -299,7 +299,7 @@ def _register_render_commands(runner: CommandRunner) -> None:
     runner.register(
         "fade",
         engine_cmd(
-            "mcp_video.engine:fade",
+            "kinocut.engine_fade:fade",
             "Applying fade...",
             "input",
             formatter=_format_edit_text,
@@ -313,7 +313,7 @@ def _register_render_commands(runner: CommandRunner) -> None:
     runner.register(
         "export",
         engine_cmd(
-            "mcp_video.engine:export_video",
+            "kinocut.engine_export:export_video",
             "Exporting...",
             "input",
             formatter=_format_edit_text,

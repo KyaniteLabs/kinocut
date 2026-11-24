@@ -271,7 +271,7 @@ def _write_receipt(
         _open_staged_writer(staged) as stream,
     ):
         stream.write(payload.encode("utf-8"))
-        from ..projectstore.receipt_ownership import witness_receipt_stage
+        from ..artifacts.receipt_ownership import witness_receipt_stage
 
         witness_receipt_stage(save_receipt, staged)
 

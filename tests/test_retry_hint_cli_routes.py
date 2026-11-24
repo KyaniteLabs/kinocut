@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 
 import pytest
@@ -12,8 +13,12 @@ from kinocut.tool_registry import TOOL_REGISTRY
 _KINO = re.compile(r"\bkino ([a-z0-9][a-z0-9-]*)")
 
 
-def test_cli_command_set_is_real():
-    assert len(_cli_command_set()) > 100
+def test_cli_command_names_match_parser_including_aliases():
+    from kinocut.cli.command_names import COMMAND_NAMES
+    from kinocut.cli.parser import build_parser
+
+    subcommands = next(action for action in build_parser()._actions if isinstance(action, argparse._SubParsersAction))
+    assert _cli_command_set() == COMMAND_NAMES == set(subcommands.choices)
 
 
 @pytest.mark.parametrize("code", ["invalid_parameter", "ffmpeg_not_found", "network_consent_required"])
