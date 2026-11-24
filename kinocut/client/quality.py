@@ -71,6 +71,7 @@ class ClientQualityMixin:
             assert_quality_fn=self.assert_quality,
             thumbnail_fn=lambda path, *, output_path: self.thumbnail(path, output=output_path),
             storyboard_fn=self.storyboard,
+            thumbnail_path_attr="output_path",
         )
 
     def design_quality_check(

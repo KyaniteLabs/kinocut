@@ -21,6 +21,7 @@ def release_checkpoint(
     assert_quality_fn: Callable[..., dict[str, Any]] | None = None,
     thumbnail_fn: Callable[..., Any] | None = None,
     storyboard_fn: Callable[..., Any] | None = None,
+    thumbnail_path_attr: str = "frame_path",
 ) -> dict[str, Any]:
     """Write review artifacts only after the hard quality gate passes."""
     if assert_quality_fn is None:
@@ -37,7 +38,8 @@ def release_checkpoint(
     os.makedirs(review_dir, exist_ok=True)
     thumb = thumbnail_fn(input_path, output_path=os.path.join(review_dir, "thumbnail.jpg"))
     board = storyboard_fn(input_path, output_dir=os.path.join(review_dir, "storyboard"), frame_count=frame_count)
-    thumb_path = getattr(thumb, "frame_path", None) or getattr(thumb, "output_path", None)
+    fallback_attr = "output_path" if thumbnail_path_attr == "frame_path" else "frame_path"
+    thumb_path = getattr(thumb, thumbnail_path_attr, None) or getattr(thumb, fallback_attr, None)
     return {
         "video": input_path,
         "quality": report,

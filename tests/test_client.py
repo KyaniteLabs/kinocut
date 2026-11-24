@@ -862,6 +862,38 @@ class TestClientAgentApiConsistency:
         assert result["storyboard"]["frames"] == [f"{ok_dir / 'storyboard'}/f1.jpg"]
         assert result["storyboard"]["count"] == 4
 
+    def test_release_checkpoint_thumbnail_path_precedence_client_vs_mcp(self, monkeypatch, tmp_path):
+        from kinocut.client import Client
+        from kinocut.server_tools_ai import video_release_checkpoint
+
+        video = tmp_path / "video.mp4"
+        video.write_bytes(b"placeholder")
+        raw_frame = str(tmp_path / "raw-frame.jpg")
+        review_thumb = str(tmp_path / "review-thumbnail.jpg")
+        dual_thumb = ThumbnailResult(frame_path=raw_frame, output_path=review_thumb, timestamp=0.0)
+
+        class DualPathClient(Client):
+            def assert_quality(self, video, **kwargs):
+                return {"overall_score": 98.0}
+
+            def thumbnail(self, video, timestamp=None, output=None):
+                return dual_thumb
+
+            def storyboard(self, video, output_dir=None, frame_count=8):
+                return StoryboardResult(frames=[f"{output_dir}/f1.jpg"], count=frame_count)
+
+        client_result = DualPathClient().release_checkpoint(str(video), output_dir=str(tmp_path / "client_review"))
+        assert client_result["thumbnail"] == review_thumb
+
+        monkeypatch.setattr("kinocut.quality_guardrails.assert_quality", lambda *a, **kw: {"overall_score": 98.0})
+        monkeypatch.setattr("kinocut.engine_thumbnail.thumbnail", lambda *a, **kw: dual_thumb)
+        monkeypatch.setattr(
+            "kinocut.engine_storyboard.storyboard",
+            lambda *a, **kw: StoryboardResult(frames=[f"{kw['output_dir']}/f1.jpg"], count=kw["frame_count"]),
+        )
+        mcp_result = video_release_checkpoint(str(video), output_dir=str(tmp_path / "mcp_review"))
+        assert mcp_result["thumbnail"] == raw_frame
+
     def test_validation_precedence_preserved_before_output_alias_conflict(self, editor):
         with pytest.raises(MCPVideoError) as empty_exc:
             editor.pipeline([], output_path="a.mp4", output="b.mp4")
