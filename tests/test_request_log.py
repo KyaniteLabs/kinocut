@@ -356,3 +356,17 @@ def test_preserialization_node_and_depth_budget_strictly_bound_both_branches() -
         out = request_log._redact_value(payload, budget=budget)
         assert _count_nodes(out) <= 5
         assert budget.nodes == 5 - _count_nodes(out)
+
+    # Redacted key collision must refund overwritten nodes so budget matches retained output.
+    email_budget = request_log._RedactBudget(nodes=3)
+    email_out = request_log._redact_value({"a@b.com": 1, "c@d.com": 2}, budget=email_budget)
+    assert email_out == {"<email>": 2}
+    assert _count_nodes(email_out) == 2
+    assert email_budget.nodes == 1
+
+    # Truncation marker overwriting an existing "<truncated>" key must also preserve exact accounting.
+    trunc_budget = request_log._RedactBudget(nodes=3)
+    trunc_out = request_log._redact_value({"<truncated>": 1, "a": 2, "b": 3}, budget=trunc_budget)
+    assert trunc_out == {"<truncated>": True}
+    assert _count_nodes(trunc_out) == 2
+    assert trunc_budget.nodes == 1

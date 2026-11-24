@@ -275,6 +275,28 @@ def _redact_bounded_str(text: str, budget: _RedactBudget) -> str:
     return redacted + ("...<truncated>" if clipped else "")
 
 
+def _count_nodes(value: object) -> int:
+    if isinstance(value, dict):
+        return 1 + sum(_count_nodes(item) for item in cast(dict[object, object], value).values())
+    if isinstance(value, list):
+        return 1 + sum(_count_nodes(item) for item in cast(list[object], value))
+    return 1
+
+
+def _set_dict_entry(result: dict[str, object], key: str, value: object, budget: _RedactBudget) -> None:
+    if key in result:
+        budget.nodes += _count_nodes(result[key])
+    result[key] = value
+
+
+def _mark_dict_truncated(result: dict[str, object], budget: _RedactBudget) -> None:
+    if "<truncated>" in result:
+        budget.nodes += _count_nodes(result["<truncated>"]) - 1
+        result["<truncated>"] = True
+    elif budget.consume_node():
+        result["<truncated>"] = True
+
+
 def _redact_value(value: object, *, budget: _RedactBudget | None = None, depth: int = 0) -> object:
     """Return a bounded redacted copy of ``value``; never mutates the input."""
     active_budget = budget if budget is not None else _RedactBudget()
@@ -297,18 +319,19 @@ def _redact_value(value: object, *, budget: _RedactBudget | None = None, depth: 
                 or active_budget.chars <= 0
                 or active_budget.nodes <= (1 if remaining_after > 0 else 0)
             ):
-                if active_budget.consume_node():
-                    result["<truncated>"] = True
+                _mark_dict_truncated(result, active_budget)
                 break
             key_str = str(raw_key)
             safe_key = _redact_bounded_str(key_str, active_budget)
             if _SENSITIVE_KEY_RE.search(key_str):
                 if active_budget.consume_node():
-                    result[safe_key] = _PLACEHOLDER
+                    _set_dict_entry(result, safe_key, _PLACEHOLDER, active_budget)
             elif _is_path_key(key_str):
-                result[safe_key] = _redact_path_value(item, active_budget, depth + 1)
+                _set_dict_entry(result, safe_key, _redact_path_value(item, active_budget, depth + 1), active_budget)
             else:
-                result[safe_key] = _redact_value(item, budget=active_budget, depth=depth + 1)
+                _set_dict_entry(
+                    result, safe_key, _redact_value(item, budget=active_budget, depth=depth + 1), active_budget
+                )
         return result
     if isinstance(value, (list, tuple)):
         if depth + 1 >= _MAX_REDACT_DEPTH:
