@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 
 from kinocut import doctor
+from kinocut.host_probes import HostProbes, offline_probe_environment
 from kinocut.doctor_offline import (
     hyperframes_version_from_metadata,
     is_package_manager_prefix,
@@ -51,7 +52,7 @@ def test_the_doctor_never_executes_a_configured_hyperframes_command(monkeypatch)
         "python3 -c 'import npx'",
     ):
         monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, command)
-        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes")
+        result = doctor._check_hyperframes_cli(HostProbes(which=lambda name: "/usr/bin/hyperframes"))
         assert result["version"] is None, f"{command} must not be probed"
         assert result["ok"] is False, f"{command} must not be probed"
 
@@ -107,7 +108,9 @@ def test_the_doctor_never_executes_a_package_manager():
 
     for definition in doctor.COMMAND_CHECKS:
         if definition["name"] in {"npx", "npm"}:
-            result = doctor._check_command(definition, lambda name: f"/usr/bin/{name}", fake_runner)
+            result = doctor._check_command(
+                definition, HostProbes(which=lambda name: f"/usr/bin/{name}", version_runner=fake_runner)
+            )
             assert result["probed"] is False
             assert result["version"] is None
     assert not [command for command in seen if command[0] in {"npx", "npm"}]
@@ -115,7 +118,7 @@ def test_the_doctor_never_executes_a_package_manager():
 
 def test_a_malformed_telemetry_setting_does_not_crash_the_doctor(monkeypatch):
     monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "maybe")
-    environment = doctor._doctor_probe_environment()
+    environment = offline_probe_environment()
     # The conservative reading of an invalid value is telemetry off.
     assert environment["HYPERFRAMES_NO_TELEMETRY"] == "1"
     assert environment["HYPERFRAMES_NO_UPDATE_CHECK"] == "1"
@@ -132,7 +135,7 @@ def test_a_bare_configured_command_with_arguments_is_found_on_path(tmp_path, mon
     launcher.chmod(0o755)
     monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, "hyperframes --skip-skills")
 
-    report = check_hyperframes_cli(lambda name: str(launcher) if name == "hyperframes" else None)
+    report = check_hyperframes_cli(HostProbes(which=lambda name: str(launcher) if name == "hyperframes" else None))
     assert report["ok"] is True
     assert report["path"] == str(launcher.resolve())
 
@@ -141,11 +144,11 @@ def test_the_probe_environment_never_changes_the_process_environment(monkeypatch
     # The doctor's probes run in parallel. A temporary write to
     # os.environ could be observed by another probe halfway through.
     monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "maybe")
-    doctor._doctor_probe_environment()
+    offline_probe_environment()
     assert os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] == "maybe"
 
 
 def test_the_probe_environment_leaves_a_valid_setting_alone(monkeypatch):
     monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "true")
-    doctor._doctor_probe_environment()
+    offline_probe_environment()
     assert os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] == "true"

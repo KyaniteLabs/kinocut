@@ -2,28 +2,23 @@
 
 from __future__ import annotations
 
-import importlib.metadata
-import importlib.util
 import logging
 import os
 import platform
 import re
-import shutil
-import subprocess
 import sys
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
 from ._install_hints import pip_install_hint, pinned_requirement
-from .data_dirs import crush_home
-from .doctor_report import without_machine_paths
+from dataclasses import replace
+from .host_probes import HostProbes, without_machine_paths
+from .rescue.capabilities import captions_available, snapshot_capabilities
 from .doctor_offline import (
-    cached_sha256_file,
+    check_hyperframes_cli as _check_hyperframes_cli,
     check_sphere_director,
-    offline_probe_environment,
     report_resolved_hyperframes,
 )
 from .type_names import exception_kind
@@ -36,9 +31,9 @@ from .defaults import (
     MIN_FFMPEG_VERSION_HARD,
     MIN_PYTHON_VERSION,
 )
-from .limits import DOCTOR_COMMAND_TIMEOUT
 
 logger = logging.getLogger(__name__)
+_DEFAULT_PROBES = HostProbes()
 
 
 WhichFn = Callable[[str], str | None]
@@ -150,21 +145,7 @@ PACKAGE_CHECKS = (
         False,
         f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
-    (
-        "librosa",
-        "librosa",
-        "audio-enhanced",
-        False,
-        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
-    ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
-    (
-        "meltysynth",
-        "meltysynth",
-        "manual-midi",
-        False,
-        "MeltySynth is not currently published on PyPI; install a compatible meltysynth module manually.",
-    ),
 )
 
 
@@ -188,47 +169,11 @@ def _parse_python_version(version_line: str | None) -> tuple[int, int] | None:
     return None
 
 
-def _doctor_probe_environment() -> dict[str, str]:
-    """The environment a version probe runs in: sanitized and update-disabled.
-
-    A PATH-only shim can carry its own installer or updater, and the caller's
-    environment can carry provider credentials. A version probe needs neither,
-    so both are removed.
-    """
-    return offline_probe_environment()
-
-
-def _command_version(command: list[str]) -> str | None:
-    """Run a bounded probe in a sanitized, update-disabled environment."""
-    try:
-        result = subprocess.run(  # noqa: S603
-            command,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=DOCTOR_COMMAND_TIMEOUT,
-            env=_doctor_probe_environment(),
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if result.returncode != 0:
-        return None
-    first_line = (result.stdout or result.stderr).splitlines()[0:1]
-    return first_line[0].strip() if first_line else None
-
-
-def _package_version(distribution_name: str) -> str | None:
-    try:
-        return importlib.metadata.version(distribution_name)
-    except importlib.metadata.PackageNotFoundError:
-        return None
-
-
-def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
+def _check_command(definition: dict[str, Any], probes: HostProbes) -> dict[str, Any]:
     if definition.get("probe") == "never":
         # The doctor does not run a package manager. It reports whether one is
         # on PATH and leaves it there.
-        path = which(definition["command"][0])
+        path = probes.which(definition["command"][0])
         return {
             "name": definition["name"],
             "category": definition["category"],
@@ -241,8 +186,8 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
             "probed": False,
             "reason": "the doctor does not run a package manager; its presence is read from PATH, not executed",
         }
-    path = which(definition["command"][0])
-    version = version_runner(definition["command"]) if path else None
+    path = probes.which(definition["command"][0])
+    version = probes.command_version(definition["command"], path) if path else None
     ok = path is not None and version is not None
     extra: dict[str, Any] = {}
 
@@ -267,14 +212,7 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
         if python_version is not None and python_version < MIN_PYTHON_VERSION:
             ok = False
 
-    # Hyperframes version check — routed through the injectable version_runner
-    # so tests can exercise both outcomes (a raw subprocess call here would be
-    # untestable, the same defect class as the @hyperframes/core probe).
-    hyperframes_path = which("hyperframes")
-    if definition["name"] == "node" and ok and hyperframes_path:
-        # Invoke the already-resolved executable directly. `npx --yes` may
-        # consult the npm registry when PATH resolution and npm's local bins
-        # disagree (a shim outside npm's bin dirs); doctor must stay offline.
+    if definition["name"] == "node" and ok and (hyperframes_path := probes.which("hyperframes")):
         extra.update(report_resolved_hyperframes(hyperframes_path))
 
     return {
@@ -296,15 +234,14 @@ def _check_package(
     category: str,
     required: bool,
     install_hint: str,
-    find_spec: FindSpecFn,
-    package_version: PackageVersionFn,
+    probes: HostProbes,
 ) -> dict[str, Any]:
-    found = find_spec(import_name) is not None
-    version = package_version(distribution_name) if found else None
+    found = probes.find_spec(import_name) is not None
+    version = probes.package_version(distribution_name) if found else None
     ok = found and version is not None
     probe = _UPSCALE_IMPORTS.get(distribution_name)
-    if ok and probe and find_spec is importlib.util.find_spec and package_version is _package_version:
-        marker = _command_version([sys.executable, "-P", "-c", f"{probe}; print('import ok')"])
+    if ok and probe:
+        marker = probes.version_runner([sys.executable, "-P", "-c", f"{probe}; print('import ok')"])
         ok = marker is not None
         if not ok:
             install_hint = f"Installed, but the backend import failed or timed out. {install_hint}"
@@ -321,53 +258,26 @@ def _check_package(
     }
 
 
-def _check_crush() -> dict[str, Any]:
-    """Check CRUSH shader availability."""
-    env_path = os.environ.get("MCP_VIDEO_CRUSH_PATH")
-    if env_path:
-        p = Path(env_path).expanduser().resolve()
-        if p.is_dir():
-            return {
-                "name": "crush_shaders",
-                "category": "crush",
-                "required": False,
-                "ok": True,
-                "path": str(p),
-                "version": None,
-                "install_hint": None,
-            }
-
-    home_path = crush_home() / "crush-js" / "src"
-    if home_path.is_dir():
-        return {
-            "name": "crush_shaders",
-            "category": "crush",
-            "required": False,
-            "ok": True,
-            "path": str(home_path),
-            "version": None,
-            "install_hint": None,
-        }
-
+def _check_crush(probes: HostProbes) -> dict[str, Any]:
+    path = probes.crush_sources()
     return {
         "name": "crush_shaders",
         "category": "crush",
         "required": False,
-        "ok": False,
-        "path": None,
+        "ok": path is not None,
+        "path": str(path) if path else None,
         "version": None,
-        "install_hint": (
-            "CRUSH shaders not found. Set MCP_VIDEO_CRUSH_PATH or KINOCUT_DATA_DIR (CRUSH is read from its crush-js/src) or install to ~/.mcp-video/crush-js/src. "
-            "See https://github.com/pushingsquares/crush for installation."
-        ),
+        "install_hint": None
+        if path
+        else "Set MCP_VIDEO_CRUSH_PATH to the local crush-js/src directory containing common.glsl, or place it under KINOCUT_DATA_DIR/crush-js/src.",
     }
 
 
-def _check_audio_engine() -> dict[str, Any]:
+def _check_audio_engine(probes: HostProbes) -> dict[str, Any]:
     """Check audio engine capabilities."""
-    has_numpy = importlib.util.find_spec("numpy") is not None
-    has_scipy = importlib.util.find_spec("scipy") is not None
-    has_pedalboard = importlib.util.find_spec("pedalboard") is not None
+    has_numpy = probes.find_spec("numpy") is not None
+    has_scipy = probes.find_spec("scipy") is not None
+    has_pedalboard = probes.find_spec("pedalboard") is not None
 
     status = "legacy"
     if has_numpy and has_scipy:
@@ -410,12 +320,6 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
     }
 
 
-def _check_hyperframes_cli(which: WhichFn) -> dict[str, Any]:
-    from .doctor_offline import check_hyperframes_cli
-
-    return check_hyperframes_cli(which)
-
-
 # Probe for @hyperframes/core in the active Node package layout. The package is
 # ESM-only with a restrictive "exports" map (no "./package.json" subpath and no
 # "require" condition), so require()/require.resolve() throw
@@ -432,10 +336,10 @@ HYPERFRAMES_CORE_PROBE = (
 )
 
 
-def _check_hyperframes_core(which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
+def _check_hyperframes_core(probes: HostProbes) -> dict[str, Any]:
     command = ["node", "-e", HYPERFRAMES_CORE_PROBE]
-    path = which("node")
-    version = version_runner(command) if path else None
+    path = probes.which("node")
+    version = probes.command_version(command, path) if path else None
     ok = path is not None and version is not None
     return {
         "name": "@hyperframes/core",
@@ -449,7 +353,7 @@ def _check_hyperframes_core(which: WhichFn, version_runner: VersionRunner) -> di
     }
 
 
-def _check_alias_identity() -> dict[str, Any]:
+def _check_alias_identity(probes: HostProbes = _DEFAULT_PROBES) -> dict[str, Any]:
     """Verify the kinocut <-> mcp_video rename preserved one shared Client (#56).
 
     A read-only migration signal: after the 1.7 identity cutover, importing
@@ -459,8 +363,8 @@ def _check_alias_identity() -> dict[str, Any]:
     """
 
     try:
-        import kinocut
-        import mcp_video
+        kinocut = probes.import_module("kinocut")
+        mcp_video = probes.import_module("mcp_video")
     except Exception:  # pragma: no cover - defensive: a broken install is the signal
         return {
             "name": "alias_identity",
@@ -469,7 +373,7 @@ def _check_alias_identity() -> dict[str, Any]:
             "detail": "unable to import kinocut/mcp_video",
             "remediation": f"Reinstall the package: pip install --force-reinstall {pinned_requirement()}",
         }
-    ok = getattr(kinocut, "Client", None) is getattr(mcp_video, "Client", None)
+    ok = hasattr(kinocut, "Client") and kinocut.Client is getattr(mcp_video, "Client", None)
     return {
         "name": "alias_identity",
         "category": "migration",
@@ -481,11 +385,11 @@ def _check_alias_identity() -> dict[str, Any]:
     }
 
 
-def _check_legacy_env_paths() -> dict[str, Any]:
+def _check_legacy_env_paths(probes: HostProbes = _DEFAULT_PROBES) -> dict[str, Any]:
     """Flag stale pre-rename env vars and paths awaiting migration (#56)."""
 
-    stale_env = os.environ.get("MCP_VIDEO_CRUSH_PATH")
-    legacy_dir = Path.home() / ".mcp-video"
+    stale_env = probes.environ.get("MCP_VIDEO_CRUSH_PATH")
+    legacy_dir = probes.home() / ".mcp-video"
     findings: list[str] = []
     if stale_env:
         # The value is the operator's own environment: the report says the
@@ -509,18 +413,10 @@ def _check_legacy_env_paths() -> dict[str, Any]:
     }
 
 
-def _check_workspace() -> dict[str, Any]:
+def _check_workspace(probes: HostProbes = _DEFAULT_PROBES) -> dict[str, Any]:
     """Report read/write access and free space without writing a probe file."""
 
-    workspace = Path.cwd()
-    try:
-        usage = shutil.disk_usage(workspace)
-        readable = os.access(workspace, os.R_OK)
-        writable = os.access(workspace, os.W_OK)
-        free_bytes = usage.free
-    except OSError:
-        readable = writable = False
-        free_bytes = None
+    workspace, readable, writable, free_bytes = probes.workspace()
     return {
         "name": "workspace",
         "category": "core",
@@ -534,7 +430,7 @@ def _check_workspace() -> dict[str, Any]:
     }
 
 
-def _policy_setting(name: str, default: Any) -> dict[str, Any]:
+def _policy_setting(probes: HostProbes, name: str, default: Any) -> dict[str, Any]:
     """A setting's name, its shipped default, and whether it is overridden.
 
     The value the operator chose is their configuration: the report says
@@ -543,22 +439,22 @@ def _policy_setting(name: str, default: Any) -> dict[str, Any]:
     return {
         "setting": name,
         "default": default,
-        "state": "default" if name not in os.environ else "custom",
+        "state": "default" if name not in probes.environ else "custom",
     }
 
 
-def _check_runtime_policy() -> dict[str, Any]:
+def _check_runtime_policy(probes: HostProbes) -> dict[str, Any]:
     """Expose effective guardrail defaults without changing any policy."""
-
-    from .tool_registry import active_mode
 
     flags = {
         "overwrite_default": DEFAULT_OVERWRITE,
         "network_egress_default": False,
-        "vision_mode": _policy_setting("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
-        "hyperframes_telemetry": _policy_setting("KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)),
-        "revideo_telemetry": _policy_setting("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
-        "mcp_tools": active_mode(),
+        "vision_mode": _policy_setting(probes, "KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
+        "hyperframes_telemetry": _policy_setting(
+            probes, "KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)
+        ),
+        "revideo_telemetry": _policy_setting(probes, "KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
+        "mcp_tools": probes.tool_mode(),
     }
     return {
         "name": "runtime_policy",
@@ -587,9 +483,10 @@ def _summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _rescue_summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
+def _rescue_summary(checks: list[dict[str, Any]], probes: HostProbes) -> dict[str, Any]:
     by_name = {check["name"]: check for check in checks}
-    captions_available = bool(by_name.get("openai-whisper", {}).get("ok"))
+    capabilities = snapshot_capabilities(probes=probes)
+    captions = captions_available(capabilities)
     automatic = [
         "audio_loudness",
         "container_timestamps",
@@ -598,12 +495,21 @@ def _rescue_summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
         "rotation",
         "universal_mp4",
     ]
-    if captions_available:
+    if not capabilities["ffmpeg"]["available"]:
+        automatic.clear()
+    else:
+        if not capabilities["filters"]["loudnorm"]:
+            automatic.remove("audio_loudness")
+        if not capabilities["filters"]["eq"]:
+            automatic.remove("exposure")
+        if not capabilities["filters"]["transpose"]:
+            automatic.remove("rotation")
+    if captions:
         automatic.append("captions")
     return {
         "core_ready": all(by_name.get(name, {}).get("ok") for name in ("ffmpeg", "ffprobe")),
         "local_only": True,
-        "captions_available": captions_available,
+        "captions_available": captions,
         "automatic_repair_types": automatic,
     }
 
@@ -645,11 +551,12 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
 
 def run_diagnostics(
     *,
-    which: WhichFn = shutil.which,
-    version_runner: VersionRunner = _command_version,
-    find_spec: FindSpecFn = importlib.util.find_spec,
-    package_version: PackageVersionFn = _package_version,
-    import_module: ImportModuleFn = importlib.import_module,
+    probes: HostProbes | None = None,
+    which: WhichFn | None = None,
+    version_runner: VersionRunner | None = None,
+    find_spec: FindSpecFn | None = None,
+    package_version: PackageVersionFn | None = None,
+    import_module: ImportModuleFn | None = None,
     include_paths: bool = True,
 ) -> dict[str, Any]:
     """Return a structured report for core and optional integration dependencies.
@@ -658,25 +565,35 @@ def run_diagnostics(
     running this locally needs. A caller that hands the report onward — the
     MCP tool — asks for the paths to be left out.
     """
-    checks = [_check_mcp_video(find_spec, package_version), _check_mcp_server_import(import_module)]
+    probes = probes or HostProbes()
+    probes = replace(
+        probes,
+        which=which or probes.which,
+        version_runner=version_runner or probes.version_runner,
+        legacy_command_runner=version_runner or probes.legacy_command_runner,
+        find_spec=find_spec or probes.find_spec,
+        package_version=package_version or probes.package_version,
+        import_module=import_module or probes.import_module,
+    )
+    checks = [
+        _check_mcp_video(probes.find_spec, probes.package_version),
+        _check_mcp_server_import(probes.import_module),
+    ]
     with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
-        checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
+        checks.extend(pool.map(lambda definition: _check_command(definition, probes), COMMAND_CHECKS))
     checks.extend(
         [
-            _check_hyperframes_cli(which),
-            _check_hyperframes_core(which, version_runner),
+            _check_hyperframes_cli(probes),
+            _check_hyperframes_core(probes),
         ]
     )
-    checks.extend(
-        _check_package(*definition, find_spec=find_spec, package_version=package_version)
-        for definition in PACKAGE_CHECKS
-    )
-    checks.append(_check_crush())
-    checks.append(_check_audio_engine())
-    checks.append(_check_still_plates(find_spec, package_version))
-    checks.append(_check_object_matte(find_spec))
-    checks.append(check_sphere_director())
-    checks.extend([_check_workspace(), _check_runtime_policy()])
+    checks.extend(_check_package(*definition, probes=probes) for definition in PACKAGE_CHECKS)
+    checks.append(_check_crush(probes))
+    checks.append(_check_audio_engine(probes))
+    checks.append(_check_still_plates(probes.find_spec, probes.package_version))
+    checks.append(_check_object_matte(probes))
+    checks.append(check_sphere_director(probes))
+    checks.extend([_check_workspace(probes), _check_runtime_policy(probes)])
     report = {
         "success": True,
         "platform": {
@@ -686,25 +603,15 @@ def run_diagnostics(
         },
         "summary": _summary(checks),
         "checks": checks,
-        "rescue": _rescue_summary(checks),
-        "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
+        "rescue": _rescue_summary(checks, probes),
+        "migrations": [_check_alias_identity(probes), _check_legacy_env_paths(probes)],
     }
     return report if include_paths else without_machine_paths(report)
 
 
-def _object_matte_cache_path() -> Path:
-    from .validation import object_matte_cache_path
-
-    return object_matte_cache_path()
-
-
-def _sha256_file(path: Path) -> str:
-    return cached_sha256_file(path)
-
-
-def _object_matte_runtime() -> tuple[bool, list[str]]:
+def _object_matte_runtime(probes: HostProbes) -> tuple[bool, list[str]]:
     try:
-        import onnxruntime as ort
+        ort = probes.import_module("onnxruntime")
 
         return True, list(ort.get_available_providers())
     except Exception as exc:
@@ -712,19 +619,14 @@ def _object_matte_runtime() -> tuple[bool, list[str]]:
         return False, []
 
 
-def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
+def _check_object_matte(probes: HostProbes) -> dict[str, Any]:
     """Report product/object matte readiness. Never downloads weights."""
-    from .validation import OBJECT_MATTE_WEIGHTS_BYTES, OBJECT_MATTE_WEIGHTS_SHA256
+    from .validation import OBJECT_MATTE_WEIGHTS_SHA256
 
-    spec_ok = find_spec("onnxruntime") is not None
-    runtime_ok, providers = _object_matte_runtime() if spec_ok else (False, [])
-    cache_path = _object_matte_cache_path()
-    cached = cache_path.is_file()
-    digest = None
-    hash_match = False
-    if cached and cache_path.stat().st_size == OBJECT_MATTE_WEIGHTS_BYTES:
-        digest = _sha256_file(cache_path)
-        hash_match = digest == OBJECT_MATTE_WEIGHTS_SHA256
+    spec_ok = probes.find_spec("onnxruntime") is not None
+    runtime_ok, providers = _object_matte_runtime(probes) if spec_ok else (False, [])
+    cache_path, cached, digest = probes.matte_weights()
+    hash_match = digest == OBJECT_MATTE_WEIGHTS_SHA256
     ok = runtime_ok and cached and hash_match
     hint = None
     if not ok:

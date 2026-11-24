@@ -300,10 +300,13 @@ def test_public_doctor_report_carries_no_operator_configuration(monkeypatch):
 def test_doctor_reports_rescue_readiness_from_existing_checks():
     from mcp_video.doctor import run_diagnostics
 
+    from mcp_video.host_probes import HostProbes
+
     def ffmpeg_only(name: str) -> str | None:
         return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None
 
     report = run_diagnostics(
+        probes=HostProbes(filters=lambda _: frozenset({"eq", "loudnorm", "transpose"})),
         which=ffmpeg_only,
         version_runner=lambda command: f"{command[0]} version 8.0",
         find_spec=lambda name: None,
@@ -498,7 +501,7 @@ def test_run_diagnostics_includes_mcp_server_import_check():
     )
 
     checks = {check["name"]: check for check in report["checks"]}
-    assert imported == ["kinocut.server"]
+    assert set(imported) == {"kinocut.server", "onnxruntime", "kinocut.te.sphere_director", "kinocut", "mcp_video"}
     assert checks["mcp-server-import"]["ok"] is True
     assert checks["mcp-server-import"]["required"] is True
     assert report["summary"]["required_ok"] is True

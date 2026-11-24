@@ -20,7 +20,7 @@ from ._errors import (
     rescue_error,
 )
 from .analyzer import AnalysisResult, analyze_source
-from .capabilities import snapshot_capabilities
+from .capabilities import captions_available, snapshot_capabilities
 from .models import (
     Disposition,
     PackageIntent,
@@ -89,16 +89,7 @@ def _build_package_intents(analysis: AnalysisResult, capabilities: dict[str, Any
         PackageIntent(kind="receipt", required=True, status="available"),
     ]
     has_audio = any(stream.get("codec_type") == "audio" for stream in analysis.source.streams)
-    whisper = capabilities.get("whisper", {})
-    whisper_models = capabilities.get("whisper_models", {})
-    base_model = whisper_models.get("base", {}) if isinstance(whisper_models, dict) else {}
-    whisper_available = (
-        isinstance(whisper, dict)
-        and whisper.get("available") is True
-        and isinstance(base_model, dict)
-        and base_model.get("available") is True
-    )
-    derived_available = has_audio and whisper_available
+    derived_available = has_audio and captions_available(capabilities)
     if derived_available:
         intents.extend(
             [

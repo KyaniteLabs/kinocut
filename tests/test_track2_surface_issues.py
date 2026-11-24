@@ -113,18 +113,18 @@ def test_dark_grade_has_bounded_color_cast_tolerance(monkeypatch, rgb, dark_pass
 
 
 def test_doctor_rejects_an_installed_but_unimportable_upscale_backend(monkeypatch):
-    monkeypatch.setattr(doctor.importlib.util, "find_spec", lambda name: object())
-    monkeypatch.setattr(doctor, "_package_version", lambda name: "1.4.2")
+    from kinocut.host_probes import HostProbes
+
     probes = []
 
     def failing_probe(command):
         probes.append(command)
         return None
 
-    monkeypatch.setattr(doctor, "_command_version", failing_probe)
-    check = doctor._check_package(
-        "basicsr", "basicsr", "ai", False, "Use OpenCV", doctor.importlib.util.find_spec, doctor._package_version
+    host = HostProbes(
+        find_spec=lambda name: object(), package_version=lambda name: "1.4.2", version_runner=failing_probe
     )
+    check = doctor._check_package("basicsr", "basicsr", "ai", False, "Use OpenCV", host)
     assert len(probes) == 1 and "RRDBNet" in probes[0][-1]
     assert check["ok"] is False and check["required"] is False
     assert "backend import failed" in check["install_hint"]

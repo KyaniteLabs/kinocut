@@ -2,97 +2,49 @@
 
 from __future__ import annotations
 
-import importlib.util
-import os
+from collections.abc import Callable, Mapping
+from dataclasses import replace
 import re
-import subprocess
-from collections.abc import Callable
-from functools import lru_cache
-from importlib import metadata
 from typing import Any
-from pathlib import Path
 
-from ..errors import FFmpegNotFoundError, FFprobeNotFoundError, ProcessingError
-from ..hashing import prefixed_file_sha256
-from ..workflow._versions import _binary_identity, ffmpeg_version
+from ..host_probes import HostProbes, local_digest, whisper_model_path as whisper_model_path
 
 
-def _package_version(name: str) -> str | None:
-    try:
-        return metadata.version(name)
-    except metadata.PackageNotFoundError:
-        return None
-
-
-def whisper_model_path(model: str = "base") -> Path:
-    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-    return cache / "whisper" / f"{model}.pt"
-
-
-def _file_sha256(path: Path) -> str | None:
-    if not path.is_file():
-        return None
-    return prefixed_file_sha256(path)
-
-
-@lru_cache(maxsize=4)
-def _probe_ffmpeg_filters(executable: str, identity: tuple) -> frozenset[str]:
-    result = subprocess.run(  # noqa: S603
-        [executable, "-hide_banner", "-filters"],
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=10,
+def captions_available(capabilities: Mapping[str, Any]) -> bool:
+    """Whisper needs local base weights and FFmpeg audio resampling to 16 kHz."""
+    models = capabilities.get("whisper_models")
+    base = models.get("base") if isinstance(models, Mapping) else None
+    filters = capabilities.get("filters")
+    engines = (capabilities.get("ffmpeg"), capabilities.get("whisper"), base)
+    return all(isinstance(item, Mapping) and item.get("available") is True for item in engines) and (
+        isinstance(filters, Mapping) and filters.get("aresample") is True
     )
-    if result.returncode != 0 or _binary_identity(executable) != identity:
-        raise ProcessingError(
-            "FFmpeg filter discovery", result.returncode, "", reason="Filter probe failed or executable changed"
-        )
-    filters: set[str] = set()
-    for line in result.stdout.splitlines():
-        columns = line.split()
-        if len(columns) >= 3 and re.fullmatch(r"[.T][.S](?:[.C])?", columns[0]) and "->" in columns[2]:
-            filters.add(columns[1])
-    return frozenset(filters)
-
-
-def _ffmpeg_filters(executable: str) -> frozenset[str]:
-    identity = _binary_identity(executable)
-    if identity is None:
-        return frozenset()
-    try:
-        return _probe_ffmpeg_filters(executable, identity)
-    except (OSError, subprocess.SubprocessError, ProcessingError):
-        return frozenset()
-
-
-def _runtime_executable(name: str) -> str | None:
-    from ..engine_runtime_utils import _ffmpeg, _ffprobe
-
-    try:
-        return _ffmpeg() if name == "ffmpeg" else _ffprobe()
-    except (FFmpegNotFoundError, FFprobeNotFoundError):
-        return None
 
 
 def snapshot_capabilities(
     *,
     which: Callable[[str], str | None] | None = None,
     find_spec: Callable[[str], Any] | None = None,
-    package_version: Callable[[str], str | None] = _package_version,
+    package_version: Callable[[str], str | None] | None = None,
+    probes: HostProbes | None = None,
 ) -> dict[str, Any]:
     """Return local capability metadata without importing or installing tools."""
 
-    which = _runtime_executable if which is None else which
-    find_spec = find_spec or importlib.util.find_spec
-    ffmpeg_path = which("ffmpeg")
-    ffprobe_path = which("ffprobe")
+    probes = probes or HostProbes()
+    probes = replace(
+        probes,
+        which=which or probes.which,
+        find_spec=find_spec or probes.find_spec,
+        package_version=package_version or probes.package_version,
+    )
+    ffmpeg_path = probes.which("ffmpeg")
+    ffprobe_path = probes.which("ffprobe")
     ffmpeg_available = bool(ffmpeg_path and ffprobe_path)
-    whisper_spec = find_spec("whisper")
-    base_model_sha256 = _file_sha256(whisper_model_path()) if whisper_spec else None
-    filters = _ffmpeg_filters(ffmpeg_path) if ffmpeg_available and ffmpeg_path else frozenset()
+    whisper_spec = probes.find_spec("whisper")
+    base_model_sha256 = local_digest(probes.model_path("base")) if whisper_spec is not None else None
+    filters = probes.filters(ffmpeg_path) if ffmpeg_available else frozenset()
+    version_line = probes.command_version(["ffmpeg", "-version"], ffmpeg_path) if ffmpeg_path else None
+    version = re.search(r"ffmpeg version (\S+)", version_line or "", re.IGNORECASE)
 
     return {
         "local_only": True,
@@ -100,15 +52,15 @@ def snapshot_capabilities(
             "available": ffmpeg_available,
             "ffmpeg": bool(ffmpeg_path),
             "ffprobe": bool(ffprobe_path),
-            "version": ffmpeg_version(ffmpeg_path) if ffmpeg_path else None,
+            "version": version.group(1) if version else None,
         },
         "whisper": {
             "available": whisper_spec is not None,
-            "version": package_version("openai-whisper") if whisper_spec else None,
+            "version": probes.package_version("openai-whisper") if whisper_spec is not None else None,
             "executor": "openai-whisper",
         },
         "whisper_models": {
             "base": {"available": base_model_sha256 is not None, "sha256": base_model_sha256},
         },
-        "filters": {name: name in filters for name in ("loudnorm", "afftdn", "eq")},
+        "filters": {name: name in filters for name in ("loudnorm", "afftdn", "eq", "aresample", "transpose")},
     }
