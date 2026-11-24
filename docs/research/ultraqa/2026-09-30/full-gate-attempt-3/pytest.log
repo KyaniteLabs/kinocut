@@ -1,0 +1,52 @@
+........................................................................ [  0%]
+.........................sss.s........................ss...sss.......... [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+...........................sssssssssssssssssssssssssssssssssssssssssssss [  4%]
+ssss.................................................................... [  5%]
+......................................ssssssssssssssssssssssssssssssssss [  6%]
+sssssssssssssssssssss................................................... [  7%]
+........................................................................ [  7%]
+........s............................................................... [  8%]
+..............................................s......................... [  9%]
+.............ss....................................................sssss [ 10%]
+sssssssssssssssss..................................s.................... [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+ss...................................................................... [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+..........................................F
+=================================== FAILURES ===================================
+___________________ TestBuildAudioFilters.test_fade_in_only ____________________
+tests/test_engine.py:612: in test_fade_in_only
+    assert "afade=t=in:st=0:d=2.0" in filters[0]
+E   AssertionError: assert 'afade=t=in:st=0:d=2.0' in 'afade=t=in:st=0.0:d=2.0'
+=============================== warnings summary ===============================
+tests/test_engine.py::TestAddTexts::test_add_texts_overlay
+  /workspace/kinocut/tests/test_engine.py:244: UserWarning: [ERROR] text_overlap: Text 'Line 1...' and 'Line 2...' overlap at position (center, center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Middle...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Middle...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_engine.py::TestBuildAudioFilters::test_fade_in_only - Asser...
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1628 passed, 142 skipped, 4 warnings in 467.11s (0:07:47)

@@ -1,0 +1,5 @@
+[10/01/26 01:52:20] INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+                    INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+{"case": "numeric_boolean_bins", "schema_accepts": false, "isError": true, "success": false, "returned_peak_count": 0}

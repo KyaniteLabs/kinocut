@@ -1,0 +1,3 @@
+360 director unavailable: backend unavailable
+render exception MCPVideoError 360 plan source identity changed; replan and review
+{"fallback_source": "/workspace/.cache/kinocut-qa/sphere-review-fixtures/source.mp4", "fallback_status": "proposed", "fallback_width": 1920, "unavailable": true}

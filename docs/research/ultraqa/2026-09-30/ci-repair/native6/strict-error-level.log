@@ -1,0 +1,36 @@
+[info] Input #0, mov,mp4,m4a,3gp,3g2,mj2, from '/workspace/.cache/kinocut-qa/aac-corruption-review/damaged-16.mp4':
+[info]   Metadata:
+[info]     major_brand     : isom
+[info]     minor_version   : 512
+[info]     compatible_brands: isomiso2mp41
+[info]     encoder         : Lavf61.7.103
+[info]   Duration: 00:00:02.00, start: 0.000000, bitrate: 91 kb/s
+[info]   Stream #0:0[0x1](und): Video: mpeg4 (Simple Profile) (mp4v / 0x7634706D), yuv420p, 160x90 [SAR 1:1 DAR 16:9], 10 kb/s, 25 fps, 25 tbr, 12800 tbn (default)
+[info]     Metadata:
+[info]       handler_name    : VideoHandler
+[info]       vendor_id       : [0][0][0][0]
+[info]       encoder         : Lavc61.19.101 mpeg4
+[info]   Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 69 kb/s (default)
+[info]     Metadata:
+[info]       handler_name    : SoundHandler
+[info]       vendor_id       : [0][0][0][0]
+[info] Stream mapping:
+[info]   Stream #0:1 -> #0:0 (aac (native) -> pcm_s16le (native))
+[info] Press [q] to stop, [?] for help
+[info] Output #0, null, to 'pipe:':
+[info]   Metadata:
+[info]     major_brand     : isom
+[info]     minor_version   : 512
+[info]     compatible_brands: isomiso2mp41
+[info]     encoder         : Lavf60.16.100
+[info]   Stream #0:0(und): Audio: pcm_s16le, 48000 Hz, mono, s16, 768 kb/s (default)
+[info]     Metadata:
+[info]       handler_name    : SoundHandler
+[info]       vendor_id       : [0][0][0][0]
+[info]       encoder         : Lavc60.31.102 pcm_s16le
+[info] size=       0kB time=00:00:00.00 bitrate=N/A speed=   0x    [aac @ 0x5622fda4e100] [error] channel element 1.0 is not allocated
+[aist#0:1/aac @ 0x5622fda4f7c0] [error] Error submitting packet to decoder: Invalid data found when processing input
+[aist#0:1/aac @ 0x5622fda4f7c0] [error] Error processing packet in decoder: Invalid data found when processing input
+[aist#0:1/aac @ 0x5622fda4f7c0] [error] Decoder thread returned error: Invalid data found when processing input
+[out#0/null @ 0x5622fda252c0] [info] video:0kB audio:4kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: unknown
+[info] size=N/A time=00:00:00.02 bitrate=N/A speed=13.9x    

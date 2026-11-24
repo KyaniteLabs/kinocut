@@ -1,0 +1,3 @@
+huge timestamp OverflowError int too large to convert to float
+bad segment list TypeError 'int' object is not iterable
+huge confidence OverflowError int too large to convert to float

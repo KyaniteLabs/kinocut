@@ -1,0 +1,18 @@
+
+==================================== ERRORS ====================================
+______________ ERROR collecting tests/test_aivideo_protection.py _______________
+ImportError while importing test module '/workspace/kinocut/tests/test_aivideo_protection.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_aivideo_protection.py:16: in <module>
+    from kinocut.engine_body_swap import _body_swap_parameters_fingerprint
+kinocut/engine_body_swap.py:31: in <module>
+    from .rescue.verifier import _av_end_delta, _packets, _stream_counts
+E   ImportError: cannot import name '_av_end_delta' from 'kinocut.rescue.verifier' (/workspace/kinocut/kinocut/rescue/verifier.py)
+=========================== short test summary info ============================
+ERROR tests/test_aivideo_protection.py
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 error in 0.78s

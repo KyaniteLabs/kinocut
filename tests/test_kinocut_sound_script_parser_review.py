@@ -15,7 +15,10 @@ from kinocut_sound._timeline_identity import bounded_pause_cue_id
 @pytest.fixture
 def script_payloads():
     fixture = Path(__file__).with_name("fixtures") / "sound_script_records.json"
-    return json.loads(fixture.read_text(encoding="utf-8"))
+    payloads = json.loads(fixture.read_text(encoding="utf-8"))
+    for payload in payloads.values():
+        parser.ParsedScript.model_validate(payload)
+    return payloads
 
 
 def _generic_with_chapter_payload(script_payloads):
