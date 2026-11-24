@@ -19,6 +19,15 @@ tip surface counts.
 
 Namespace aliases: `kino shorts plan-show|review|render|package ...`.
 
+To create a plan in Python, `kinocut.product.propose_shorts_plan` accepts the
+intake report, timed transcript, optional `SourceSignal` audio/scene observations
+and approved selection examples. Supply `fallback_proposals` if a short or
+incomplete transcript cannot yield a complete thought. The writer saves a new
+review-required plan; showing or loading a saved plan never reranks it. To
+compare a candidate render against an operator's golden reference, use
+`kinocut.product.measure_golden_render_ssim` with its selection record and example
+IDs. A passing comparison is evidence, not approval.
+
 `PLAN` is a path to one plan JSON file **or** a directory that contains exactly one
 plan. Ambiguous directories fail closed.
 

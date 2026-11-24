@@ -83,6 +83,10 @@ class SubtitleCue:
     end: float
     text: str
 
+    @property
+    def cps(self) -> float:
+        return len(self.text.strip()) / (self.end - self.start) if self.end > self.start else 0.0
+
 
 @dataclass(frozen=True)
 class SafeAreaProfile:
@@ -112,6 +116,7 @@ class SubtitleQaReport:
     cue_count: int
     eof_seconds: float
     profile_name: str | None
+    max_cps: float = 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -434,7 +439,7 @@ def _reading_speed_findings(
         if duration <= 0.0:
             continue
         chars = len(text)
-        cps = chars / duration
+        cps = cue.cps
         if cps > threshold:
             results.append(
                 _make_finding(
@@ -733,6 +738,7 @@ def subtitle_qa(
         cue_count=len(cues),
         eof_seconds=eof_seconds,
         profile_name=profile_obj.platform,
+        max_cps=max((cue.cps for cue in cues), default=0.0),
     )
 
 

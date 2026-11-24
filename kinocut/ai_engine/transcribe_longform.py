@@ -102,6 +102,53 @@ def _enforce_monotonic_words(words: list[LongformWord]) -> tuple[LongformTimingA
     return tuple(adjustments)
 
 
+def _select_chunk_language(
+    current: str,
+    language_from_speech: bool,
+    explicit_language: str | None,
+    chunk_result: dict[str, Any],
+    *,
+    chunk_has_speech: bool,
+) -> tuple[str, bool]:
+    """Keep explicit or speech-backed language; never let a silent chunk overwrite speech."""
+    if explicit_language is not None:
+        return current, True
+    chunk_language = str(chunk_result.get("language") or "unknown").strip() or "unknown"
+    if chunk_language == "unknown":
+        return current, language_from_speech
+    if chunk_has_speech:
+        if not language_from_speech:
+            return chunk_language, True
+        return current, language_from_speech
+    if not language_from_speech and current == "unknown":
+        return chunk_language, False
+    return current, language_from_speech
+
+
+def _prepare_longform_plan(
+    video: str,
+    *,
+    chunk_seconds: int,
+    overlap_seconds: int,
+    scene_aware: bool,
+    plan: LongformTranscribePlan | None,
+) -> tuple[str, LongformTranscribePlan]:
+    if plan is None:
+        resolved = plan_longform_transcription(
+            video,
+            chunk_seconds=chunk_seconds,
+            overlap_seconds=overlap_seconds,
+            scene_aware=scene_aware,
+        )
+        _validate_replay_plan(resolved.video_path, resolved, verify_media=False)
+        return resolved.video_path, resolved
+    validated_video = _validate_longform_path(video)
+    _validate_chunk_seconds(plan.chunk_seconds)
+    _validate_overlap_seconds(plan.overlap_seconds, plan.chunk_seconds)
+    _validate_replay_plan(validated_video, plan, verify_media=True)
+    return validated_video, plan
+
+
 def transcribe_longform(
     video: str,
     *,
@@ -111,41 +158,33 @@ def transcribe_longform(
     overlap_seconds: int = LONGFORM_TRANSCRIBE_OVERLAP_SECONDS,
     scene_aware: bool = True,
     plan: LongformTranscribePlan | None = None,
+    deduplicate_segments: bool = False,
+    _raw_segments_out: list[dict[str, Any]] | None = None,
 ) -> LongformTranscribeResult:
     """Transcribe media through deterministic overlapping Whisper chunks."""
     _validate_whisper_model(model)
-    if plan is None:
-        plan = plan_longform_transcription(
-            video,
-            chunk_seconds=chunk_seconds,
-            overlap_seconds=overlap_seconds,
-            scene_aware=scene_aware,
-        )
-        video = plan.video_path
-        _validate_replay_plan(video, plan, verify_media=False)
-    else:
-        video = _validate_longform_path(video)
-        _validate_chunk_seconds(plan.chunk_seconds)
-        _validate_overlap_seconds(plan.overlap_seconds, plan.chunk_seconds)
-        _validate_replay_plan(video, plan, verify_media=True)
+    video, plan = _prepare_longform_plan(
+        video,
+        chunk_seconds=chunk_seconds,
+        overlap_seconds=overlap_seconds,
+        scene_aware=scene_aware,
+        plan=plan,
+    )
 
     words: list[LongformWord] = []
     segments: list[LongformSegment] = []
+    transcript_pieces: list[tuple[float, float, int, int, str]] = []
+    raw_segments: list[tuple[float, float, int, dict[str, Any]]] = []
     detected_language = language or "unknown"
+    language_from_speech = language is not None
     previous_end: float | None = None
     model_cache: dict[str, Any] = {}
     with tempfile.TemporaryDirectory(prefix="kc_longform_") as work_dir:
         for chunk in plan.chunks:
             chunk_result = _transcribe_chunk(
-                video,
-                chunk,
-                model=model,
-                language=language,
-                work_dir=work_dir,
-                model_cache=model_cache,
+                video, chunk, model=model, language=language, work_dir=work_dir, model_cache=model_cache
             )
-            if chunk_result.get("language", "unknown") != "unknown":
-                detected_language = str(chunk_result["language"])
+            before_words, before_segments = len(words), len(segments)
             _merge_chunk(
                 words,
                 segments,
@@ -153,15 +192,27 @@ def transcribe_longform(
                 chunk,
                 overlap_seconds=plan.overlap_seconds,
                 prev_chunk_end=previous_end,
+                deduplicate_segments=deduplicate_segments,
+                transcript_pieces=transcript_pieces,
+                raw_segments_out=raw_segments if _raw_segments_out is not None else None,
+            )
+            detected_language, language_from_speech = _select_chunk_language(
+                detected_language,
+                language_from_speech,
+                language,
+                chunk_result,
+                chunk_has_speech=len(words) > before_words or len(segments) > before_segments,
             )
             previous_end = chunk.end
 
     words.sort(key=lambda word: (word.start, word.end, word.chunk_index))
     segments.sort(key=lambda segment: (segment.start, segment.end, segment.chunk_index))
+    transcript_pieces.sort(key=lambda piece: (piece[0], piece[1], piece[2], piece[3]))
+    if _raw_segments_out is not None:
+        raw_segments.sort(key=lambda entry: (entry[0], entry[1], entry[2]))
+        _raw_segments_out.extend({**entry[3], "id": index} for index, entry in enumerate(raw_segments))
     timing_adjustments = _enforce_monotonic_words(words)
-    transcript = " ".join(word.word for word in words).strip()
-    if not transcript:
-        transcript = " ".join(segment.text for segment in segments).strip()
+    transcript = " ".join(piece[4] for piece in transcript_pieces).strip()
     return LongformTranscribeResult(
         video_path=video,
         duration=plan.duration,

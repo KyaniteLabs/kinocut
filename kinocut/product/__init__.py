@@ -8,6 +8,7 @@ and the persisted human-review contract.
 from .package import package_approved_clip
 from .package_models import *  # noqa: F403
 from .shorts_package import package_approved_candidate
+from .selection_evidence import measure_golden_render_ssim
 from .shorts_plan import (
     IntakeReport,
     RenderRecord,
@@ -16,6 +17,7 @@ from .shorts_plan import (
     ShortsPlan,
     ShortsPlanStatus,
     load_shorts_plan,
+    propose_shorts_plan,
     save_shorts_plan,
 )
 from .shorts_review import resolve_approved_candidate, review_shorts_plan
@@ -39,10 +41,12 @@ __all__ = [  # noqa: F405
     "canonical_manifest_bytes",
     "load_shorts_plan",
     "manifest_artifact_digest",
+    "measure_golden_render_ssim",
     "package_approved_candidate",
     "package_approved_clip",
     "package_kind",
     "parse_package_manifest",
+    "propose_shorts_plan",
     "render_approved_candidate",
     "resolve_approved_candidate",
     "review_shorts_plan",
