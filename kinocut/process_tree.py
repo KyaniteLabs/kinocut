@@ -54,6 +54,7 @@ class ProcessTree:
         self.closed = False
         self.exitcode: int | None = None
         self._exit_event: threading.Event | None = None
+        self._exit_thread: threading.Thread | None = None
         self.command = cmd
         try:
             # Popen has no timeout; caller owns a deadline and waits with a timeout.
@@ -151,7 +152,9 @@ class ProcessTree:
                 finally:
                     event.set()
 
-            threading.Thread(target=observe, daemon=True).start()
+            thread = threading.Thread(target=observe, daemon=True)
+            thread.start()
+            self._exit_thread = thread
             self._exit_event = event
         return self._exit_event
 
@@ -222,6 +225,8 @@ class ProcessTree:
                     self.guardian.close()
                 if self.job is not None:
                     self.job.close()
+                if self._exit_thread is not None and self._exit_thread is not threading.current_thread():
+                    self._exit_thread.join(timeout=DEFAULT_RENDER_STOP_TIMEOUT)
                 self.closed = True
             if failure is not None:
                 raise failure
