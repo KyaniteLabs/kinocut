@@ -828,12 +828,12 @@ class TestPreview:
 
         monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "false")
         monkeypatch.setattr(
-            "mcp_video.hyperframes_engine._run_hyperframes",
+            "mcp_video.hyperframes.runner._run_hyperframes",
             lambda *a, **kw: _make_completed_process(stdout="0.8.104"),
         )
         # These command-shape tests use a fake Popen; real HTTP readiness and
         # subprocess lifetime are exercised by test_preview_lifecycle_regression.
-        monkeypatch.setattr("mcp_video.hyperframes_engine._preview_ready", lambda *a: True)
+        monkeypatch.setattr("mcp_video.hyperframes.preview._preview_ready", lambda *a: True)
         _active_previews.clear()
         yield
         _active_previews.clear()
@@ -1394,7 +1394,7 @@ class TestValidate:
         with (
             _mock_deps_ok(),
             patch(
-                "mcp_video.hyperframes_engine._run_hyperframes",
+                "mcp_video.hyperframes.ops._run_hyperframes",
                 return_value=_make_completed_process(stdout='{"errors": [], "warnings": []}'),
             ),
         ):
@@ -1411,7 +1411,7 @@ class TestValidate:
         with (
             _mock_deps_ok(),
             patch(
-                "mcp_video.hyperframes_engine._run_hyperframes",
+                "mcp_video.hyperframes.ops._run_hyperframes",
                 return_value=_make_completed_process(returncode=1, stdout=lint_json),
             ),
         ):
@@ -1555,7 +1555,7 @@ class TestRenderAndPost:
 
         with (
             patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
-            patch("mcp_video.hyperframes_ops._render_output_exists", return_value=False),
+            patch("mcp_video.hyperframes.ops._render_output_exists", return_value=False),
             pytest.raises(HyperframesRenderError, match="output artifact"),
         ):
             render_and_post(project, post_process=[])
