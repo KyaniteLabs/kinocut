@@ -1,0 +1,194 @@
+import struct
+import wave
+
+import pytest
+
+from kinocut.engine_edit import _time_to_seconds, trim
+from kinocut.errors import MCPVideoError
+from kinocut.music_grid import (
+    FINE_GRID_384,
+    MicrotimingConfig,
+    MusicalGrid,
+    TimingCurve,
+    estimate_bpm_from_audio,
+    lint_composition_keyframes,
+    place_rhythm_cell,
+    quantize_real_timestamps,
+    snap_duration_to_grid,
+    validate_edit_points,
+)
+
+
+def test_coordinate_system_and_frame_residual():
+    grid = MusicalGrid(126, offset_s=0.512)
+    assert grid.parse_time("1:1:0") == 0.512
+    assert grid.parse_time("3:2:16") == pytest.approx(0.512 + 10 * 60 / 126)
+    assert grid.parse_time("tc:1:2:3") == grid.parse_time("01:02:03") == 3723
+    assert grid.parse_time("3:12.5") == 192.5
+    cut = grid.cut("1:2:0")
+    assert cut["frame"] == 30
+    assert cut["final_time"] == grid.frame_to_seconds(30) == 1
+    assert cut["residual_ms"] == pytest.approx((1 - 0.512 - 60 / 126) * 1000)
+    assert MusicalGrid(120, fps=10).time_to_frame(-0.05) == -1
+    assert MusicalGrid(120, fps=10).time_to_frame(0.05) == 1
+
+
+def test_resolution_validation():
+    with pytest.warns(UserWarning, match="floor"):
+        grid = MusicalGrid(126, steps_per_bar=FINE_GRID_384)
+    grid.validate_note_values([16, 64, 96, 128])
+    assert grid.step_ms == pytest.approx(60000 / 126 * 4 / 384)
+    with pytest.raises(MCPVideoError, match=r"16.*remainder 8") as caught:
+        MusicalGrid(126, steps_per_bar=264).validate_note_values([16])
+    assert caught.value.code == "invalid_grid_resolution"
+
+
+def test_drift_threshold_and_signed_offsets():
+    result = validate_edit_points([0.502, 0.497], MusicalGrid(120), tolerance_ms=2)
+    assert [row["passed"] for row in result["points"]] == [True, False]
+    assert [row["residual_ms"] for row in result["points"]] == [2, -3]
+    assert not result["passed"]
+
+
+def test_bounded_audio_estimation(tmp_path):
+    path = tmp_path / "click.wav"
+    with wave.open(str(path), "wb") as audio:
+        audio.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
+        audio.writeframes((struct.pack("<h", 18000) * 80 + bytes(3920 * 2)) * 12)
+    assert estimate_bpm_from_audio(path) == pytest.approx(120, abs=1)
+
+
+def test_real_musical_trim(sample_video, tmp_path):
+    output = tmp_path / "bars.mp4"
+    result = trim(sample_video, start="1:1:4", end="2:1:4", bpm=120, offset_s=0.1, output_path=str(output))
+    assert result.duration == pytest.approx(2, abs=0.1)
+    assert any("start: frame=7" in text and "residual_ms=" in text for text in result.warnings)
+    assert any("end: frame=67" in text for text in result.warnings)
+    assert _time_to_seconds("1:1:0") == 3660
+    assert _time_to_seconds("1:1:0", bpm=120) == 0
+
+
+def test_microtiming_and_gain():
+    grid = MusicalGrid(120)
+    timing = MicrotimingConfig(swing_pct=56, offset_ms=-2, accent_pattern=(3, 0))
+    assert timing.apply(0, grid, gain_db=-6)["gain_db"] == -3
+    assert timing.apply(2, grid)["accent_db"] == 3
+    assert timing.apply(grid.slot_time(1), grid)["accent_db"] == 0
+    off = timing.apply(0.125, grid)
+    assert off["nominal_time"] == 0.125
+    assert off["swing_ms"] == pytest.approx(15)
+    assert off["final_time"] == pytest.approx(0.138)
+    nominal = 0.121232334
+    assert MicrotimingConfig().apply(nominal, grid)["final_time"].hex() == nominal.hex()
+
+
+@pytest.mark.parametrize(("shape", "expected"), [("stepped", [15, 10, 5, 0, 0]), ("linear", [15, 11.25, 7.5, 3.75, 0])])
+def test_offset_curve_section_origin(shape, expected):
+    config = MicrotimingConfig(curve=TimingCurve(15, 0, 8, shape))
+    assert [
+        config.apply(6 + 4 * index, MusicalGrid(120), section_start_bar=4)["offset_ms"] for index in range(5)
+    ] == expected
+
+
+@pytest.mark.parametrize(("strength", "expected"), [(0, 0.02), (50, 0.025625), (100, 0.03125)])
+def test_partial_quantization(strength, expected):
+    row = quantize_real_timestamps([0, "20ms"], MusicalGrid(120), quantize_strength=strength)["events"][1]
+    assert row == pytest.approx(dict(source_time=0.02, mapped_time=0.02, final_time=expected, strength=strength))
+
+
+def test_log_privacy_scaling_and_strength_curve():
+    class Record(dict):
+        def __getitem__(self, key):
+            assert key != "message"
+            return super().__getitem__(key)
+
+    records = [Record(timestamp="1970-01-01T00:00:01Z", message="private"), Record(timestamp_ms=5000), Record(time_s=9)]
+    result = quantize_real_timestamps(
+        records, MusicalGrid(120), strength_curve=TimingCurve(20, 100, 2), target_duration_s=4, start_time_s=3
+    )
+    assert result["time_scale"] == 0.5
+    assert [row["strength"] for row in result["events"]] == [20, 60, 100]
+    assert [row["mapped_time"] for row in result["events"]] == [3, 5, 7]
+    assert "private" not in repr(result)
+
+
+def test_collisions_and_order():
+    result = quantize_real_timestamps([0, 0.001, 0.002], MusicalGrid(120))
+    assert result["collisions"] == [(0, 1), (1, 2)]
+    assert [row["final_time"] for row in result["events"]] == [0, 0, 0]
+    with pytest.raises(ValueError, match="non-decreasing"):
+        quantize_real_timestamps([2, 1], MusicalGrid(120))
+
+
+def test_duration_ignores_offset():
+    slot, snapped, residual = snap_duration_to_grid(1.8, MusicalGrid(126, offset_s=0.512))
+    assert slot == 60
+    assert snapped == pytest.approx(1.785714, abs=1e-6)
+    assert residual == pytest.approx(14.285714, abs=1e-6)
+
+
+def test_changing_strength_holds_crossing_events_in_input_order():
+    result = quantize_real_timestamps(
+        [0, 0.0001], MusicalGrid(120), start_time_s=0.014, strength_curve=TimingCurve(0, 100, 0.00005)
+    )
+    assert [row["source_time"] for row in result["events"]] == [0, 0.0001]
+    assert [row["final_time"] for row in result["events"]] == [0.014, 0.014]
+    assert result["collisions"] == [(0, 1)]
+
+
+def test_empty_or_dynamic_composition_does_not_pass():
+    assert not lint_composition_keyframes("<body></body>", MusicalGrid(120))["passed"]
+    with pytest.raises(ValueError, match="literal"):
+        lint_composition_keyframes("gsap.to(node, {duration: compute})", MusicalGrid(120))
+
+
+def test_keyframe_sources():
+    html = """<div id="logo" data-start="0.5" data-duration="0.125"></div>
+    <script>gsap.to("dolly", {duration: 0.4, delay: 0.5});</script>
+    <style>@keyframes fade {from {opacity:0} 25% {opacity:.1} to {opacity:1}}
+    .logo {animation-name: fade; animation-duration: 500ms; animation-delay: 1s}</style>"""
+    rows = lint_composition_keyframes(html, MusicalGrid(120))
+    assert not rows["passed"]
+    indexed = {row["name"]: row for row in rows["keyframes"]}
+    assert indexed["dolly.end"]["residual_ms"] == pytest.approx(-6.25)
+    assert indexed["fade.25%"]["time"] == 1.125
+    assert indexed["logo.end"]["time"] == 0.625
+    events = [
+        dict(name="camera", start=0.125, ease=0.25, end=0.5),
+        dict(name="logo", fade_in=1, fade_out=2, fade_end=3),
+    ]
+    lint = lint_composition_keyframes(events, MusicalGrid(120))
+    assert lint["passed"]
+    assert {row["name"] for row in lint["keyframes"]} >= {
+        "camera.ease",
+        "logo.fade_in",
+        "logo.fade_out",
+        "logo.fade_end",
+    }
+
+
+@pytest.mark.parametrize(
+    ("cell", "slots"),
+    [
+        ("straight", [0, 32, 64, 96]),
+        ("tresillo", [0, 48, 96]),
+        ("son_clave", [0, 24, 48, 80, 96]),
+        ("push", [48, 112]),
+        ("off_beat", [16, 48, 80, 112]),
+        ([0, 7, 10], [0, 7, 10]),
+    ],
+)
+def test_paired_phrase(cell, slots):
+    names = [f"flip_{index}" for index in range(len(slots))]
+    receipt = place_rhythm_cell(
+        cell, MusicalGrid(120), start_bar=2, events=names, sfx="click", microtiming=MicrotimingConfig(offset_ms=4)
+    )
+    picture, sound = receipt["picture_events"], receipt["sfx_events"]
+    assert [hit["event"] for hit in picture] == names
+    assert [hit["event"] for hit in sound] == ["click"] * len(slots)
+    assert [hit["slot"] for hit in picture] == [64 + slot for slot in slots]
+    assert (
+        [hit["final_time"] for hit in picture]
+        == [hit["final_time"] for hit in sound]
+        == [2 + slot / 32 + 0.004 for slot in slots]
+    )

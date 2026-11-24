@@ -14,8 +14,10 @@ from .models import EditResult
 from .validation import MAX_TRIM_TIME_TEXT_LENGTH
 
 
-def _time_to_seconds(value: str | float) -> float:
+def _time_to_seconds(value: str | float, *, bpm=None, fps=30.0, offset_s=0.0, steps_per_bar=64) -> float:
     """Convert a time string (HH:MM:SS or seconds) to float seconds."""
+    if bpm is not None:
+        return _grid_trim_times(value, None, None, bpm, fps, offset_s, steps_per_bar)[0]
     if isinstance(value, bool) or not isinstance(value, (int, float, str)):
         raise MCPVideoError(
             "Trim time must be numeric seconds or a time string",
@@ -110,6 +112,33 @@ def _validate_trim_times(
     return start_sec
 
 
+def _grid_trim_times(start, duration, end, bpm, fps, offset_s, steps_per_bar):
+    from .music_grid import MusicalGrid
+
+    try:
+        grid = MusicalGrid(bpm, fps, offset_s, steps_per_bar)
+        cuts = {}
+        for name, value in (("start", start), ("end", end), ("duration", duration)):
+            if value is None:
+                continue
+            if isinstance(value, str) and len(value) > MAX_TRIM_TIME_TEXT_LENGTH:
+                raise ValueError
+            if name == "duration":
+                relative = MusicalGrid(bpm, fps, 0, steps_per_bar, floor_ms=0)
+                value = grid._parse(start) + relative._parse(value)
+            cuts[name] = grid.cut(value)
+        first = cuts["start"]["final_time"]
+        messages = [
+            f"Music grid {name}: frame={cut['frame']}, residual_ms={cut['residual_ms']!r}" for name, cut in cuts.items()
+        ]
+        length = cuts["duration"]["final_time"] - first if duration is not None else None
+        return first, length, cuts["end"]["final_time"] if end is not None else None, messages
+    except (TypeError, ValueError, OverflowError, ZeroDivisionError):
+        raise MCPVideoError(
+            "Invalid musical grid or trim time", error_type="validation_error", code="invalid_parameter"
+        ) from None
+
+
 def trim(
     input_path: str,
     start: str | float = 0,
@@ -120,15 +149,15 @@ def trim(
     on_progress: Callable[[float], None] | None = None,
     *,
     stream_copy: bool = False,
+    bpm: float | None = None,
+    fps: float = 30.0,
+    offset_s: float = 0.0,
+    steps_per_bar: int = 64,
 ) -> EditResult:
-    """Trim a video by start time and duration or end time.
+    """Trim by duration or absolute end. BPM enables musical positions and residuals.
 
-    Args:
-        accurate: Kept for compatibility. Both values re-encode frame-accurately
-            unless stream_copy is explicitly enabled.
-        on_progress: Called with the render's percent complete (0-100).
-        stream_copy: Copy compressed streams without re-encoding. Cut boundaries
-            can shift to keyframes; incompatible output containers are refused.
+    Re-encodes regardless of the legacy accurate flag unless stream_copy is set.
+    Stream copy can shift boundaries to keyframes. Progress ranges from 0 to 100.
     """
     if not isinstance(stream_copy, bool):
         raise MCPVideoError("stream_copy must be a boolean", error_type="validation_error", code="invalid_parameter")
@@ -136,6 +165,9 @@ def trim(
     output = output_path or _auto_output(input_path, "trimmed")
     _validate_output_path(output)
 
+    messages = []
+    if bpm is not None:
+        start, duration, end, messages = _grid_trim_times(start, duration, end, bpm, fps, offset_s, steps_per_bar)
     start_sec = _validate_trim_times(start, duration, end)
 
     prefix: list[str] = []
@@ -180,6 +212,7 @@ def trim(
         output, "trim", render, build_result=lambda staged: _build_edit_result(staged, "trim", {"elapsed_ms": None})
     )
     if stream_copy:
-        warning = "Stream copy can snap cuts to nearby keyframes; the output may not match the requested boundaries."
-        return result.model_copy(update={"warnings": [*result.warnings, warning]})
-    return result
+        messages.append(
+            "Stream copy can snap cuts to nearby keyframes; the output may not match the requested boundaries."
+        )
+    return result.model_copy(update={"warnings": [*result.warnings, *messages]}) if messages else result
