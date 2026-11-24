@@ -106,3 +106,13 @@ def test_nested_handler_keeps_the_family_address_without_rewriting_message_text(
     assert message.startswith(detail + '; retry with call video_edit_ops(operation="video_trim", params={...})')
     assert "with overwrite=true (MCP)" in message
     assert "private" not in message
+
+
+def test_family_retry_names_params_overwrite_when_params_explicitly_disabled_overwrite():
+    with (
+        retry_context("video_trim", {"output_path": "private", "overwrite": False}, family="video_edit_ops"),
+        retry_context("video_trim", {"output_path": "private", "overwrite": False}),
+    ):
+        message = retry_message("Output already exists", "output_exists")
+    assert "with params.overwrite=true (MCP)" in message
+    assert "private" not in message

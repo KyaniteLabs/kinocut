@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -124,9 +125,10 @@ def _argument_name(key: Any) -> str:
     return text[:64] or "argument"
 
 
-def _actions(code: str, submitted: str) -> tuple[str, str]:
+def _actions(code: str, submitted: str, *, params_overwrite: bool = False) -> tuple[str, str]:
     if code in {"output_exists", "overwrite_refused"}:
-        return f"overwrite=true{submitted}", f"--overwrite{submitted}"
+        mcp_overwrite = "params.overwrite=true" if params_overwrite else "overwrite=true"
+        return f"{mcp_overwrite}{submitted}", f"--overwrite{submitted}"
     if code in {"unsafe_path", "invalid_output_path"}:
         return f"a new output_path{submitted}", f"--output <new-media-path>{submitted}"
     return f"corrected parameters{submitted}", f"corrected flags{submitted}"
@@ -137,8 +139,11 @@ def retry_message(message: str, code: str) -> str:
     operation = route.operation if route else "the same tool"
     target = route.mcp_target() if route else operation
     submitted = _argument_names(route.arguments) if route and not route.family else ""
+    params_overwrite = bool(
+        route and route.family and isinstance(route.arguments, Mapping) and route.arguments.get("overwrite") is False
+    )
     command = cli_route_for_operation(operation) if route else None
-    mcp_action, cli_action = _actions(code, submitted)
+    mcp_action, cli_action = _actions(code, submitted, params_overwrite=params_overwrite)
     mcp = f"call {target} with {mcp_action}" if route else mcp_action
     cli = f"run kino {command} with {cli_action}" if command else cli_action
     if code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:

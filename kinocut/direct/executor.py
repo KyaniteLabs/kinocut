@@ -270,7 +270,18 @@ def apply(plan: dict, confirm: bool = False) -> dict[str, Any]:
         elif tool != "video_thumbnail":
             current = args["output_path"]
     if no_speech and current != plan["output_path"]:
-        current = _copy_silent_output(current, plan)
+        try:
+            current = _copy_silent_output(current, plan)
+        except Exception as exc:
+            return {
+                "success": False,
+                "failed_step": len(plan["steps"]),
+                "failed_tool": "video_direct_apply",
+                "error": _error_result(exc).get("error"),
+                "receipts": receipts,
+                "produced": produced,
+                "output_path": current,
+            }
         produced.append(current)
     produced, removed, retained = _cleanup_intermediates(produced, plan)
     result = {"success": True, "dry_run": False, "receipts": receipts, "produced": produced, "output_path": current}

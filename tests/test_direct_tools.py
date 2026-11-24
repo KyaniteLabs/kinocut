@@ -415,6 +415,34 @@ def test_exception_still_reports_failed_step(api, monkeypatch):
     assert result["produced"] == []
 
 
+def test_silent_fallback_publication_failure_preserves_receipts_and_intermediate(api, monkeypatch):
+    from pathlib import Path
+
+    tools, src, out = api
+    plan = tools.video_direct(src, "louder with captions", output_path=out)["plan"]
+    assert any(step["tool"] == "video_normalize_audio" for step in plan["steps"])
+
+    def run(name, args):
+        if name == "video_normalize_audio":
+            Path(args["output_path"]).write_bytes(b"normalized")
+            return {"success": True, "output_path": args["output_path"]}
+        if name == "video_ai_transcribe":
+            # Destination appears after normalize and before silent fallback publication.
+            Path(out).write_bytes(b"existing-final")
+            return {"success": True, "transcript": "", "segments": [], "no_speech": True}
+        raise AssertionError(f"unexpected step {name}")
+
+    monkeypatch.setattr(executor, "_run_step", run)
+    result = tools.video_direct_apply(plan, confirm=True)
+    assert result["success"] is False
+    assert result["error"]["code"] == "output_exists"
+    assert len(result["receipts"]) == len(plan["steps"])
+    assert len(result["produced"]) == 1
+    assert result["output_path"] == result["produced"][0]
+    assert Path(result["output_path"]).is_file()
+    assert Path(out).read_bytes() == b"existing-final"
+
+
 def test_cli_question_prevents_apply(api, monkeypatch, capsys):
     _, src, out = api
     from kinocut.cli.parser import build_parser
