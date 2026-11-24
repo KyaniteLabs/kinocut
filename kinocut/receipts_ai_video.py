@@ -50,3 +50,17 @@ def read_ai_video_section(receipt: dict[str, Any]) -> AiVideoReceiptSection | No
     if raw is None:
         return None
     return validate_record(AiVideoReceiptSection, raw)
+
+
+def attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> dict[str, Any]:
+    """Record the chosen duration_policy (and any preservation warning) in the receipt.
+
+    Additive only: an ``ai_video`` section is attached without touching any legacy
+    result field. ``shortest`` records the ``outro_may_be_trimmed`` warning code.
+    """
+
+    if not isinstance(result, dict) or not result.get("success"):
+        return result
+    warnings = ("outro_may_be_trimmed",) if duration_policy == "shortest" else ()
+    section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
+    return attach_ai_video_section(result, section)

@@ -65,6 +65,7 @@ def test_workflow_does_not_import_projectstore():
 
 def test_errors_do_not_import_cli_parser():
     assert not _imports_below(PACKAGE / "errors.py", "kinocut.cli.parser")
+    assert not _imports_below(PACKAGE / "tool_routing.py", "kinocut.cli.parser")
 
 
 def test_core_cli_handlers_do_not_dispatch_through_legacy_facade():

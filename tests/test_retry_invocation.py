@@ -6,7 +6,7 @@ say which tool was called or with what, and the stored arguments existed for
 exactly that (t_e3775201 F5).
 """
 
-from kinocut.errors import MCPVideoError, retry_context
+from kinocut.errors import MCPVideoError, retry_context, retry_message
 
 
 def _message(**arguments) -> str:
@@ -91,3 +91,18 @@ def test_retry_invocation_names_the_cli_command_for_mapped_tools():
     with retry_context("video_quality_check", {"input_path": "/tmp/a.mp4"}):
         message = MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]
     assert "video-quality-check" in message
+
+
+def test_cli_retry_uses_the_actual_cli_command_and_no_mcp_target():
+    with retry_context("direct", cli=True):
+        message = retry_message("existing output", "output_exists")
+    assert message == "existing output; retry with run kino direct with --overwrite (CLI)"
+
+
+def test_nested_handler_keeps_the_family_address_without_rewriting_message_text():
+    detail = "Media changed; retry with a stable source"
+    with retry_context("video_trim", family="video_edit_ops"), retry_context("video_trim", {"input_path": "private"}):
+        message = retry_message(detail, "output_exists")
+    assert message.startswith(detail + '; retry with call video_edit_ops(operation="video_trim", params={...})')
+    assert "with overwrite=true (MCP)" in message
+    assert "private" not in message

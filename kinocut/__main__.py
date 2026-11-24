@@ -300,7 +300,7 @@ def main() -> None:
 
             if isinstance(e, MCPVideoError):
                 try:
-                    with retry_context(getattr(args, "command", "kino"), vars(args)):
+                    with retry_context(getattr(args, "command", "kino"), vars(args), cli=True):
                         err_data = e.to_dict()
                 except Exception as exc:
                     logger.warning("MCPVideoError.to_dict() failed: %s", exc)

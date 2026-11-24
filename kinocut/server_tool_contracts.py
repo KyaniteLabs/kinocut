@@ -212,9 +212,11 @@ class _ContractFastMCP(FastMCP):
     """Reject undeclared top-level arguments before a handler executes."""
 
     def add_tool(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
-        from .output_policy import with_output_policy
+        # Raw SDK registrations bypass the policy already established by @_safe_tool.
+        if not getattr(fn, "_kinocut_output_policy", False) and not getattr(fn, "_kinocut_read_only", False):
+            from .output_policy import with_output_policy
 
-        fn = with_output_policy(fn)
+            fn = with_output_policy(fn)
         if not inspect.iscoroutinefunction(fn):
             fn = _offload_sync_tool(fn)
         super().add_tool(fn, *args, **kwargs)

@@ -19,6 +19,7 @@ from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_X
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
 from .review_card import attach_review_card
+from .receipts_ai_video import attach_add_audio_receipt
 from .validation_errors import rejected_value
 
 
@@ -80,23 +81,6 @@ def speed(*args: Any, **kwargs: Any) -> Any:
     from .engine_speed import speed as run_speed
 
     return run_speed(*args, **kwargs)
-
-
-def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> dict[str, Any]:
-    """Record the chosen duration_policy (and any preservation warning) in the receipt.
-
-    Additive only: an ``ai_video`` section is attached without touching any legacy
-    result field. ``shortest`` records the ``outro_may_be_trimmed`` warning code.
-    """
-
-    if not isinstance(result, dict) or not result.get("success"):
-        return result
-    from .contracts.receipt_ai_video import AiVideoReceiptSection
-    from .receipts_ai_video import attach_ai_video_section
-
-    warnings = ("outro_may_be_trimmed",) if duration_policy == "shortest" else ()
-    section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
-    return attach_ai_video_section(result, section)
 
 
 ExistingVideoPath = Annotated[
@@ -465,7 +449,7 @@ def video_add_audio(
             duration_policy=duration_policy,
         )
     )
-    return _attach_add_audio_receipt(result, duration_policy)
+    return attach_add_audio_receipt(result, duration_policy)
 
 
 @mcp.tool()
