@@ -14,7 +14,7 @@ from .transcribe import _extract_audio_segment, _format_json_transcript
 
 
 def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
-    """Normalize Whisper output while retaining its real word timing entries."""
+    """Normalize Whisper output while retaining real word timings and raw segment metadata."""
     _validate_chunk_result_shape(result_data)
     raw_segments = [segment for segment in result_data.get("segments") or () if isinstance(segment, dict)]
     formatted = _format_json_transcript(
@@ -23,6 +23,9 @@ def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
         str(result_data.get("language", "unknown")),
     )
     for normalized, raw in zip(formatted["segments"], raw_segments, strict=True):
+        for key, value in raw.items():
+            if key not in normalized:
+                normalized[key] = value
         normalized["words"] = list(raw.get("words") or ())
     return formatted
 
