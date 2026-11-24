@@ -60,24 +60,31 @@ export function clampPercent(value) {
 
 // Hermes hands MCP results to tool.complete as text: `{ result: "<JSON>" }`, sometimes
 // nested once more. Unwrap up to three layers of JSON strings or `result` fields.
-export function unwrapResult(value) {
-  let r = value
-  for (let i = 0; i < 3; i++) {
-    if (typeof r === 'string') {
+function inspectResult(value) {
+  let result = value
+  let failed = false
+  let message = ''
+  for (let depth = 0; depth <= 3; depth++) {
+    if (typeof result === 'string' && depth < 3) {
       try {
-        r = JSON.parse(r)
+        result = JSON.parse(result)
+        continue
       } catch {
-        return null
+        break
       }
-      continue
     }
-    if (r && typeof r === 'object' && !failureOf(r) && !('success' in r) && 'result' in r) {
-      r = r.result
-      continue
-    }
-    break
+    if (!result || typeof result !== 'object') break
+    failed ||= failureOf(result)
+    message = errorText(result.error) || errorText(result) || message
+    if (depth === 3 || !('result' in result) || (!failed && 'success' in result)) break
+    result = result.result
   }
-  return r && typeof r === 'object' ? r : null
+  return { result, failed, message: typeof result === 'string' ? result || message : message }
+}
+
+export function unwrapResult(value) {
+  const { result } = inspectResult(value)
+  return result && typeof result === 'object' ? result : null
 }
 
 function failureOf(r) {
@@ -89,12 +96,15 @@ function failureOf(r) {
 export function isFailedComplete(payload) {
   if (!payload) return false
   if (failureOf(payload)) return true
-  return failureOf(unwrapResult(payload.result))
+  return inspectResult(payload.result).failed
 }
 
 function outputSize(result) {
   if (Number.isFinite(result?.size_bytes) && result.size_bytes >= 0) return result.size_bytes
-  if (Number.isFinite(result?.size_mb) && result.size_mb >= 0) return result.size_mb * 1024 ** 2
+  if (Number.isFinite(result?.size_mb)) {
+    const bytes = result.size_mb * 1024 ** 2
+    if (Number.isFinite(bytes) && bytes >= 0) return bytes
+  }
   return null
 }
 
@@ -154,10 +164,17 @@ export function reduceRenders(state, event) {
     if (event.type === 'progress' && finished.includes(key)) return prev
     const existing = Object.hasOwn(prev.active, key) ? prev.active[key] : null
     const percent = event.type === 'progress' ? clampPercent(payload.percent) : null
+    if (percent !== null && existing?.percent != null && percent < existing.percent) return prev
     const historyId = existing ? existing.historyId : nextHistoryId
-    const progressSample = existing?.progressSample ?? (percent === null ? null : { percent, at: now })
-    const remainingMs =
-      percent === null ? existing?.remainingMs ?? null : estimateRemainingMs(progressSample, percent, now)
+    let progressSample = existing?.progressSample ?? null
+    let remainingMs = existing?.remainingMs ?? null
+    if (percent !== null) {
+      const estimate = estimateRemainingMs(progressSample, percent, now)
+      if (!progressSample || percent === existing?.percent || percent === 100 || estimate !== null) {
+        progressSample = { percent, at: now }
+        remainingMs = estimate
+      }
+    }
     const next = {
       key,
       historyId,
@@ -185,13 +202,13 @@ export function reduceRenders(state, event) {
     delete active[key]
     const historyId = existing ? existing.historyId : nextHistoryId
     const historyKey = `${key}@${historyId}`
-    const failed = isFailedComplete(payload)
+    const details = inspectResult(payload.result)
+    const failed = failureOf(payload) || details.failed
     const startedAt = existing ? existing.startedAt : now
     const durationMs =
       typeof payload.duration_s === 'number' && Number.isFinite(payload.duration_s)
         ? Math.max(0, Math.round(payload.duration_s * 1000))
         : Math.max(0, now - startedAt)
-    const result = unwrapResult(payload.result)
     const done = {
       key: historyKey,
       runKey: key,
@@ -202,9 +219,9 @@ export function reduceRenders(state, event) {
       kind: runKind(tool),
       status: failed ? 'failed' : 'done',
       durationMs,
-      sizeBytes: failed ? null : outputSize(result),
+      sizeBytes: failed ? null : outputSize(details.result),
       message: failed
-        ? errorText(payload.error) || errorText(result?.error) || errorText(result) ||
+        ? errorText(payload.error) || details.message ||
           (existing && existing.message) ||
           ''
         : (existing && existing.message) || (typeof payload.summary === 'string' ? payload.summary : ''),

@@ -104,7 +104,7 @@ test('recent is capped at 10, newest first', () => {
 test('percent is clamped to 0-100', () => {
   let s = reduceRenders(initialRenders(), ev('progress', { tool_id: 'p', name: T, percent: 250 }))
   assert.equal(s.active.p.percent, 100)
-  s = reduceRenders(s, ev('progress', { tool_id: 'p', name: T, percent: -5 }))
+  s = reduceRenders(initialRenders(), ev('progress', { tool_id: 'p', name: T, percent: -5 }))
   assert.equal(s.active.p.percent, 0)
   s = reduceRenders(s, ev('progress', { tool_id: 'p', name: T, percent: null }))
   assert.equal(s.active.p.percent, 0, 'null keeps the last known percent')
@@ -217,4 +217,36 @@ test('a Hermes text-wrapped failure counts as failed', () => {
 
 test('an MCP isError result counts as failed', () => {
   assert.equal(isFailedComplete({ result: { isError: true, content: [{ type: 'text', text: 'nope' }] } }), true)
+})
+
+test('outer failure flag survives unwrapping the inner cause', () => {
+  for (const cause of ['Missing source', { message: 'Missing source' }, JSON.stringify({ error: 'Missing source' })]) {
+    const result = JSON.stringify({ is_error: true, result: cause })
+    const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 'f', name: T, result })).recent
+    assert.equal(row.status, 'failed')
+    assert.equal(row.message, 'Missing source')
+  }
+})
+
+test('regressive progress cannot undo 100% or revive an ETA', () => {
+  let state = initialRenders()
+  for (const [percent, now] of [[20, 0], [100, 1000], [95, 1500]]) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.percent, 100)
+  assert.equal(state.active.p.remainingMs, null)
+})
+
+test('ETA measures resumed progress from the end of a stall', () => {
+  let state = initialRenders()
+  for (const [percent, now] of [[10, 0], [40, 1000], [40, 61000], [60, 62000]]) {
+    state = reduceRenders(state, ev('progress', { tool_id: 'p', name: T, percent }, now))
+  }
+  assert.equal(state.active.p.remainingMs, 2000)
+})
+
+test('MiB values that overflow in bytes have no display size', () => {
+  const result = { size_mb: Number.MAX_VALUE }
+  const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 's', name: T, result })).recent
+  assert.equal(row.sizeBytes, null)
 })
