@@ -177,25 +177,6 @@ def _parse_probe_duration(value: object) -> float | None:
     return duration if math.isfinite(duration) and duration >= 0 else None
 
 
-def _matroska_picture_extent(stream: dict, start: float | None) -> tuple[float, float] | None:
-    # FFmpeg's Matroska DURATION tag is an end timestamp, not a span.
-    if start is None or not isinstance(tags := stream.get("tags"), dict):
-        return None
-    for key, value in tags.items():
-        if str(key).upper().split("-", 1)[0] != "DURATION" or not isinstance(value, str):
-            continue
-        parts = value.strip().split(":")
-        if len(parts) != 3 or not all(part.isascii() and part.isdigit() for part in parts[:2]):
-            continue
-        hours, minutes, seconds = _timestamp(parts[0]), _timestamp(parts[1]), _timestamp(parts[2])
-        if hours is None or minutes is None or minutes >= 60 or seconds is None or not 0 <= seconds < 60:
-            continue
-        span = hours * 3600 + minutes * 60 + seconds - start
-        if math.isfinite(span) and span > 0:
-            return start, span
-    return None
-
-
 def _parse_rate(value: object) -> Fraction | None:
     if not isinstance(value, str) or "/" not in value:
         return None
@@ -325,10 +306,6 @@ def _picture_extent(path: str, metadata: dict) -> tuple[float, float]:
     except (TypeError, ValueError):
         nb_frames = 0
     fmt_names = {part.strip().lower() for part in str(container.get("format_name") or "").split(",")}
-    if fmt_names & {"matroska", "webm"} and not duration:
-        tagged = _matroska_picture_extent(stream, start)
-        if tagged is not None:
-            return tagged
     is_isobmff = bool(fmt_names & {"mov", "mp4", "m4a", "3gp", "3g2", "mj2"})
     if (
         duration is not None

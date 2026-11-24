@@ -532,3 +532,23 @@ def test_packet_without_presentation_timestamp_cannot_certify_partial_extent(med
     with pytest.raises(MCPVideoError) as error:
         module._packet_extent(str(media[0]), "v:0", runner=malformed_metadata)
     assert error.value.code == "invalid_media_duration"
+
+
+def test_offset_matroska_uses_authoritative_packet_extent_for_mix_bounds(tmp_path):
+    source, track, output = tmp_path / "offset.mkv", tmp_path / "tick.wav", tmp_path / "mixed.mp4"
+    _ffmpeg(
+        "-itsoffset",
+        "0.5",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=gray:s=160x90:r=12:d=1",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        str(source),
+    )
+    _ffmpeg("-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:d=0.1", str(track))
+    result = mix_audio(str(source), [{"path": str(track), "start": 0.95}], str(output))
+    assert result.success and output.is_file()

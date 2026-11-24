@@ -206,3 +206,30 @@ def test_single_dimension_resize_uses_rotated_display_geometry(tmp_path, sample_
     result = engine_resize.resize(rotated, width=300, output_path=output)
     assert result.resolution == "300x400"
     assert engine_probe.probe(output).display_resolution == "300x400"
+
+
+def test_invalidate_probe_cache_via_deleted_symlink_evicts_target(tmp_path, sample_video, monkeypatch):
+    import os
+
+    target = tmp_path / "target.mp4"
+    target.write_bytes(Path(sample_video).read_bytes())
+    alias = tmp_path / "alias.mp4"
+    os.symlink(target, alias)
+    engine_probe.invalidate_probe_cache()
+    calls = 0
+    real_ffprobe = engine_probe._run_ffprobe_json
+
+    def counted_ffprobe(path, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return real_ffprobe(path, *args, **kwargs)
+
+    monkeypatch.setattr(engine_probe, "_run_ffprobe_json", counted_ffprobe)
+    engine_probe.probe(str(alias))
+    assert calls == 1
+    engine_probe.probe(str(target))
+    assert calls == 1
+    alias.unlink()
+    engine_probe.invalidate_probe_cache(str(alias))
+    engine_probe.probe(str(target))
+    assert calls == 2
