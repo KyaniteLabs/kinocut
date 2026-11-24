@@ -177,6 +177,8 @@ def _make_args(**kwargs):
         "frames_arg": None,
         "image_format": None,
         "fps": None,
+        "bpm": None,
+        "offset": 0.0,
         "start_frame": None,
         "end_frame": None,
         "zoom": None,
