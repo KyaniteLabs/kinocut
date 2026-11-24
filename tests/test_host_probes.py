@@ -124,6 +124,12 @@ def test_injected_environ_home_and_hyperframes_resolvers_control_discovery(tmp_p
         home=lambda: fake_home,
     )
     assert tilde_host.crush_sources() == tilde_shaders.resolve()
+    double_slash_host = HostProbes(
+        environ={"MCP_VIDEO_CRUSH_PATH": "~//shaders", "XDG_CACHE_HOME": "~//cache"},
+        home=lambda: fake_home,
+    )
+    assert double_slash_host.crush_sources() == tilde_shaders.resolve()
+    assert double_slash_host.whisper_weights_path("base") == fake_home / "cache" / "whisper" / "base.pt"
     report = run_diagnostics(probes=host)
     hf = next(check for check in report["checks"] if check["name"] == "hyperframes")
     assert hf["ok"] is True and hf["version"] == "0.8.140"

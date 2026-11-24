@@ -158,7 +158,8 @@ def _expand_home(raw: str, home: Callable[[], Path]) -> Path:
     if raw == "~":
         return home()
     if raw.startswith(("~/", "~\\")):
-        return home() / raw[2:]
+        suffix = raw[1:].lstrip("/\\")
+        return home() / suffix if suffix else home()
     return Path(raw).expanduser()
 
 
