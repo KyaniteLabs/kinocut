@@ -213,7 +213,7 @@ def _check_command(definition: dict[str, Any], probes: HostProbes) -> dict[str, 
             ok = False
 
     if definition["name"] == "node" and ok and (hyperframes_path := probes.which("hyperframes")):
-        extra.update(report_resolved_hyperframes(hyperframes_path))
+        extra.update(report_resolved_hyperframes(hyperframes_path, probes=probes))
 
     return {
         "name": definition["name"],
@@ -240,7 +240,10 @@ def _check_package(
     version = probes.package_version(distribution_name) if found else None
     ok = found and version is not None
     probe = _UPSCALE_IMPORTS.get(distribution_name)
-    if ok and probe:
+    real_package_probes = (
+        probes.find_spec is _DEFAULT_PROBES.find_spec and probes.package_version is _DEFAULT_PROBES.package_version
+    )
+    if ok and probe and (real_package_probes or probes.version_runner is not _DEFAULT_PROBES.version_runner):
         marker = probes.version_runner([sys.executable, "-P", "-c", f"{probe}; print('import ok')"])
         ok = marker is not None
         if not ok:
@@ -485,8 +488,9 @@ def _summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _rescue_summary(checks: list[dict[str, Any]], probes: HostProbes) -> dict[str, Any]:
     by_name = {check["name"]: check for check in checks}
+    core_ready = all(by_name.get(name, {}).get("ok") for name in ("ffmpeg", "ffprobe"))
     capabilities = snapshot_capabilities(probes=probes)
-    captions = captions_available(capabilities)
+    captions = core_ready and captions_available(capabilities)
     automatic = [
         "audio_loudness",
         "container_timestamps",
@@ -495,7 +499,7 @@ def _rescue_summary(checks: list[dict[str, Any]], probes: HostProbes) -> dict[st
         "rotation",
         "universal_mp4",
     ]
-    if not capabilities["ffmpeg"]["available"]:
+    if not core_ready or not capabilities["ffmpeg"]["available"]:
         automatic.clear()
     else:
         if not capabilities["filters"]["loudnorm"]:
@@ -507,7 +511,7 @@ def _rescue_summary(checks: list[dict[str, Any]], probes: HostProbes) -> dict[st
     if captions:
         automatic.append("captions")
     return {
-        "core_ready": all(by_name.get(name, {}).get("ok") for name in ("ffmpeg", "ffprobe")),
+        "core_ready": core_ready,
         "local_only": True,
         "captions_available": captions,
         "automatic_repair_types": automatic,

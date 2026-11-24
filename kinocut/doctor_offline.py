@@ -147,14 +147,19 @@ def offline_probe_refusal(prefix: list[str], command: list[str], env_name: str) 
     return None
 
 
-def report_resolved_hyperframes(path: str) -> dict[str, Any]:
+def report_resolved_hyperframes(path: str, *, probes: HostProbes | None = None) -> dict[str, Any]:
     """Report the resolved Hyperframes executable without running it.
 
     A resolved script can reach the network whatever its source says, and
     the doctor cannot prove otherwise, so it does not run one. The version
     comes from the installed package's metadata, read from disk.
     """
-    version = hyperframes_version_from_metadata(path)
+    metadata_reader = (
+        probes.hyperframes_metadata
+        if probes is not None and probes.hyperframes_metadata is not None
+        else hyperframes_version_from_metadata
+    )
+    version = metadata_reader(path)
     if version:
         return {
             "hyperframes_version": version,
@@ -187,8 +192,9 @@ def check_hyperframes_cli(
     # looked up on PATH, the way a shell would; a path is resolved as one.
     executable = prefix[0]
     located = executable if ("/" in executable or os.sep in executable) else probes.which(executable)
-    path = resolve_executable(located)
-    extra = report_resolved_hyperframes(path) if path else {}
+    resolver = probes.resolve_executable if probes.resolve_executable is not None else resolve_executable
+    path = resolver(located)
+    extra = report_resolved_hyperframes(path, probes=probes) if path else {}
     version = extra.get("hyperframes_version")
     ok = path is not None
     return {

@@ -145,8 +145,25 @@ def _runtime_executable(name: str) -> str | None:
         return None
 
 
-def whisper_model_path(model: str = "base") -> Path:
-    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+WHISPER_MODEL_SHA256: dict[str, str] = {
+    "base": "ed3a0b6b1c0edf879ad9b11b1af5a0e6ab5db9205f891f668f8b0e6c6326e34e",
+}
+
+
+def default_expected_whisper_sha256(model: str = "base") -> str | None:
+    return WHISPER_MODEL_SHA256.get(model)
+
+
+def whisper_model_path(
+    model: str = "base",
+    *,
+    environ: Mapping[str, str] | None = None,
+    home: Callable[[], Path] | None = None,
+) -> Path:
+    env = os.environ if environ is None else environ
+    home_fn = Path.home if home is None else home
+    xdg = env.get("XDG_CACHE_HOME", "").strip()
+    cache = Path(xdg) if xdg else home_fn() / ".cache"
     return cache / "whisper" / f"{model}.pt"
 
 
@@ -168,10 +185,18 @@ class HostProbes:
     import_module: Callable[[str], Any] = importlib.import_module
     legacy_command_runner: Callable[[list[str]], str | None] | None = None
     filters: Callable[[str], frozenset[str]] = _ffmpeg_filters
-    model_path: Callable[[str], Path] = whisper_model_path
+    model_path: Callable[[str], Path] | None = None
+    expected_whisper_sha256: Callable[[str], str | None] = default_expected_whisper_sha256
+    resolve_executable: Callable[[str | None], str | None] | None = None
+    hyperframes_metadata: Callable[[str], str | None] | None = None
     environ: Mapping[str, str] = field(default_factory=lambda: os.environ)
     home: Callable[[], Path] = field(default_factory=lambda: Path.home)
     cwd: Callable[[], Path] = field(default_factory=lambda: Path.cwd)
+
+    def whisper_weights_path(self, model: str = "base") -> Path:
+        if self.model_path is not None:
+            return self.model_path(model)
+        return whisper_model_path(model, environ=self.environ, home=self.home)
 
     def workspace(self) -> tuple[Path, bool, bool, int | None]:
         path = self.cwd()
@@ -181,9 +206,12 @@ class HostProbes:
             return path, False, False, None
 
     def matte_weights(self) -> tuple[Path, bool, str | None]:
-        from .validation import OBJECT_MATTE_WEIGHTS_BYTES, object_matte_cache_path
+        from .validation import OBJECT_MATTE_WEIGHTS_BYTES, OBJECT_MATTE_WEIGHTS_FILENAME, object_matte_cache_path
 
-        path = object_matte_cache_path()
+        if self.environ is os.environ and self.home is Path.home:
+            path = object_matte_cache_path()
+        else:
+            path = self.home() / ".cache" / "mcp-video" / "models" / OBJECT_MATTE_WEIGHTS_FILENAME
         try:
             cached = path.is_file()
             digest = cached_sha256_file(path) if cached and path.stat().st_size == OBJECT_MATTE_WEIGHTS_BYTES else None
@@ -192,9 +220,13 @@ class HostProbes:
         return path, cached, digest
 
     def crush_sources(self) -> Path | None:
-        from .engine_glitch_shader import _resolve_crush_path
-
-        path = Path(_resolve_crush_path())
+        env_path = self.environ.get("MCP_VIDEO_CRUSH_PATH", "").strip()
+        if env_path:
+            path = Path(env_path).expanduser().resolve()
+            return path if (path / "common.glsl").is_file() else None
+        data_dir = self.environ.get("KINOCUT_DATA_DIR", "").strip()
+        root = Path(data_dir).expanduser().resolve() if data_dir else self.home() / ".mcp-video"
+        path = root / "crush-js" / "src"
         return path if (path / "common.glsl").is_file() else None
 
     def tool_mode(self) -> str:

@@ -39,19 +39,26 @@ def snapshot_capabilities(
     )
     ffmpeg_path = probes.which("ffmpeg")
     ffprobe_path = probes.which("ffprobe")
-    ffmpeg_available = bool(ffmpeg_path and ffprobe_path)
-    whisper_spec = probes.find_spec("whisper")
-    base_model_sha256 = local_digest(probes.model_path("base")) if whisper_spec is not None else None
-    filters = probes.filters(ffmpeg_path) if ffmpeg_available else frozenset()
     version_line = probes.command_version(["ffmpeg", "-version"], ffmpeg_path) if ffmpeg_path else None
+    ffprobe_version_line = probes.command_version(["ffprobe", "-version"], ffprobe_path) if ffprobe_path else None
+    ffmpeg_ok = bool(ffmpeg_path and version_line)
+    ffprobe_ok = bool(ffprobe_path and ffprobe_version_line)
+    ffmpeg_available = ffmpeg_ok and ffprobe_ok
+    whisper_spec = probes.find_spec("whisper")
+    base_model_sha256 = local_digest(probes.whisper_weights_path("base")) if whisper_spec is not None else None
+    expected_base = probes.expected_whisper_sha256("base")
+    base_model_valid = bool(
+        base_model_sha256 is not None and expected_base and base_model_sha256 == f"sha256:{expected_base}"
+    )
+    filters = probes.filters(ffmpeg_path) if ffmpeg_available else frozenset()
     version = re.search(r"ffmpeg version (\S+)", version_line or "", re.IGNORECASE)
 
     return {
         "local_only": True,
         "ffmpeg": {
             "available": ffmpeg_available,
-            "ffmpeg": bool(ffmpeg_path),
-            "ffprobe": bool(ffprobe_path),
+            "ffmpeg": ffmpeg_ok,
+            "ffprobe": ffprobe_ok,
             "version": version.group(1) if version else None,
         },
         "whisper": {
@@ -60,7 +67,7 @@ def snapshot_capabilities(
             "executor": "openai-whisper",
         },
         "whisper_models": {
-            "base": {"available": base_model_sha256 is not None, "sha256": base_model_sha256},
+            "base": {"available": base_model_valid, "sha256": base_model_sha256},
         },
         "filters": {name: name in filters for name in ("loudnorm", "afftdn", "eq", "aresample", "transpose")},
     }
