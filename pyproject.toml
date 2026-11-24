@@ -251,16 +251,22 @@ include = [
     "kinocut/cli/parser/postrescue.py",
     "kinocut/cli/parser/rescue.py",
     "kinocut/client/contracts.py",
-    "kinocut/client/postrescue.py",
-    "kinocut/client/rescue.py",
+    "kinocut/client/workflow.py",
+    "kinocut/music_grid",
+    "kinocut/audio_sync",
+    "kinocut/shot_cache",
+    "kinocut/subframe_flash.py",
+    "kinocut/offline.py",
+    "kinocut/openai_compat.py",
+    "kinocut/doctor_offline.py",
+    "kinocut/tv_preview.py",
+    "kinocut/request_log.py",
     "kinocut/postrescue.py",
     "kinocut/server_tools_postrescue.py",
     "kinocut/server_tools_rescue.py",
 ]
 typeCheckingMode = "basic"
 pythonVersion = "3.11"
-venvPath = "."
-venv = ".venv"
 
 [tool.coverage.run]
 source = ["kinocut", "kinocut_sound"]

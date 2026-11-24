@@ -77,7 +77,7 @@ hermes() {
     git push -q -f -u origin "$branch"
     gh pr create -R "$up" --base main --head "$ME:$branch" \
       --title "plugin-catalog: pin kinocut $VERSION" \
-      --body "Re-pins \`kinocut\` to \`$SHA\` (release $VERSION). Submitted by the repository owner (KyaniteLabs). Configuration-only package; the MCP server launches as \`uvx kinocut==$VERSION\` over stdio."
+      --body "Re-pins \`kinocut\` to \`$SHA\` (release $VERSION). Submitted by the repository owner (KyaniteLabs). Kinocut ships an opt-in Hermes Desktop plugin (\`plugins/kinocut/desktop/plugin.js\` under \`subdir: plugins/kinocut\`) alongside the MCP server, which launches as \`uvx kinocut==$VERSION\` over stdio. Please perform a desktop-tier review per \`NousResearch/hermes-agent/plugin-catalog/README.md\`."
   fi
 }
 
