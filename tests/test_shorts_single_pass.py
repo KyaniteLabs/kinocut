@@ -163,10 +163,15 @@ def test_crop_failure_private_and_clean(source, tmp_path, monkeypatch, failure):
     assert not list(tmp_path.iterdir())
 
 
-def test_captioned_crop_succeeds_when_tmpdir_has_apostrophe(source, tmp_path, monkeypatch):
-    scratch = tmp_path / "operator's scratch"
+@pytest.mark.parametrize(
+    ("scratch_name", "out_name"), [("operator's scratch", "plain_out"), ("plain_scratch", "creator's shorts")]
+)
+def test_captioned_crop_succeeds_with_apostrophe_in_tmpdir_or_output_dir(
+    source, tmp_path, monkeypatch, scratch_name, out_name
+):
+    scratch = tmp_path / scratch_name
     scratch.mkdir()
-    out_dir = tmp_path / "plain_out"
+    out_dir = tmp_path / out_name
     out_dir.mkdir()
     output = out_dir / "short.mp4"
     monkeypatch.setattr(tempfile, "tempdir", str(scratch))

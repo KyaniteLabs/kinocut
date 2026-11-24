@@ -506,16 +506,32 @@ class TestEscapingConsistency:
         result = _escape_ffmpeg_filter_value("/tmp/test.mp4")
         assert result == "/tmp/test.mp4"
 
-    def test_lavfi_path_escaping_in_guardrails(self) -> None:
-        """quality_guardrails generates a properly escaped movie= FFprobe command for special-char paths."""
+    def test_lavfi_path_escaping_in_guardrails(self, tmp_path) -> None:
+        """quality_guardrails generates a lavfi FFprobe command that actually reads special-char filenames."""
+        import subprocess
         from kinocut.quality_guardrails import VisualQualityGuardrails
         from kinocut.quality_lavfi import frame_tags_command
 
-        special_path = "/tmp/clip's:name[1],k=v.mp4"
+        special_clip = tmp_path / "clip's:name[1],k=v.mp4"
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=gray:s=64x64:d=0.1",
+                "-frames:v",
+                "1",
+                str(special_clip),
+            ],
+            check=True,
+            capture_output=True,
+        )
         guardrails = VisualQualityGuardrails()
-        source = guardrails._movie_source(special_path, "signalstats")
+        source = guardrails._movie_source(str(special_clip), "signalstats")
         cmd = frame_tags_command(source, "lavfi.signalstats.YAVG")
         assert cmd[cmd.index("-i") + 1] == source
-        assert source.startswith("movie='")
-        assert "\\:" in source and "\\[" in source and "\\]" in source and "\\," in source and "\\=" in source
-        assert "'\\''" in source
+        proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        assert proc.returncode == 0, proc.stderr
+        assert "lavfi.signalstats.YAVG" in proc.stdout

@@ -325,6 +325,19 @@ def _prepare_captions(
     return generated.srt_path, receipt
 
 
+def _filter_safe_ass_dir(srt: str, output: str) -> str:
+    """Pick an owned directory without filter-hostile apostrophes for transient ASS staging."""
+    candidates = [
+        str(Path(srt).parent),
+        os.path.dirname(os.path.abspath(output)),
+        os.getcwd(),
+    ]
+    for directory in candidates:
+        if "'" not in directory and os.path.isdir(directory):
+            return directory
+    return os.path.dirname(os.path.abspath(output))
+
+
 def _render_crop(
     assembled: str,
     output: str,
@@ -350,7 +363,7 @@ def _render_crop(
             force_style = parse_force_style(DEFAULT_SUBTITLE_STYLE if style is None else style)
             try:
                 fd, temp_ass = tempfile.mkstemp(
-                    suffix=".ass", prefix="kc_shorts_", dir=os.path.dirname(os.path.abspath(output))
+                    suffix=".ass", prefix="kc_shorts_", dir=_filter_safe_ass_dir(srt, output)
                 )
                 with os.fdopen(fd, "w", encoding="utf-8") as handle:
                     handle.write(synthesize_dimensioned_ass(srt, (width, height)))

@@ -129,8 +129,10 @@ def test_all_hosted_rows_provision_and_validate_native_ffmpeg_pair(tmp_path: Pat
         proc = subprocess.run([bash, str(install_script)], env=env, capture_output=True, text=True, check=False)
         assert proc.returncode == 0, proc.stderr
         assert (fake_bin / "ffmpeg").is_file() and (fake_bin / "ffprobe").is_file()
-        apt_log = log_file.read_text(encoding="utf-8")
-        assert "apt-get" in apt_log and "--yes --no-install-recommends ffmpeg" in apt_log
+        apt_lines = [line.split() for line in log_file.read_text(encoding="utf-8").splitlines()]
+        assert any(
+            {"apt-get", "install", "ffmpeg", "--yes", "--no-install-recommends"} <= set(tokens) for tokens in apt_lines
+        )
 
     for section in (clean, optional):
         assert 'shutil.which("ffmpeg")' in section
