@@ -5,6 +5,7 @@ import re
 
 from .defaults import DEFAULT_VISION_MODE
 from .errors import MCPVideoError
+from .offline import is_offline_mode, require_offline_allowed_url
 from .validation import VISION_MODES
 
 
@@ -16,12 +17,22 @@ def vision_provider_allowed(endpoint_kind: str | None = None, *, fixed_origin: b
     if mode == "off":
         return False
     if fixed_origin:
-        return mode == "remote" and not os.environ.get("KINOCUT_VISION_BASE_URL", "").strip()
+        return (
+            not is_offline_mode()
+            and mode == "remote"
+            and not any(os.environ.get(name, "").strip() for name in ("KINOCUT_VISION_BASE_URL", "LFM3_VL_URL"))
+        )
     return mode == "remote" or endpoint_kind == "local"
 
 
 def require_vision_provider(endpoint_kind: str | None = None, *, fixed_origin: bool = False) -> None:
     """Guard execution even when a caller bypasses a public tool handler."""
+    if fixed_origin:
+        require_offline_allowed_url(
+            "https://api.anthropic.com",
+            feature="Cloud vision QC",
+            local_alternative="Configure a loopback OpenAI-compatible vision server.",
+        )
     if not vision_provider_allowed(endpoint_kind, fixed_origin=fixed_origin):
         raise MCPVideoError(
             "Vision provider execution is disabled for this route. Use host image inspection, "

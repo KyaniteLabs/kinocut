@@ -6,11 +6,9 @@ from contextlib import suppress
 import os
 from typing import Any
 
-from .._install_hints import pip_install_hint
-from ..errors import MCPVideoError
 from ._longform_merge import _validate_chunk_result_shape
 from ._longform_models import LongformChunk
-from .transcribe import _extract_audio_segment, _format_json_transcript
+from .transcribe import _extract_audio_segment, _format_json_transcript, _import_whisper, _load_whisper_model
 
 
 def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
@@ -48,24 +46,9 @@ def _transcribe_chunk(
             chunk.duration,
             output_dir=work_dir,
         )
-        try:
-            import whisper  # type: ignore[import-not-found]
-        except ImportError as exc:
-            # Same contract as the single-file path: the hint names the
-            # version that is actually running (audit row 78).
-            hint = pip_install_hint("transcribe")
-            raise MCPVideoError(
-                f"Whisper not installed. Install with: {hint}",
-                error_type="dependency_error",
-                code="missing_whisper",
-                suggested_action={
-                    "auto_fix": False,
-                    "description": f"Run: {hint} to enable transcription",
-                },
-            ) from exc
         whisper_model = model_cache.get(model) if model_cache is not None else None
         if whisper_model is None:
-            whisper_model = whisper.load_model(model)
+            whisper_model = _load_whisper_model(_import_whisper(model), model)
             if model_cache is not None:
                 model_cache[model] = whisper_model
         options: dict[str, Any] = {"word_timestamps": True, "task": "transcribe"}

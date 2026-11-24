@@ -18,6 +18,7 @@ from pathlib import Path
 from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _validate_input_path, _validate_output_path
 from ..limits import DEFAULT_AI_TIMEOUT, DEFAULT_FFMPEG_TIMEOUT, MAX_AUDIO_DURATION
+from ..offline import is_offline_mode
 from ..validation import VALID_DEMUCS_MODELS
 from ..validation_errors import rejected_value
 
@@ -134,6 +135,12 @@ def ai_stem_separation(
         FileNotFoundError: If video file doesn't exist
     """
     _validate_demucs_model(model)
+    if is_offline_mode():
+        raise MCPVideoError(
+            "Automatic Demucs weight loading is disabled offline. Use existing local stem WAVs.",
+            error_type="offline_error",
+            code="offline_network_blocked",
+        )
     _validate_input_path(video)
 
     # Check for demucs availability

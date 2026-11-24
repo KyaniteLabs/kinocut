@@ -27,6 +27,7 @@ from ..ffmpeg_helpers import (
 )
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_UPSCALE_FRAMES
 from ..model_cache import model_download_stage
+from ..offline import is_offline_mode, require_offline_local_artifact
 from ..staged_writers import open_staged_writer
 from ..validation_errors import rejected_value
 
@@ -109,8 +110,12 @@ def _download_fsrcnn_model(scale: int) -> Path:
         )
 
     cache_dir = cache_home() / "models"
-    cache_dir.mkdir(parents=True, exist_ok=True)
     model_path = cache_dir / f"FSRCNN_x{scale}.pb"
+    if is_offline_mode():
+        require_offline_local_artifact(model_path, feature="Upscale", env_hint="Stage the pinned FSRCNN weights.")
+        _verify_model_hash(model_path, _MODEL_HASHES[model_path.name], delete_invalid=False)
+        return model_path
+    cache_dir.mkdir(parents=True, exist_ok=True)
     model_filename = model_path.name
 
     if model_filename not in _MODEL_HASHES:
@@ -407,18 +412,7 @@ def ai_upscale(
     reject_output_alias(output, (str(video_path),))
     output_path = Path(output)
 
-    # Try to use Real-ESRGAN if available, otherwise use OpenCV DNN fallback
-    # NOTE: basicsr <= 1.4.2 has CVE-2024-27763 (command injection via SLURM_NODELIST).
-    # Our usage only imports the RRDBNet architecture class for inference.
-    # We do not execute the vulnerable scontrol path in basicsr/utils/dist_util.py.
-    try:
-        import realesrgan  # noqa: F401
-        import basicsr.archs.rrdbnet_arch  # noqa: F401
-
-        has_realesrgan = True
-    except ImportError:
-        has_realesrgan = False
-
+    has_realesrgan = _realesrgan_available(scale)
     with _atomic_output(str(output_path)) as staged_output:
         _validate_output_path(staged_output)
         if not has_realesrgan:
@@ -435,6 +429,22 @@ def ai_upscale(
             _upscale_with_realesrgan(video_path, Path(staged_output), model, scale)
 
     return str(output_path)
+
+
+def _realesrgan_available(scale: int) -> bool:
+    if is_offline_mode():
+        require_offline_local_artifact(
+            cache_home() / "models" / f"FSRCNN_x{scale}.pb",
+            feature="Upscale",
+            env_hint="Stage the pinned FSRCNN weights.",
+        )
+        return False
+    try:
+        import realesrgan  # noqa: F401
+        import basicsr.archs.rrdbnet_arch  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def _get_video_fps(video_path: str) -> float | None:

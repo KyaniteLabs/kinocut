@@ -25,6 +25,8 @@ from kinocut.defaults import (
     token_budget,
 )
 from kinocut.errors import MCPVideoError
+from kinocut.image_engine import VISION_LOCAL_HINT, _openai_image, resolve_vision_endpoint
+from kinocut.openai_compat import chat_completion, completions_url
 from kinocut.vision_policy import require_vision_provider, strip_think_blocks, vision_provider_allowed
 from kinocut.limits import (
     MAX_VIDEO_DURATION,
@@ -58,6 +60,9 @@ class SemanticVisionAssessment(ValueObject):
 
 def configured_vision_model() -> str | None:
     """No default model and no requests triggered solely by an SDK installation."""
+    local = _local_openai_endpoint()
+    if local:
+        return local["model"]
     if not vision_provider_allowed(fixed_origin=True):
         return None
     model = os.environ.get("KINOCUT_VISION_MODEL")
@@ -66,6 +71,19 @@ def configured_vision_model() -> str | None:
     if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", model) is None:
         raise MCPVideoError("KINOCUT_VISION_MODEL must be a bounded model identifier", error_type="validation_error")
     return model
+
+
+def _local_openai_endpoint() -> dict | None:
+    if not any(os.environ.get(name, "").strip() for name in ("KINOCUT_VISION_BASE_URL", "LFM3_VL_URL")):
+        return None
+    endpoint = resolve_vision_endpoint()
+    if (
+        endpoint["endpoint_kind"] == "local"
+        and endpoint.get("api_style") == "openai"
+        and vision_provider_allowed("local")
+    ):
+        return endpoint
+    return None
 
 
 def _image_content(sample: dict) -> list[dict]:
@@ -87,7 +105,9 @@ def _image_content(sample: dict) -> list[dict]:
 
 def assess_keyframes(model: str, samples: list[dict]) -> SemanticVisionAssessment:
     """Run one bounded request; malformed responses, errors and timeouts fail closed."""
-    require_vision_provider(fixed_origin=True)
+    local = _local_openai_endpoint()
+    if not local:
+        require_vision_provider(fixed_origin=True)
     if not samples or len(samples) > MAX_VISION_SAMPLE_FRAMES:
         raise MCPVideoError("Vision sample count is outside its bounds", error_type="validation_error")
     content = [block for sample in samples for block in _image_content(sample)]
@@ -103,9 +123,36 @@ def assess_keyframes(model: str, samples: list[dict]) -> SemanticVisionAssessmen
         ),
         "messages": [{"role": "user", "content": content}],
     }
+    if local:
+        payload["messages"] = [
+            {"role": "system", "content": payload.pop("system")},
+            {
+                "role": "user",
+                "content": [
+                    _openai_image(block["source"]["media_type"], block["source"]["data"])
+                    if block["type"] == "image"
+                    else block
+                    for block in content
+                ],
+            },
+        ]
     raw = json.dumps(payload, allow_nan=False).encode("utf-8")
     if len(raw) > MAX_VISION_REQUEST_BYTES:
         raise MCPVideoError("Vision request exceeds its byte ceiling", error_type="validation_error")
+    if local:
+        text = chat_completion(
+            completions_url(local["base_url"]), payload, feature="Vision QC", local_alternative=VISION_LOCAL_HINT
+        )
+    else:
+        text = _cloud_assessment_text(raw)
+    assessment = SemanticVisionAssessment.model_validate_json(strip_think_blocks(text))
+    timestamps = {sample["time"] for sample in samples}
+    if any(finding.time not in timestamps for finding in assessment.findings):
+        raise MCPVideoError("Vision response refers to an unsampled timestamp", error_type="processing_error")
+    return assessment
+
+
+def _cloud_assessment_text(raw: bytes) -> str:
     from kinocut.ffmpeg_helpers import _run_command
 
     with tempfile.TemporaryDirectory(prefix="kinocut_vision_request_") as directory:
@@ -129,8 +176,4 @@ def assess_keyframes(model: str, samples: list[dict]) -> SemanticVisionAssessmen
         raise MCPVideoError(
             "Vision response has invalid shape or exceeds its byte ceiling", error_type="processing_error"
         )
-    assessment = SemanticVisionAssessment.model_validate_json(strip_think_blocks(blocks[0]))
-    timestamps = {sample["time"] for sample in samples}
-    if any(finding.time not in timestamps for finding in assessment.findings):
-        raise MCPVideoError("Vision response refers to an unsampled timestamp", error_type="processing_error")
-    return assessment
+    return blocks[0]

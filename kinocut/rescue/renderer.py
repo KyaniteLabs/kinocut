@@ -153,7 +153,7 @@ def _run_local_transcript(
     captions = package_dir / "captions.srt"
     transcript = package_dir / "transcript.txt"
     started = time.monotonic()
-    result = ai_transcribe(str(master), output_srt=str(captions), model="base")
+    result = ai_transcribe(str(master), output_srt=str(captions), model="base", backend="whisper")
     transcript.write_text(str(result.get("transcript", "")).strip() + "\n", encoding="utf-8")
     parameters: dict[str, int | float | str | bool] = {
         "transcript_path": _relative(transcript, workspace),

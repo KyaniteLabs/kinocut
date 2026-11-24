@@ -394,6 +394,7 @@ def _fontconfig_sans_font() -> str | None:
 def _default_font() -> str:
     """Return a verified default font file or raise a typed dependency error."""
     import platform
+    from .offline import is_offline_mode
 
     system = platform.system()
     if system == "Darwin":
@@ -415,7 +416,12 @@ def _default_font() -> str:
         if fallback:
             return fallback
     raise MCPVideoError(
-        "No suitable font file found. Install a TrueType/OpenType font or specify a font path.",
+        "No suitable font file found. "
+        + (
+            "Specify a local TrueType/OpenType font path in offline mode."
+            if is_offline_mode()
+            else "Install a TrueType/OpenType font or specify a font path."
+        ),
         error_type="dependency_error",
         code="font_not_found",
     )
