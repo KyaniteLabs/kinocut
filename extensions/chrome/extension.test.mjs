@@ -182,6 +182,9 @@ test("reduceCompanionState handles full lifecycle and retains artifacts and read
   assert.equal(state.hostVersion, "2.1.0");
   assert.equal(state.offline, true);
 
+  state = reduceCompanionState(state, { type: "RUNNING", action: "doctor" });
+  assert.equal(state.status, "running");
+
   state = reduceCompanionState(state, {
     type: "ACTION_SUCCESS",
     action: "doctor",
@@ -193,6 +196,7 @@ test("reduceCompanionState handles full lifecycle and retains artifacts and read
       offline_readiness: { ok: true },
     },
   });
+  assert.equal(state.status, "ready");
   assert.equal(state.requiredOk, true);
   assert.equal(state.ffmpegOk, true);
   assert.equal(state.offlineReadinessOk, true);

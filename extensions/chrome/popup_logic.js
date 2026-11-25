@@ -252,7 +252,12 @@ function reduceActionSuccess(state, action, payload) {
         : {};
     return {
       ...state,
-      status: state.status === "idle" || state.status === "connecting" ? "ready" : state.status,
+      status:
+        state.status === "idle" ||
+        state.status === "connecting" ||
+        state.status === "running"
+          ? "ready"
+          : state.status,
       lastAction: "doctor",
       requiredOk: Boolean(payload.required_ok),
       offline: typeof payload.offline === "boolean" ? payload.offline : state.offline,

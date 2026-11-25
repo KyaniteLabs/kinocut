@@ -440,7 +440,7 @@ def test_installed_launcher_script_preserves_venv_and_executes_ping(tmp_path: Pa
 
     req = _encode_frame({"action": "ping"})
     proc = subprocess.run(
-        [str(launcher)],
+        [str(launcher), f"chrome-extension://{ext_id}/", "--parent-window=12345"],
         input=req,
         capture_output=True,
         timeout=30,

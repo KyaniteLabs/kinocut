@@ -363,6 +363,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Target Chromium-family browser (default: chrome).",
     )
     parser.add_argument("--target-dir", help="Override target manifest directory.")
+    parser.add_argument(
+        "--parent-window",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "caller_origin",
+        nargs="?",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
     return parser
 
 
