@@ -127,6 +127,27 @@ def _build_grid_filter_complex(
     return "".join(filter_parts).rstrip(";")
 
 
+def _validate_grid_inputs(
+    clips: list[str],
+    layout: str,
+    output: str,
+    gap: int,
+    padding: int,
+    background: str,
+) -> list[str]:
+    if len(clips) == 0:
+        raise MCPVideoError("At least one clip required", error_type="validation_error", code="invalid_parameter")
+    _validate_choice("layout", layout, VALID_GRID_LAYOUTS)
+    if gap < 0 or padding < 0:
+        raise MCPVideoError(
+            "gap and padding must be non-negative", error_type="validation_error", code="invalid_parameter"
+        )
+    _validate_grid_background(background)
+    validated_clips = [_validate_input_path(clip) for clip in clips]
+    _validate_output_path(output)
+    return validated_clips
+
+
 def layout_grid(
     clips: list[str],
     layout: str,
@@ -148,30 +169,16 @@ def layout_grid(
     Returns:
         Path to output video
     """
-    if len(clips) == 0:
-        raise MCPVideoError("At least one clip required", error_type="validation_error", code="invalid_parameter")
-    _validate_choice("layout", layout, VALID_GRID_LAYOUTS)
+    clips = _validate_grid_inputs(clips, layout, output, gap, padding, background)
 
-    if gap < 0 or padding < 0:
-        raise MCPVideoError(
-            "gap and padding must be non-negative", error_type="validation_error", code="invalid_parameter"
-        )
-    _validate_grid_background(background)
-
-    clips = [_validate_input_path(clip) for clip in clips]
-    _validate_output_path(output)
-
-    # Parse layout
     cols, rows = map(int, layout.split("x"))
     n_cells = cols * rows
-
     _grid_guardrails(clips, layout, n_cells)
-
     n_clips = min(len(clips), n_cells)
 
     # Use even dimensions that work for x264
-    cell_w = 640  # Standard width
-    cell_h = 480  # Standard height
+    cell_w = 640
+    cell_h = 480
 
     inputs = []
     for clip in clips[:n_clips]:
@@ -207,7 +214,6 @@ def layout_grid(
     ]
 
     _run_command(cmd)
-
     return output
 
 

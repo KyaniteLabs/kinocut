@@ -141,6 +141,43 @@ def _grid_trim_times(start, duration, end, bpm, fps, offset_s, steps_per_bar):
         ) from None
 
 
+def _build_trim_prefix(
+    input_path: str,
+    start_sec: float,
+    duration: str | float | None,
+    end: str | float | None,
+    *,
+    needs_clip_seconds: bool,
+) -> tuple[list[str], float | None]:
+    prefix: list[str] = []
+    if start_sec > 0:
+        prefix.extend(["-ss", _format_ffmpeg_number(start_sec)])
+    prefix.extend(["-i", input_path])
+    clip_seconds: float | None = None
+    if duration is not None and duration != "":
+        clip_seconds = _time_to_seconds(duration)
+        prefix.extend(["-t", _format_ffmpeg_number(clip_seconds)])
+    elif end is not None and end != "":
+        # Input seeking rebases timestamps; convert the absolute endpoint.
+        clip_seconds = _time_to_seconds(end) - start_sec
+        prefix.extend(["-t", _format_ffmpeg_number(clip_seconds)])
+    elif needs_clip_seconds:
+        from .engine_probe import probe
+
+        clip_seconds = probe(input_path).duration - start_sec
+    return prefix, clip_seconds
+
+
+def _build_trim_encode_args(staged: str, *, stream_copy: bool) -> list[str]:
+    if stream_copy:
+        return ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", *_movflags_args(staged), staged]
+    return _build_ffmpeg_cmd(
+        output_path=staged,
+        video_filter=r"pad=iw+mod(iw\,2):ih+mod(ih\,2)",
+        extra=["-map", "0:v?", "-map", "0:a?", "-pix_fmt", "yuv420p"],
+    )
+
+
 def trim(
     input_path: str,
     start: str | float = 0,
@@ -171,34 +208,12 @@ def trim(
     if bpm is not None:
         start, duration, end, messages = _grid_trim_times(start, duration, end, bpm, fps, offset_s, steps_per_bar)
     start_sec = _validate_trim_times(start, duration, end)
-
-    prefix: list[str] = []
-    if start_sec > 0:
-        prefix.extend(["-ss", _format_ffmpeg_number(start_sec)])
-    prefix.extend(["-i", input_path])
-    clip_seconds: float | None = None
-    if duration is not None and duration != "":
-        clip_seconds = _time_to_seconds(duration)
-        prefix.extend(["-t", _format_ffmpeg_number(clip_seconds)])
-    elif end is not None and end != "":
-        # Input seeking rebases timestamps; convert the absolute endpoint.
-        clip_seconds = _time_to_seconds(end) - start_sec
-        prefix.extend(["-t", _format_ffmpeg_number(clip_seconds)])
-    elif on_progress is not None:
-        from .engine_probe import probe
-
-        clip_seconds = probe(input_path).duration - start_sec
+    prefix, clip_seconds = _build_trim_prefix(
+        input_path, start_sec, duration, end, needs_clip_seconds=on_progress is not None
+    )
 
     def render(staged: str) -> None:
-        encode = (
-            ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", *_movflags_args(staged), staged]
-            if stream_copy
-            else _build_ffmpeg_cmd(
-                output_path=staged,
-                video_filter=r"pad=iw+mod(iw\,2):ih+mod(ih\,2)",
-                extra=["-map", "0:v?", "-map", "0:a?", "-pix_fmt", "yuv420p"],
-            )
-        )
+        encode = _build_trim_encode_args(staged, stream_copy=stream_copy)
         try:
             if on_progress is None:
                 _run_ffmpeg(prefix + encode)

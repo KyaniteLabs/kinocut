@@ -98,6 +98,35 @@ def _source_start_time(source: str) -> float:
     return 0.0
 
 
+def _build_reframe_filter_graph(
+    plan: ReframePlan,
+    variant: object,
+    source_info: object,
+    start_time: float,
+) -> str:
+    # Normalize SAR to square display pixels and pad to even dimensions before cropping.
+    eff_w = _even_ceil(
+        (getattr(source_info, "display_width", None) if source_info is not None else None) or plan.source.width
+    )
+    eff_h = _even_ceil(
+        (getattr(source_info, "display_height", None) if source_info is not None else None) or plan.source.height
+    )
+    first = variant.crop_track[0]
+    width = _even_floor(round(first.crop_box.width * eff_w), eff_w)
+    height = _even_floor(round(first.crop_box.height * eff_h), eff_h)
+    max_x = max(0, eff_w - width)
+    max_y = max(0, eff_h - height)
+    x_expression = _axis_expression(variant.crop_track, "x", eff_w, max_origin=max_x, time_offset=start_time)
+    y_expression = _axis_expression(variant.crop_track, "y", eff_h, max_origin=max_y, time_offset=start_time)
+    out_w = _even_ceil(variant.output_width)
+    out_h = _even_ceil(variant.output_height)
+    return (
+        f"scale={eff_w}:{eff_h},setsar=1,"
+        f"crop={width}:{height}:'{x_expression}':'{y_expression}',"
+        f"scale={out_w}:{out_h},setsar=1"
+    )
+
+
 def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, target_id: str) -> ReframeRenderReceipt:
     """Render one ready variant; crop coordinates are derived only from the frozen plan."""
 
@@ -119,27 +148,7 @@ def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, ta
     source_key = _cache_key(source)
     source_info = probe(source)
     start_time = _source_start_time(source)
-    # Normalize SAR to square display pixels and pad to even dimensions before cropping.
-    eff_w = _even_ceil(
-        (getattr(source_info, "display_width", None) if source_info is not None else None) or plan.source.width
-    )
-    eff_h = _even_ceil(
-        (getattr(source_info, "display_height", None) if source_info is not None else None) or plan.source.height
-    )
-    first = variant.crop_track[0]
-    width = _even_floor(round(first.crop_box.width * eff_w), eff_w)
-    height = _even_floor(round(first.crop_box.height * eff_h), eff_h)
-    max_x = max(0, eff_w - width)
-    max_y = max(0, eff_h - height)
-    x_expression = _axis_expression(variant.crop_track, "x", eff_w, max_origin=max_x, time_offset=start_time)
-    y_expression = _axis_expression(variant.crop_track, "y", eff_h, max_origin=max_y, time_offset=start_time)
-    out_w = _even_ceil(variant.output_width)
-    out_h = _even_ceil(variant.output_height)
-    filter_graph = (
-        f"scale={eff_w}:{eff_h},setsar=1,"
-        f"crop={width}:{height}:'{x_expression}':'{y_expression}',"
-        f"scale={out_w}:{out_h},setsar=1"
-    )
+    filter_graph = _build_reframe_filter_graph(plan, variant, source_info, start_time)
     with _atomic_output(target) as staged:
         _run_video_only(
             _run_ffmpeg,

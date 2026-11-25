@@ -26,6 +26,38 @@ from .errors import MCPVideoError
 logger = logging.getLogger(__name__)
 
 
+def _warn_split_screen_guardrails(left_info: object, right_info: object) -> None:
+    try:
+        if abs(left_info.duration - right_info.duration) > 1.0:
+            _warnings.warn(
+                f"[SPLIT GUARDRAIL] Input durations differ significantly: "
+                f"left={left_info.duration:.1f}s, right={right_info.duration:.1f}s. "
+                f"Output will be truncated to the shorter.",
+                stacklevel=3,
+            )
+        left_fps = getattr(left_info, "fps", None)
+        right_fps = getattr(right_info, "fps", None)
+        if left_fps and right_fps and abs(left_fps - right_fps) > 1.0:
+            _warnings.warn(
+                f"[SPLIT GUARDRAIL] Input frame rates differ: "
+                f"left={left_fps:.1f}fps, right={right_fps:.1f}fps. "
+                f"Output may stutter.",
+                stacklevel=3,
+            )
+        left_has_audio = getattr(left_info, "audio_codec", None) is not None
+        right_has_audio = getattr(right_info, "audio_codec", None) is not None
+        if right_has_audio and not left_has_audio:
+            _warnings.warn(
+                "[SPLIT GUARDRAIL] Right video has audio but left does not. "
+                "Only left audio is mapped; right audio will be lost.",
+                stacklevel=3,
+            )
+    except Exception as e:
+        message = f"[SPLIT GUARDRAIL] Could not validate split-screen inputs: {e}"
+        logger.warning(message, exc_info=True)
+        _warnings.warn(message, stacklevel=3)
+
+
 def split_screen(
     left_path: str,
     right_path: str,
@@ -47,38 +79,7 @@ def split_screen(
 
     left_info = probe(left_path)
     right_info = probe(right_path)
-
-    # --- Guardrails: duration, FPS, audio mismatch ---
-    try:
-        if abs(left_info.duration - right_info.duration) > 1.0:
-            _warnings.warn(
-                f"[SPLIT GUARDRAIL] Input durations differ significantly: "
-                f"left={left_info.duration:.1f}s, right={right_info.duration:.1f}s. "
-                f"Output will be truncated to the shorter.",
-                stacklevel=2,
-            )
-        left_fps = getattr(left_info, "fps", None)
-        right_fps = getattr(right_info, "fps", None)
-        if left_fps and right_fps and abs(left_fps - right_fps) > 1.0:
-            _warnings.warn(
-                f"[SPLIT GUARDRAIL] Input frame rates differ: "
-                f"left={left_fps:.1f}fps, right={right_fps:.1f}fps. "
-                f"Output may stutter.",
-                stacklevel=2,
-            )
-        left_has_audio = getattr(left_info, "audio_codec", None) is not None
-        right_has_audio = getattr(right_info, "audio_codec", None) is not None
-        if right_has_audio and not left_has_audio:
-            _warnings.warn(
-                "[SPLIT GUARDRAIL] Right video has audio but left does not. "
-                "Only left audio is mapped; right audio will be lost.",
-                stacklevel=2,
-            )
-    except Exception as e:
-        message = f"[SPLIT GUARDRAIL] Could not validate split-screen inputs: {e}"
-        logger.warning(message, exc_info=True)
-        _warnings.warn(message, stacklevel=2)
-    # --- End guardrails ---
+    _warn_split_screen_guardrails(left_info, right_info)
 
     left_w = getattr(left_info, "display_width", left_info.width) or left_info.width
     left_h = getattr(left_info, "display_height", left_info.height) or left_info.height

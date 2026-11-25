@@ -295,21 +295,8 @@ def _restrict_ffmpeg_outputs(output_args: list[str], policy: tuple[str, str]) ->
     return restricted
 
 
-def offline_media_command(cmd: list[str], *, probe: bool | None = None) -> list[str]:
-    """Apply FFmpeg/ffprobe's local-only protocol policy when offline mode is enabled."""
-    if not is_offline_mode() or len(cmd) < 2:
-        return cmd
-    if _is_pure_info_command(cmd[1:]):
-        return cmd
-    name = os.path.basename(cmd[0]).lower()
-    if probe is None:
-        if name in {"ffprobe", "ffprobe.exe"}:
-            probe = True
-        elif name in {"ffmpeg", "ffmpeg.exe"}:
-            probe = False
-        else:
-            return cmd
-    policy = ("-protocol_whitelist", "file,pipe")
+def _sanitize_media_args(cmd: list[str]) -> list[str]:
+    """Strip caller protocol whitelists and restrict inline/scripted filtergraphs."""
     cleaned: list[str] = [cmd[0]]
     args = cmd[1:]
     idx = 0
@@ -344,9 +331,11 @@ def offline_media_command(cmd: list[str], *, probe: bool | None = None) -> list[
             continue
         cleaned.append(arg)
         idx += 1
-    if probe:
-        return [cleaned[0], *policy, *cleaned[1:]]
-    # Locate the last real `-i <input>` pair while skipping option values.
+    return cleaned
+
+
+def _restrict_ffmpeg_inputs_and_outputs(cleaned: list[str], policy: tuple[str, str]) -> list[str]:
+    """Inject protocol whitelist before every FFmpeg input and output target."""
     last_input_end = 1
     scan = 1
     while scan < len(cleaned):
@@ -361,7 +350,6 @@ def offline_media_command(cmd: list[str], *, probe: bool | None = None) -> list[
         scan += 1
     if last_input_end == 1:
         return cleaned
-    # Inject -protocol_whitelist before every -i input in the input section.
     restricted: list[str] = [cleaned[0]]
     inp_idx = 1
     while inp_idx < last_input_end:
@@ -376,6 +364,26 @@ def offline_media_command(cmd: list[str], *, probe: bool | None = None) -> list[
             continue
         restricted.append(tok)
         inp_idx += 1
-    # Inject -protocol_whitelist before EVERY output in the output section.
     restricted.extend(_restrict_ffmpeg_outputs(cleaned[last_input_end:], policy))
     return restricted
+
+
+def offline_media_command(cmd: list[str], *, probe: bool | None = None) -> list[str]:
+    """Apply FFmpeg/ffprobe's local-only protocol policy when offline mode is enabled."""
+    if not is_offline_mode() or len(cmd) < 2:
+        return cmd
+    if _is_pure_info_command(cmd[1:]):
+        return cmd
+    name = os.path.basename(cmd[0]).lower()
+    if probe is None:
+        if name in {"ffprobe", "ffprobe.exe"}:
+            probe = True
+        elif name in {"ffmpeg", "ffmpeg.exe"}:
+            probe = False
+        else:
+            return cmd
+    policy = ("-protocol_whitelist", "file,pipe")
+    cleaned = _sanitize_media_args(cmd)
+    if probe:
+        return [cleaned[0], *policy, *cleaned[1:]]
+    return _restrict_ffmpeg_inputs_and_outputs(cleaned, policy)

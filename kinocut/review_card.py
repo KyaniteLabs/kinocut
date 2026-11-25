@@ -257,6 +257,66 @@ def _coerce_probe_info(input_path: str, probe_info: Any) -> Any:
     return None
 
 
+def _single_frame_command(input_path: str, output_path: str) -> list[str]:
+    return [
+        "-i",
+        input_path,
+        "-frames:v",
+        "1",
+        "-vf",
+        f"scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p",
+        "-q:v",
+        "6",
+        "-y",
+        output_path,
+    ]
+
+
+def _sheet_and_frames_command(
+    input_path: str,
+    duration: float,
+    frame_count: int,
+    sheet_path: str,
+    frame_pattern: str,
+) -> list[str]:
+    cols = min(4, frame_count)
+    rows = (frame_count + cols - 1) // cols
+    tile_w = min(480, max(160, (MAX_IMAGE_WIDTH // cols) & ~1))
+    tile_h = max(90, int(tile_w * 9 / 16) & ~1)
+    interval = duration / (frame_count + 1)
+    fps_expr = f"{1.0 / interval:.6f}"
+    filter_complex = (
+        f"[0:v]fps={fps_expr},split=2[for_sheet][for_frames];"
+        f"[for_sheet]scale={tile_w}:{tile_h}:force_original_aspect_ratio=decrease,"
+        f"pad={tile_w}:{tile_h}:(ow-iw)/2:(oh-ih)/2,tile={cols}x{rows},format=yuvj420p[sheet];"
+        f"[for_frames]scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p[poster_frames]"
+    )
+    return [
+        "-ss",
+        f"{interval:.3f}",
+        "-i",
+        input_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[sheet]",
+        "-frames:v",
+        "1",
+        "-q:v",
+        "6",
+        "-y",
+        sheet_path,
+        "-map",
+        "[poster_frames]",
+        "-frames:v",
+        str(frame_count),
+        "-q:v",
+        "6",
+        "-y",
+        frame_pattern,
+    ]
+
+
 def _extract_sheet_and_frames(
     input_path: str,
     duration: float,
@@ -270,60 +330,10 @@ def _extract_sheet_and_frames(
     frame_pattern = os.path.join(out_dir, "review_frame_%03d.jpg")
 
     if frame_count > 1 and duration > 0:
-        cols = min(4, frame_count)
-        rows = (frame_count + cols - 1) // cols
-        tile_w = min(480, max(160, (MAX_IMAGE_WIDTH // cols) & ~1))
-        tile_h = max(90, int(tile_w * 9 / 16) & ~1)
-        interval = duration / (frame_count + 1)
-        fps_expr = f"{1.0 / interval:.6f}"
-        filter_complex = (
-            f"[0:v]fps={fps_expr},split=2[for_sheet][for_frames];"
-            f"[for_sheet]scale={tile_w}:{tile_h}:force_original_aspect_ratio=decrease,"
-            f"pad={tile_w}:{tile_h}:(ow-iw)/2:(oh-ih)/2,tile={cols}x{rows},format=yuvj420p[sheet];"
-            f"[for_frames]scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p[poster_frames]"
-        )
-        _run_ffmpeg(
-            [
-                "-ss",
-                f"{interval:.3f}",
-                "-i",
-                input_path,
-                "-filter_complex",
-                filter_complex,
-                "-map",
-                "[sheet]",
-                "-frames:v",
-                "1",
-                "-q:v",
-                "6",
-                "-y",
-                sheet_path,
-                "-map",
-                "[poster_frames]",
-                "-frames:v",
-                str(frame_count),
-                "-q:v",
-                "6",
-                "-y",
-                frame_pattern,
-            ]
-        )
+        _run_ffmpeg(_sheet_and_frames_command(input_path, duration, frame_count, sheet_path, frame_pattern))
     else:
         single_frame = os.path.join(out_dir, "review_frame_001.jpg")
-        _run_ffmpeg(
-            [
-                "-i",
-                input_path,
-                "-frames:v",
-                "1",
-                "-vf",
-                f"scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p",
-                "-q:v",
-                "6",
-                "-y",
-                single_frame,
-            ]
-        )
+        _run_ffmpeg(_single_frame_command(input_path, single_frame))
         sheet_path = single_frame
 
     frames = sorted(
@@ -333,20 +343,7 @@ def _extract_sheet_and_frames(
     )
     if not frames:
         fallback = os.path.join(out_dir, "review_frame_001.jpg")
-        _run_ffmpeg(
-            [
-                "-i",
-                input_path,
-                "-frames:v",
-                "1",
-                "-vf",
-                f"scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p",
-                "-q:v",
-                "6",
-                "-y",
-                fallback,
-            ]
-        )
+        _run_ffmpeg(_single_frame_command(input_path, fallback))
         if os.path.isfile(fallback) and os.path.getsize(fallback) > 0:
             frames = [fallback]
     sheet = (
@@ -413,6 +410,42 @@ def final_export_path(input_path: str) -> str:
     return f"{os.path.splitext(input_path)[0]}-final.mp4"
 
 
+def _build_review_card_payload(
+    input_path: str,
+    info: Any,
+    input_sha256: str,
+    sheet_data: bytes,
+    sheet_mime: str,
+) -> dict[str, Any]:
+    name = os.path.basename(input_path)
+    facts = {
+        "Duration": _format_duration(info.duration),
+        "Resolution": info.resolution,
+        "FPS": f"{info.fps:g}",
+        "Codec": info.codec,
+        "Size": _format_size(info.size_bytes),
+        "SHA-256": input_sha256[:16],
+    }
+    final_path = final_export_path(input_path)
+    actions = [
+        (
+            "Approve & export",
+            f"Approve this cut: {input_path} (sha256:{input_sha256}). "
+            f"Run video_release_checkpoint on it; "
+            f"if it passes, video_export it to {final_path}.",
+        ),
+        ("Dig in", f"Show me more detail on {input_path}"),
+        ("Try another range", f"Try a different range of {input_path}"),
+    ]
+    return {
+        "title": name,
+        "facts": facts,
+        "images": [(f"Contact sheet of {name}", sheet_data, sheet_mime)],
+        "actions": actions,
+        "input_sha256": input_sha256,
+    }
+
+
 def write_review_card(
     input_path: str,
     output_path: str | None = None,
@@ -453,39 +486,13 @@ def write_review_card(
         sheet_data, sheet_mime = _sheet_bytes(sheet, SHEET_BYTES_WITH_PLAYER)
         poster = _poster_bytes(frames, preencoded_jpeg=True)
 
-    name = os.path.basename(input_path)
-    facts = {
-        "Duration": _format_duration(info.duration),
-        "Resolution": info.resolution,
-        "FPS": f"{info.fps:g}",
-        "Codec": info.codec,
-        "Size": _format_size(info.size_bytes),
-        "SHA-256": input_sha256[:16],
-    }
-    final_path = final_export_path(input_path)
-    actions = [
-        (
-            "Approve & export",
-            f"Approve this cut: {input_path} (sha256:{input_sha256}). "
-            f"Run video_release_checkpoint on it; "
-            f"if it passes, video_export it to {final_path}.",
-        ),
-        ("Dig in", f"Show me more detail on {input_path}"),
-        ("Try another range", f"Try a different range of {input_path}"),
-    ]
-    card = {
-        "title": name,
-        "facts": facts,
-        "images": [(f"Contact sheet of {name}", sheet_data, sheet_mime)],
-        "actions": actions,
-        "input_sha256": input_sha256,
-    }
+    card = _build_review_card_payload(input_path, info, input_sha256, sheet_data, sheet_mime)
     shell = render_review_card(**card)
     poster_b64 = len(base64.b64encode(poster)) if poster else 0
     room = MAX_CARD_BYTES - len(shell.encode("utf-8")) - poster_b64 - 400
     video = _preview_bytes(input_path, info.duration, room * 3 // 4)
     if video is None:
-        facts["Preview"] = "too long to play here; open the file to watch it"
+        card["facts"]["Preview"] = "too long to play here; open the file to watch it"
     document = render_review_card(**card, video=video, poster=poster)
     with _atomic_artifact(output_path) as staged, _open_staged_writer(staged) as stream:
         stream.write(document.encode("utf-8"))

@@ -305,6 +305,35 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         b = max(0.0, min(255.0, y + 1.772 * u))
         return {"r": r, "g": g, "b": b}
 
+    @staticmethod
+    def _finite_float_or_none(raw_val: Any, default: str) -> float | None:
+        try:
+            parsed = float(raw_val if raw_val is not None else default)
+        except (TypeError, ValueError):
+            return None
+        return parsed if math.isfinite(parsed) else None
+
+    def _evaluate_audio_loudness(self, input_i: float, input_tp: float | None) -> tuple[bool, float, str]:
+        loudness_ok = self.AUDIO_LUFS_MIN <= input_i <= self.AUDIO_LUFS_MAX
+        peak_ok = input_tp is None or input_tp <= self.AUDIO_TRUE_PEAK_MAX
+        passed = loudness_ok and peak_ok
+
+        deviation = abs(input_i - self.AUDIO_LUFS_TARGET)
+        score = float(max(0, 100 - (deviation / 10) * 20))
+        if input_tp is not None and input_tp > self.AUDIO_TRUE_PEAK_MAX:
+            score = float(score * 0.5)  # Penalize clipping heavily
+
+        messages = []
+        if input_i < self.AUDIO_LUFS_MIN:
+            messages.append(f"Audio is too quiet ({input_i:.1f} LUFS). Target: {self.AUDIO_LUFS_TARGET} LUFS")
+        elif input_i > self.AUDIO_LUFS_MAX:
+            messages.append(f"Audio is too loud ({input_i:.1f} LUFS). Target: {self.AUDIO_LUFS_TARGET} LUFS")
+        else:
+            messages.append(f"Audio loudness is good ({input_i:.1f} LUFS)")
+        if input_tp is not None and input_tp > self.AUDIO_TRUE_PEAK_MAX:
+            messages.append(f"Audio is clipping ({input_tp:.1f} dBTP). Reduce volume to prevent distortion.")
+        return passed, score, " ".join(messages)
+
     def check_audio_levels(self, video: str) -> QualityReport:
         """Check audio isn't clipping or too quiet."""
         has_audio = self._has_audio_stream(video)
@@ -320,7 +349,6 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
             )
 
         loudness_data = self._analyze_loudnorm(video)
-
         if not loudness_data or loudness_data.get("_error"):
             details: dict[str, Any] = {"has_audio": has_audio}
             if loudness_data and loudness_data.get("_error"):
@@ -333,18 +361,9 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 details=details,
             )
 
-        # Parse loudnorm output (sanitize non-finite values such as -inf on digital silence)
-        def _finite_or_none(raw_val: Any, default: str) -> float | None:
-            try:
-                parsed = float(raw_val if raw_val is not None else default)
-            except (TypeError, ValueError):
-                return None
-            return parsed if math.isfinite(parsed) else None
-
-        input_i = _finite_or_none(loudness_data.get("input_i"), "-70")
-        input_tp = _finite_or_none(loudness_data.get("input_tp"), "-10")
-        input_lra = _finite_or_none(loudness_data.get("input_lra"), "1")
-
+        input_i = self._finite_float_or_none(loudness_data.get("input_i"), "-70")
+        input_tp = self._finite_float_or_none(loudness_data.get("input_tp"), "-10")
+        input_lra = self._finite_float_or_none(loudness_data.get("input_lra"), "1")
         if input_i is None:
             return QualityReport(
                 check_name="audio_levels",
@@ -360,36 +379,12 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 },
             )
 
-        # Check against thresholds
-        loudness_ok = self.AUDIO_LUFS_MIN <= input_i <= self.AUDIO_LUFS_MAX
-        peak_ok = input_tp is None or input_tp <= self.AUDIO_TRUE_PEAK_MAX
-
-        passed = loudness_ok and peak_ok
-
-        # Calculate score (2 points per dB deviation from target)
-        target_lufs = self.AUDIO_LUFS_TARGET
-        deviation = abs(input_i - target_lufs)
-        score = float(max(0, 100 - (deviation / 10) * 20))
-
-        if input_tp is not None and input_tp > self.AUDIO_TRUE_PEAK_MAX:
-            score = float(score * 0.5)  # Penalize clipping heavily
-
-        messages = []
-        if input_i < self.AUDIO_LUFS_MIN:
-            messages.append(f"Audio is too quiet ({input_i:.1f} LUFS). Target: {self.AUDIO_LUFS_TARGET} LUFS")
-        elif input_i > self.AUDIO_LUFS_MAX:
-            messages.append(f"Audio is too loud ({input_i:.1f} LUFS). Target: {self.AUDIO_LUFS_TARGET} LUFS")
-        else:
-            messages.append(f"Audio loudness is good ({input_i:.1f} LUFS)")
-
-        if input_tp is not None and input_tp > self.AUDIO_TRUE_PEAK_MAX:
-            messages.append(f"Audio is clipping ({input_tp:.1f} dBTP). Reduce volume to prevent distortion.")
-
+        passed, score, message = self._evaluate_audio_loudness(input_i, input_tp)
         return QualityReport(
             check_name="audio_levels",
             passed=passed,
             score=score,
-            message=" ".join(messages),
+            message=message,
             details={
                 "lufs": input_i,
                 "true_peak": input_tp,

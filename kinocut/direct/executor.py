@@ -221,6 +221,62 @@ def _cleanup_intermediates(produced: list[str], plan: dict[str, Any]) -> tuple[l
     return [path for path in produced if path not in removed], removed, retained
 
 
+def _ensure_no_unresolved_questions(plan: dict) -> None:
+    question = plan.get("question")
+    has_question = bool(question.strip()) if isinstance(question, str) else bool(question)
+    ambiguities = plan.get("ambiguities") or plan.get("ambiguity")
+    if has_question or ambiguities:
+        raise MCPVideoError(
+            "Direct plan has unresolved question or ambiguity entries; resolve them before applying.",
+            error_type="validation_error",
+            code="unresolved_direct_question",
+        )
+
+
+def _run_planned_step(
+    index: int,
+    step: dict[str, Any],
+    current: str,
+    no_speech: bool,
+) -> tuple[dict[str, Any], str | None, bool, str]:
+    tool = step["tool"]
+    args = dict(step["args"])
+    if tool == "video_add_audio":
+        args.update(video_path=current, audio_path=current)
+    else:
+        args["input_path"] = current
+    if tool == "video_subtitles" and no_speech:
+        return (
+            {"step": index, "tool": tool, "success": True, "skipped": "No speech was transcribed."},
+            None,
+            no_speech,
+            current,
+        )
+    artifact = args.get("output_srt") if tool == "video_ai_transcribe" else args["output_path"]
+    before = _stat_or_none(artifact)
+    result = _execute_step(tool, args, current)
+    created_artifact: str | None = None
+    if artifact and _artifact_changed(before, _stat_or_none(artifact)):
+        created_artifact = artifact
+    elif result.get("success") and not result.get("no_speech"):
+        result = {
+            "success": False,
+            "error": {
+                "type": "processing_error",
+                "code": "missing_direct_output",
+                "message": "The step returned without producing its planned artifact.",
+            },
+        }
+    receipt = {"step": index, "tool": tool, "args": args, "success": result.get("success", False), "result": result}
+    next_no_speech = result.get("no_speech", False) if tool == "video_ai_transcribe" else no_speech
+    next_current = (
+        current
+        if (not receipt["success"] or tool in {"video_ai_transcribe", "video_thumbnail"})
+        else args["output_path"]
+    )
+    return receipt, created_artifact, next_no_speech, next_current
+
+
 def apply(plan: dict, confirm: bool = False) -> dict[str, Any]:
     """Validate a reviewed direct plan; render only with explicit confirm=true.
 
@@ -233,58 +289,25 @@ def apply(plan: dict, confirm: bool = False) -> dict[str, Any]:
     plan = validate_plan(copy.deepcopy(plan))
     if not confirm:
         return _dry_run_result(plan)
-    question = plan.get("question")
-    has_question = bool(question.strip()) if isinstance(question, str) else bool(question)
-    ambiguities = plan.get("ambiguities") or plan.get("ambiguity")
-    if has_question or ambiguities:
-        raise MCPVideoError(
-            "Direct plan has unresolved question or ambiguity entries; resolve them before applying.",
-            error_type="validation_error",
-            code="unresolved_direct_question",
-        )
+    _ensure_no_unresolved_questions(plan)
     current = plan["input_path"]
     receipts, produced = [], []
     no_speech = False
     for index, step in enumerate(plan["steps"], 1):
-        tool = step["tool"]
-        args = dict(step["args"])
-        if tool == "video_add_audio":
-            args.update(video_path=current, audio_path=current)
-        else:
-            args["input_path"] = current
-        if tool == "video_subtitles" and no_speech:
-            receipts.append({"step": index, "tool": tool, "success": True, "skipped": "No speech was transcribed."})
-            continue
-        artifact = args.get("output_srt") if tool == "video_ai_transcribe" else args["output_path"]
-        before = _stat_or_none(artifact)
-        result = _execute_step(tool, args, current)
-        if artifact and _artifact_changed(before, _stat_or_none(artifact)):
-            produced.append(artifact)
-        elif result.get("success") and not result.get("no_speech"):
-            result = {
-                "success": False,
-                "error": {
-                    "type": "processing_error",
-                    "code": "missing_direct_output",
-                    "message": "The step returned without producing its planned artifact.",
-                },
-            }
-        receipt = {"step": index, "tool": tool, "args": args, "success": result.get("success", False), "result": result}
+        receipt, created_artifact, no_speech, current = _run_planned_step(index, step, current, no_speech)
+        if created_artifact is not None:
+            produced.append(created_artifact)
         receipts.append(receipt)
-        if not result.get("success"):
+        if not receipt["success"]:
             return {
                 "success": False,
                 "failed_step": index,
-                "failed_tool": tool,
-                "error": result.get("error"),
+                "failed_tool": step["tool"],
+                "error": receipt["result"].get("error"),
                 "receipts": receipts,
                 "produced": produced,
                 "output_path": current,
             }
-        if tool == "video_ai_transcribe":
-            no_speech = result.get("no_speech", False)
-        elif tool != "video_thumbnail":
-            current = args["output_path"]
     if no_speech and current != plan["output_path"]:
         try:
             current = _copy_silent_output(current, plan)

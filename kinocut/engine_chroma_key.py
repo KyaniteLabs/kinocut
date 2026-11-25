@@ -27,6 +27,66 @@ from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape
 from .models import EditResult
 
 
+def _chroma_key_command(
+    input_path: str,
+    safe_color: str,
+    safe_similarity: str,
+    safe_blend: str,
+    staged: str,
+    *,
+    is_mov: bool,
+) -> list[str]:
+    if is_mov:
+        vf = f"chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend},format=yuva444p12le"
+        return [
+            "-i",
+            input_path,
+            "-vf",
+            vf,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a?",
+            "-c:v",
+            "prores_ks",
+            "-profile:v",
+            "4",
+            "-pix_fmt",
+            "yuva444p12le",
+            "-c:a",
+            "copy",
+            *_movflags_args(staged),
+            staged,
+        ]
+    graph = (
+        r"[0:v]pad=iw+mod(iw\,2):ih+mod(ih\,2),split[bg][fg];"
+        "[bg]drawbox=color=black:t=fill[matte];"
+        f"[fg]chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend}[keyed];"
+        "[matte][keyed]overlay=shortest=1:format=auto,format=yuv420p[out]"
+    )
+    return [
+        "-i",
+        input_path,
+        "-filter_complex",
+        graph,
+        "-map",
+        "[out]",
+        "-map",
+        "0:a?",
+        "-c:v",
+        "libx264",
+        *_quality_args(),
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        DEFAULT_AUDIO_BITRATE,
+        *_movflags_args(staged),
+        staged,
+    ]
+
+
 def chroma_key(
     input_path: str,
     color: str = "0x00FF00",
@@ -69,57 +129,10 @@ def chroma_key(
     is_mov = output.lower().endswith(".mov")
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
+        cmd = _chroma_key_command(input_path, safe_color, safe_similarity, safe_blend, staged, is_mov=is_mov)
         if is_mov:
-            vf = f"chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend},format=yuva444p12le"
-            cmd = [
-                "-i",
-                input_path,
-                "-vf",
-                vf,
-                "-map",
-                "0:v:0",
-                "-map",
-                "0:a?",
-                "-c:v",
-                "prores_ks",
-                "-profile:v",
-                "4",
-                "-pix_fmt",
-                "yuva444p12le",
-                "-c:a",
-                "copy",
-                *_movflags_args(staged),
-                staged,
-            ]
             _run_video_only(_run_ffmpeg, cmd)
         else:
-            graph = (
-                r"[0:v]pad=iw+mod(iw\,2):ih+mod(ih\,2),split[bg][fg];"
-                "[bg]drawbox=color=black:t=fill[matte];"
-                f"[fg]chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend}[keyed];"
-                "[matte][keyed]overlay=shortest=1:format=auto,format=yuv420p[out]"
-            )
-            cmd = [
-                "-i",
-                input_path,
-                "-filter_complex",
-                graph,
-                "-map",
-                "[out]",
-                "-map",
-                "0:a?",
-                "-c:v",
-                "libx264",
-                *_quality_args(),
-                "-pix_fmt",
-                "yuv420p",
-                "-c:a",
-                "aac",
-                "-b:a",
-                DEFAULT_AUDIO_BITRATE,
-                *_movflags_args(staged),
-                staged,
-            ]
             _run_ffmpeg(cmd)
         result = _build_edit_result(
             staged,

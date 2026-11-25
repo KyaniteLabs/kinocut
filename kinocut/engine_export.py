@@ -11,40 +11,18 @@ from .models import EditResult, ExportFormat, QualityLevel
 from .paths import _auto_output
 
 
-def export_video(
+def _export_video_with_c2pa(
     input_path: str,
-    output_path: str | None = None,
-    quality: QualityLevel = "high",
-    format: ExportFormat = "mp4",
-    on_progress: Callable[[float], None] | None = None,
-    two_pass: bool = False,
-    target_bitrate: int | None = None,
-    c2pa_manifest_path: str | None = None,
-    c2pa_tool_path: str | None = None,  # deprecated: ignored; c2patool resolved from env/config only
-    c2pa_signer_path: str | None = None,
+    *,
+    output_path: str | None,
+    quality: QualityLevel,
+    format: ExportFormat,
+    on_progress: Callable[[float], None] | None,
+    two_pass: bool,
+    target_bitrate: int | None,
+    c2pa_manifest_path: str,
+    c2pa_signer_path: str | None,
 ) -> EditResult:
-    """Export a video for final delivery with quality tuning.
-
-    This is a convenience wrapper around :func:`convert` that defaults to
-    high-quality mp4.  Use it when you want to re-encode for publishing
-    rather than change the format.
-    """
-    input_path = _validate_input_path(input_path)
-    from .engine_convert import convert
-
-    if c2pa_manifest_path is None:
-        result = convert(
-            input_path,
-            format=format,
-            quality=quality,
-            output_path=output_path,
-            on_progress=on_progress,
-            two_pass=two_pass,
-            target_bitrate=target_bitrate,
-        )
-        result.operation = "export"
-        return result
-
     if format != "mp4":
         from .errors import MCPVideoError
 
@@ -55,6 +33,7 @@ def export_video(
         )
 
     from .c2pa import preflight_c2pa, sign_export_with_c2pa
+    from .engine_convert import convert
 
     # Validate offline policy, manifest, c2patool availability, and final
     # destination BEFORE rendering so signing failure never leaves an unsigned MP4.
@@ -91,4 +70,51 @@ def export_video(
                 manifest_path=c2pa_manifest_path,
                 signer_path=c2pa_signer_path,
             )
+    return result
+
+
+def export_video(
+    input_path: str,
+    output_path: str | None = None,
+    quality: QualityLevel = "high",
+    format: ExportFormat = "mp4",
+    on_progress: Callable[[float], None] | None = None,
+    two_pass: bool = False,
+    target_bitrate: int | None = None,
+    c2pa_manifest_path: str | None = None,
+    c2pa_tool_path: str | None = None,  # deprecated: ignored; c2patool resolved from env/config only
+    c2pa_signer_path: str | None = None,
+) -> EditResult:
+    """Export a video for final delivery with quality tuning.
+
+    This is a convenience wrapper around :func:`convert` that defaults to
+    high-quality mp4.  Use it when you want to re-encode for publishing
+    rather than change the format.
+    """
+    input_path = _validate_input_path(input_path)
+    if c2pa_manifest_path is not None:
+        return _export_video_with_c2pa(
+            input_path,
+            output_path=output_path,
+            quality=quality,
+            format=format,
+            on_progress=on_progress,
+            two_pass=two_pass,
+            target_bitrate=target_bitrate,
+            c2pa_manifest_path=c2pa_manifest_path,
+            c2pa_signer_path=c2pa_signer_path,
+        )
+
+    from .engine_convert import convert
+
+    result = convert(
+        input_path,
+        format=format,
+        quality=quality,
+        output_path=output_path,
+        on_progress=on_progress,
+        two_pass=two_pass,
+        target_bitrate=target_bitrate,
+    )
+    result.operation = "export"
     return result

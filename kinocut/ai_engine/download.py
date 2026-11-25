@@ -489,6 +489,67 @@ def _download_with_urllib(video: str) -> tuple[str, str]:
     return local, tmp
 
 
+def _download_platform_video(video: str) -> tuple[str, str]:
+    tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
+    try:
+        local = _download_with_ytdlp(video, tmp)
+    except MCPVideoError:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise  # re-raise "yt-dlp not installed" cleanly
+    except Exception as exc:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise ProcessingError(
+            str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+        ) from exc
+    return local, tmp
+
+
+def _download_generic_video(video: str) -> tuple[str, str]:
+    # Try yt-dlp first (handles edge cases like redirect-to-stream),
+    # fall back to direct urllib download.
+    tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
+    try:
+        local = _download_with_ytdlp(video, tmp)
+        return local, tmp
+    except MCPVideoError as exc:
+        shutil.rmtree(tmp, ignore_errors=True)
+        # Only fall back to urllib when yt-dlp is missing; NEVER swallow SSRF or policy errors.
+        if exc.code != "missing_ytdlp":
+            raise
+        ext = _direct_download_extension(video)
+        if ext not in _DIRECT_VIDEO_EXTENSIONS:
+            raise MCPVideoError(
+                f"Cannot download '{rejected_value(video)}': not a recognised direct video URL and "
+                "yt-dlp is not installed. Install yt-dlp with: pip install yt-dlp",
+                error_type="dependency_error",
+                code="missing_ytdlp",
+            ) from None
+        return _download_with_urllib(video)
+    except Exception as exc:
+        # yt-dlp is installed but failed — try urllib as last resort
+        shutil.rmtree(tmp, ignore_errors=True)
+        ext = _direct_download_extension(video)
+        if ext in _DIRECT_VIDEO_EXTENSIONS:
+            fallback_tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
+            try:
+                local = _download_direct_url(video, fallback_tmp)
+            except MCPVideoError:
+                shutil.rmtree(fallback_tmp, ignore_errors=True)
+                raise
+            except Exception as dl_exc:
+                shutil.rmtree(fallback_tmp, ignore_errors=True)
+                raise ProcessingError(
+                    str(video),
+                    1,
+                    "",
+                    reason=f"Download failed (yt-dlp: {exception_kind(exc)}; urllib: {exception_kind(dl_exc)})",
+                ) from dl_exc
+            return local, fallback_tmp
+        raise ProcessingError(
+            str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+        ) from exc
+
+
 def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
     """Resolve *video* to a local file path, downloading if necessary.
 
@@ -512,65 +573,9 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
             code="ssrf_blocked",
         )
 
-    source_url = video
     host_name = (urllib.parse.urlsplit(video).hostname or "").lower()
-    is_platform = host_name in _PLATFORM_HOSTS
-
-    if is_platform:
-        # Must use yt-dlp
-        tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
-        try:
-            local = _download_with_ytdlp(video, tmp)
-        except MCPVideoError:
-            shutil.rmtree(tmp, ignore_errors=True)
-            raise  # re-raise "yt-dlp not installed" cleanly
-        except Exception as exc:
-            shutil.rmtree(tmp, ignore_errors=True)
-            raise ProcessingError(
-                str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
-            ) from exc
+    if host_name in _PLATFORM_HOSTS:
+        local, tmp = _download_platform_video(video)
     else:
-        # Try yt-dlp first (handles edge cases like redirect-to-stream),
-        # fall back to direct urllib download.
-        try:
-            tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
-            local = _download_with_ytdlp(video, tmp)
-        except MCPVideoError as exc:
-            shutil.rmtree(tmp, ignore_errors=True)
-            # Only fall back to urllib when yt-dlp is missing; NEVER swallow SSRF or policy errors.
-            if exc.code != "missing_ytdlp":
-                raise
-            ext = _direct_download_extension(video)
-            if ext not in _DIRECT_VIDEO_EXTENSIONS:
-                raise MCPVideoError(
-                    f"Cannot download '{rejected_value(video)}': not a recognised direct video URL and "
-                    "yt-dlp is not installed. Install yt-dlp with: pip install yt-dlp",
-                    error_type="dependency_error",
-                    code="missing_ytdlp",
-                ) from None
-            local, tmp = _download_with_urllib(video)
-        except Exception as exc:
-            # yt-dlp is installed but failed — try urllib as last resort
-            shutil.rmtree(tmp, ignore_errors=True)
-            ext = _direct_download_extension(video)
-            if ext in _DIRECT_VIDEO_EXTENSIONS:
-                tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
-                try:
-                    local = _download_direct_url(video, tmp)
-                except MCPVideoError:
-                    shutil.rmtree(tmp, ignore_errors=True)
-                    raise
-                except Exception as dl_exc:
-                    shutil.rmtree(tmp, ignore_errors=True)
-                    raise ProcessingError(
-                        str(video),
-                        1,
-                        "",
-                        reason=f"Download failed (yt-dlp: {exception_kind(exc)}; urllib: {exception_kind(dl_exc)})",
-                    ) from dl_exc
-            else:
-                raise ProcessingError(
-                    str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
-                ) from exc
-
-    return local, tmp, source_url
+        local, tmp = _download_generic_video(video)
+    return local, tmp, video
