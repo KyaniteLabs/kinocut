@@ -17,7 +17,7 @@ from kinocut.source_identity import assert_source_identity, stream_source_identi
 from kinocut.source_identity import stable_source_sha256 as _sha256
 from kinocut.workflow._versions import ffmpeg_version
 
-from .models import CropTrackSample, ReframePlan, StrictModel
+from .models import CropTrackSample, CropVariantPlan, ReframePlan, StrictModel
 
 _MAX_EXPRESSION_SEGMENTS = 256
 
@@ -100,7 +100,7 @@ def _source_start_time(source: str) -> float:
 
 def _build_reframe_filter_graph(
     plan: ReframePlan,
-    variant: object,
+    variant: CropVariantPlan,
     source_info: object,
     start_time: float,
 ) -> str:

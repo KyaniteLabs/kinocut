@@ -1086,9 +1086,10 @@ class OperatorRunner:
             if entry["id"] == "info":
                 probe = self._ffprobe(self.work / "fixtures" / "input.mp4")
                 data = _read_json_object(cp.stdout)
-                info_res = data.get("resolution") if isinstance(data, dict) else None
-                dims_match = isinstance(data, dict) and (
-                    (data.get("width") == probe["width"] and data.get("height") == probe["height"])
+                info = data.get("data") if isinstance(data, dict) and isinstance(data.get("data"), dict) else data
+                info_res = info.get("resolution") if isinstance(info, dict) else None
+                dims_match = isinstance(info, dict) and (
+                    (info.get("width") == probe["width"] and info.get("height") == probe["height"])
                     or info_res == f"{probe['width']}x{probe['height']}"
                 )
                 if (
@@ -1410,7 +1411,10 @@ class OperatorRunner:
             return
         data = _read_json_object(cp.stdout)
         profiles = _deep_find(data, "profile") if data is not None else []
-        if data is not None and data.get("success") is not False and "dark-grade" in profiles:
+        has_dark_grade = "dark-grade" in profiles or any(
+            isinstance(item, dict) and item.get("name") == "dark-grade" for item in profiles
+        )
+        if data is not None and data.get("success") is not False and has_dark_grade:
             self._pass(entry, "video-quality-check recorded dark-grade profile in structured JSON", code=cp.returncode)
         else:
             self._fail(

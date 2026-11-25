@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import secrets
 import shutil
 import subprocess
 from enum import StrEnum
@@ -67,14 +69,29 @@ def sign_export_with_c2pa(
     tool = _resolve_c2patool()
     target = asset if output_path is None else output_path
 
-    with _atomic_output(target) as signed_tmp:
-        cmd = [tool, asset, "--manifest", manifest, "--output", signed_tmp, "--force"]
+    target_dir = os.path.dirname(os.path.realpath(target))
+    c2pa_out = os.path.join(
+        target_dir,
+        f".kinocut_tmp_c2pa_{secrets.token_hex(12)}{os.path.splitext(target)[1] or '.mp4'}",
+    )
+    try:
+        cmd = [tool, asset, "--manifest", manifest, "--output", c2pa_out, "--force"]
         if signer_path:
             cmd.extend(["--signer-path", signer_path])
         _run_c2patool(cmd, "sign")
-        if not os.path.isfile(signed_tmp) or os.path.getsize(signed_tmp) == 0:
+        if not os.path.isfile(c2pa_out) or os.path.getsize(c2pa_out) == 0:
             raise C2PASigningError("c2patool completed without producing the signed output")
-        verification = _verify_signed_asset(tool, signed_tmp)
+        verification = _verify_signed_asset(tool, c2pa_out)
+        with (
+            _atomic_output(target) as signed_tmp,
+            open(c2pa_out, "rb") as src_f,
+            open(signed_tmp, "wb") as dst_f,
+        ):
+            shutil.copyfileobj(src_f, dst_f)
+    finally:
+        if os.path.lexists(c2pa_out):
+            with contextlib.suppress(OSError):
+                os.unlink(c2pa_out)
     return {
         "status": SigningStatus.SIGNED,
         "verified": True,
