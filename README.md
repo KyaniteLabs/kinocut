@@ -74,7 +74,7 @@ kino doctor
 `kino doctor` lists which features are ready and what each missing one needs. Optional
 features install as extras; the [install matrix](docs/INSTALL.md) lists them all.
 
-- **One-click & multi-platform setup:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install in VS Code</a> · <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install in Cursor</a> · [All platforms](docs/INSTALL_PLATFORMS.md) (Codex CLI, Windsurf, Zed, Cline/Roo Code, OpenCode, Hermes, Gemini CLI, Chrome Companion).
+- **One-click & multi-platform setup:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install in VS Code</a> · <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install in Cursor</a> · [All platforms](docs/INSTALL_PLATFORMS.md) (Codex CLI, Windsurf, Zed, Cline/Roo Code, OpenCode, Hermes, Gemini CLI).
 
 For Claude Desktop extension installs, `python3 scripts/build-mcpb.py` builds a local `.mcpb`
 from `mcpb/`. It is unsigned and labeled **user-configured-local-access**: it launches your

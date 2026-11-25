@@ -158,10 +158,3 @@ Add Kinocut to `~/.gemini/settings.json` (or install via the repository's [gemin
   }
 }
 ```
-
-## Chrome Companion Extension
-
-The local Chrome Companion extension lives under `extensions/chrome/` and connects to your local Kinocut installation over Chrome Native Messaging (no remote server or account).
-
-1. Install the local CLI: `pip install kinocut==2.0.1` (or verify with `uvx --from kinocut==2.0.1 kino doctor`).
-2. Load `extensions/chrome/` as an unpacked extension at `chrome://extensions` (Developer mode) and register its native messaging host manifest per the instructions in `extensions/chrome/`.

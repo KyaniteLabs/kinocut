@@ -111,7 +111,6 @@ def test_install_platforms_doc_and_readme_one_click_links() -> None:
         "Hermes",
         "Claude",
         "Gemini CLI",
-        "extensions/chrome/",
     ):
         assert expected in platforms, f"missing platform section or reference: {expected}"
 
@@ -197,6 +196,5 @@ def test_changelog_v210_has_security_and_wave_summary_sections() -> None:
         "O(1) WAL",
         "Hermes Desktop",
         "INSTALL_PLATFORMS.md",
-        "Chrome Companion",
     ):
         assert topic in body, f"CHANGELOG 2.1.0 missing expected topic: {topic}"

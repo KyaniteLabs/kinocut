@@ -50,7 +50,6 @@ default, unchanged), and the whole offline path works without a network.
   longer scores as underexposed: `video-quality-check` and `release-checkpoint` take
   `--profile dark-grade`. A black or flat frame still fails. (#760)
 - **Multi-platform install configs & one-click links.** Added `docs/INSTALL_PLATFORMS.md` covering VS Code / GitHub Copilot (`vscode:mcp/install` one-click link + `examples/vscode_mcp.json`), Cursor (`cursor://anysphere.cursor-deeplink/mcp/install`), Codex CLI (`examples/codex_config.toml`), Windsurf, Zed, Cline / Roo Code, OpenCode (`plugins/kinocut/opencode-plugin/opencode.json` and `index.js`), Hermes, Claude, and Gemini CLI, plus Codex/OpenAI skill metadata parity (`skills/kinocut-repurpose/agents/openai.yaml`).
-- **Chrome Companion extension.** Added the local Chrome Companion browser extension and native-messaging bridge (`extensions/chrome/`) for local Kinocut review and handoff workflows without a remote server.
 
 ### Security
 
