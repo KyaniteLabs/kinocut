@@ -21,7 +21,7 @@ environment's interpreter and retain its explicitly configured extras. Consumers
 with `mcp-video` must use the joint upgrade and ownership repair below:
 
 ```bash
-/path/to/environment/bin/python -m pip install --upgrade 'kinocut==2.0.1'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==2.2.0'
 /path/to/environment/bin/python -m pip check
 /path/to/environment/bin/kino --version
 /path/to/environment/bin/kino doctor
@@ -31,7 +31,7 @@ On Windows, use the consumer's existing environment under `Scripts` rather than
 the Unix `bin` layout. For example, in PowerShell for a local `.venv`:
 
 ```powershell
-& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==2.0.1'
+& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==2.2.0'
 & .\.venv\Scripts\python.exe -m pip check
 & .\.venv\Scripts\kino.exe --version
 & .\.venv\Scripts\kino.exe --format json doctor
@@ -47,8 +47,8 @@ ownership afterward. Safe pip fixtures reproduced the old shim deleting
 The reinstall uses `--no-deps` to preserve the just-resolved dependency graph:
 
 ```bash
-/path/to/environment/bin/python -m pip install --upgrade 'kinocut==2.0.1' 'mcp-video==1.6.22'
-/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==2.0.1'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==2.2.0' 'mcp-video==1.6.24'
+/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==2.2.0'
 /path/to/environment/bin/python -m pip check
 /path/to/environment/bin/kino --version
 /path/to/environment/bin/kinocut --version
@@ -58,8 +58,8 @@ The reinstall uses `--no-deps` to preserve the just-resolved dependency graph:
 The equivalent PowerShell sequence uses that environment's `Scripts` executables:
 
 ```powershell
-& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==2.0.1' 'mcp-video==1.6.22'
-& .\.venv\Scripts\python.exe -m pip install --force-reinstall --no-deps 'kinocut==2.0.1'
+& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==2.2.0' 'mcp-video==1.6.24'
+& .\.venv\Scripts\python.exe -m pip install --force-reinstall --no-deps 'kinocut==2.2.0'
 & .\.venv\Scripts\python.exe -m pip check
 & .\.venv\Scripts\kino.exe --version
 & .\.venv\Scripts\kinocut.exe --version
@@ -77,12 +77,12 @@ workflow. The release raises security floors for nine previously affected depend
 For a `uvx` MCP configuration, pin the package explicitly:
 
 ```json
-{"command":"uvx","args":["--from","kinocut==2.0.1","kino","--mcp"]}
+{"command":"uvx","args":["--from","kinocut==2.2.0","kino","--mcp"]}
 ```
 
 The npm launcher also pins a separate `uvx` Python environment. Updating a global
 Python package alone does not update it. Upgrade its configured npm package to
-`kinocut@2.0.1`, then verify the launched CLI version. A version-matched MCPB
+`kinocut@2.2.0`, then verify the launched CLI version. A version-matched MCPB
 requires its own matching artifact, readiness receipt and host installation;
 do not reuse a 1.15.3 bundle or imply Desktop acceptance from CI checks.
 
@@ -116,8 +116,8 @@ in-place repair, explicitly replace canonical package bytes, then resolve the
 approved pins and configured extras against the final metadata before restarting:
 
 ```bash
-/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==2.0.1'
-/path/to/environment/bin/python -m pip install --upgrade 'kinocut==2.0.1'
+/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==2.2.0'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==2.2.0'
 /path/to/environment/bin/python -m pip check
 ```
 

@@ -1,3 +1,3 @@
 [mcp_servers.kinocut]
 command = "uvx"
-args = ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+args = ["--from", "kinocut==2.2.0", "kino", "--mcp"]

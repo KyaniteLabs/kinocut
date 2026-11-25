@@ -23,8 +23,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-206%20tools-orange.svg" alt="206 MCP tools in the published package">
-  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands in the published package">
+  <img src="https://img.shields.io/badge/MCP-208%20tools-orange.svg" alt="208 MCP tools in the published package">
+  <img src="https://img.shields.io/badge/CLI-178%20commands-orange.svg" alt="178 CLI commands in the published package">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -48,7 +48,7 @@ Kinocut needs [FFmpeg](https://ffmpeg.org/) on your `PATH` (`brew install ffmpeg
 Add it to Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.2.0 kino --mcp
 ```
 
 Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf, Zed):
@@ -58,7 +58,7 @@ Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf,
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
     }
   }
 }
@@ -67,14 +67,14 @@ Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf,
 Or install the package and check your machine:
 
 ```bash
-pip install kinocut==2.0.1
+pip install kinocut==2.2.0
 kino doctor
 ```
 
 `kino doctor` lists which features are ready and what each missing one needs. Optional
 features install as extras; the [install matrix](docs/INSTALL.md) lists them all.
 
-- **One-click & multi-platform setup:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install in VS Code</a> · <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install in Cursor</a> · [All platforms](docs/INSTALL_PLATFORMS.md) (Codex CLI, Windsurf, Zed, Cline/Roo Code, OpenCode, Hermes, Gemini CLI, Chrome Companion).
+- **One-click & multi-platform setup:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.2.0%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install in VS Code</a> · <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjIuMCIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install in Cursor</a> · [All platforms](docs/INSTALL_PLATFORMS.md) (Codex CLI, Windsurf, Zed, Cline/Roo Code, OpenCode, Hermes, Gemini CLI, Chrome Companion).
 
 For Claude Desktop extension installs, `python3 scripts/build-mcpb.py` builds a local `.mcpb`
 from `mcpb/`. It is unsigned and labeled **user-configured-local-access**: it launches your
@@ -203,14 +203,14 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 
 | | Version | Surface |
 | --- | --- | --- |
-| **Published** on PyPI, npm and the MCP Registry | **2.0.1** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
+| **Published** on PyPI, npm and the MCP Registry | **2.2.0** (2026-11-25) | 208 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 178 CLI commands |
 | **Development** (release candidate) | **2.2.0** | 208 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 178 CLI commands, plus Chrome Companion extension |
-| **Compatibility package** | `mcp-video==1.6.22` | Installs `kinocut==2.0.1` for anyone still on the old name; the prepared `mcp-video==1.6.24` installs `kinocut==2.2.0` |
+| **Compatibility package** | `mcp-video==1.6.24` | Installs `kinocut==2.2.0` for anyone still on the old name; the prepared `mcp-video==1.6.24` installs `kinocut==2.2.0` |
 
-Install from PyPI: the published 2.0.1 package includes the optional object-matte extra
-(`kinocut[object-matte]==2.0.1`), which adds no new MCP tool.
+Install from PyPI: the published 2.2.0 package includes the optional object-matte extra
+(`kinocut[object-matte]==2.2.0`), which adds no new MCP tool.
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [2.0.1 on PyPI](https://pypi.org/project/kinocut/2.0.1/)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [2.2.0 on PyPI](https://pypi.org/project/kinocut/2.2.0/)
 
 | | |
 | --- | --- |
@@ -232,12 +232,12 @@ setups should use `kinocut`, `from kinocut import Client` and `kino`. See
 Kinocut es un servidor MCP local para que tu agente de IA edite video con barreras de
 seguridad: recorta, une, subtitula, mezcla audio, crea Shorts y revisa la calidad antes de
 entregarte el corte. Nunca sobrescribe tus archivos sin permiso y no sube nada a la nube.
-La versión publicada es **2.0.1**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
+La versión publicada es **2.2.0**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
 
 ```bash
-pip install kinocut==2.0.1
+pip install kinocut==2.2.0
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.2.0 kino --mcp
 ```
 
 `kino doctor` te dice qué funciones están listas y qué falta instalar. La documentación

@@ -3,7 +3,7 @@
   "mcp": {
     "kinocut": {
       "type": "local",
-      "command": ["uvx", "kinocut==2.0.1"],
+      "command": ["uvx", "kinocut==2.2.0"],
       "enabled": true
     }
   }

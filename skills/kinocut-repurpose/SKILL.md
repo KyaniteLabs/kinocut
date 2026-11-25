@@ -21,13 +21,13 @@ mkdir -p .claude/skills && cp -R skills/kinocut-repurpose .claude/skills/kinocut
 Run the pinned Kinocut MCP server when MCP tools are available. Do not edit another host's configuration from this skill:
 
 ```bash
-uvx kinocut==2.0.1
+uvx kinocut==2.2.0
 ```
 
 For CLI-only hosts, install and verify Kinocut:
 
 ```bash
-pip install kinocut==2.0.1
+pip install kinocut==2.2.0
 kino doctor
 ```
 

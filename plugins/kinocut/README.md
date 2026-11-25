@@ -5,13 +5,13 @@
 Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
 server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
-Plugin bundle **2.0.1** pins the separately versioned Kinocut runtime
-**2.0.1** (206 MCP tools / 177 CLI; 18-tool default registration). The legacy
+Plugin bundle **2.2.0** pins the separately versioned Kinocut runtime
+**2.2.0** (208 MCP tools / 178 CLI; 18-tool default registration). The legacy
 `mcp-video` compatibility package **1.6.22** installs that same runtime.
 Catalog entries use the bundle version; launchers use the runtime version.
 
 The Hermes catalog listing is a separate pin: `scripts/repin_marketplaces.sh`
-updates it to launch `kinocut==2.0.1` through uvx (206 MCP tools / 177 CLI).
+updates it to launch `kinocut==2.2.0` through uvx (208 MCP tools / 178 CLI).
 Check the live catalog entry before quoting its currently served version.
 
 Local FFmpeg editing and color grading need no account or API key. Network use
@@ -49,7 +49,7 @@ chosen provider, prepare local frames with `video_thumbnail` or `video_qc_vision
 and inspect them through Hermes's image tools. Local product colors
 (`image_analyze_product(use_ai=false)`) need the `image` extra, which this plugin's
 launcher does not install; to use them, change the launcher to
-`uvx --from 'kinocut[image]==2.0.1' kinocut`. Hermes owns its model selection, credentials
+`uvx --from 'kinocut[image]==2.2.0' kinocut`. Hermes owns its model selection, credentials
 and fallback policy; Kinocut's MCP process does not automatically inherit them.
 
 The optional product adapter supports explicit `local` and `remote` modes using
@@ -57,7 +57,7 @@ the Anthropic-compatible Messages protocol. Local mode requires a loopback endpo
 has no cloud fallback and cannot activate the separate Anthropic QC worker.
 Missing model support must be reported as unavailable; host observations do not
 turn an unevaluated Kinocut assessment into a scored pass. See the
-[vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v2.0.1/docs/VISION_PRIVACY.md) for configuration and limits.
+[vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v2.2.0/docs/VISION_PRIVACY.md) for configuration and limits.
 
 Prefer new output paths, and give them as absolute paths: Hermes runs the server
 inside the plugin's install folder, so relative paths are refused. Never target
@@ -69,11 +69,11 @@ credentials, session files, the Hermes home or agent configuration directories.
 - FFmpeg and ffprobe on `PATH`
 - Python 3.11 or newer (uv installs it if needed)
 
-Check your setup with `uvx kinocut==2.0.1 doctor`.
+Check your setup with `uvx kinocut==2.2.0 doctor`.
 
 ## Claude installation
 
-Claude Code and Cowork run the pinned `uvx kinocut==2.0.1` launcher.
+Claude Code and Cowork run the pinned `uvx kinocut==2.2.0` launcher.
 The Python project and `uv.lock` in the repository's `packaging/claude-plugin/`
 directory record exact core dependency versions, public PyPI sources and artifact
 hashes for directory review. They live outside this folder, so hosts that read a
@@ -88,7 +88,7 @@ snapshot. uv caches the environment outside the installed plugin files.
 The first launch downloads the dependencies from PyPI. Later launches
 reuse that environment. This does not bundle FFmpeg or optional AI packages.
 Cursor, MiniMax, Kimi and Agent Plugins hosts retain the pinned
-`uvx kinocut==2.0.1` launcher below.
+`uvx kinocut==2.2.0` launcher below.
 
 Claude's directory still requires manual review for registry package launchers,
 including locked ones. The lock documents a dependency snapshot; it does not guarantee
@@ -122,7 +122,7 @@ The same package ships a Hermes Desktop half, `desktop/plugin.js`, beside
 installed; there is no separate install.
 
 For Hermes Desktop Tier 2, upgrade a 1.x catalog install with
-`hermes plugins update kinocut` once the catalog offers the unified v2.0.1+
+`hermes plugins update kinocut` once the catalog offers the unified v2.2.0+
 bundle. Reopen Desktop and enable the pane. Updating a standalone MCP
 server alone does not install the Desktop plugin.
 
@@ -145,14 +145,14 @@ Clients can also use the pinned configuration directly:
 ```json
 {
   "mcpServers": {
-    "kinocut": { "command": "uvx", "args": ["kinocut==2.0.1"] }
+    "kinocut": { "command": "uvx", "args": ["kinocut==2.2.0"] }
   }
 }
 ```
 
 ## Narrowing the tool list
 
-Kinocut registers 206 MCP tools. The default registration is 18 tools that
+Kinocut registers 208 MCP tools. The default registration is 18 tools that
 reach all of them (8 hot-path tools, 8 operation families, `list_operations`
 and `describe_operation`), and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
 allowlist reduces the schemas sent with each model request. For Hermes, this small inspection-and-trim set
@@ -162,7 +162,7 @@ goes in `mcp_servers` in your Hermes `config.yaml`:
 mcp_servers:
   kinocut:
     command: uvx
-    args: ["kinocut==2.0.1"]
+    args: ["kinocut==2.2.0"]
     # video_thumbnail (below) is a profile tool, not part of the default
     # 18 tools: select the editor profile explicitly (115 tools).
     # The plugin's own .mcp.json launch deliberately stays on the

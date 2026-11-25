@@ -68,7 +68,7 @@ and a `video_review_card` for approving a cut in Hermes Desktop chat.
 Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.2.0 kino --mcp
 ```
 
 Claude Desktop:
@@ -78,7 +78,7 @@ Claude Desktop:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
     }
   }
 }
@@ -91,7 +91,7 @@ Cursor:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
     }
   }
 }

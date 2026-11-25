@@ -9,4 +9,4 @@ startCommand:
   commandFunction:
     # A JS function that produces the CLI command to start the MCP.
     |-
-    (config) => ({ "command": "uvx", "args": ["kinocut==2.0.1"] })
+    (config) => ({ "command": "uvx", "args": ["kinocut==2.2.0"] })
