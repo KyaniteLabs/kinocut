@@ -1,11 +1,11 @@
 # Install Kinocut Across Platforms
 
-All configurations below launch the published **2.0.1** local stdio MCP server via [uv](https://docs.astral.sh/uv/) (`uvx`) with Kinocut's default **18-tool** surface (8 hot-path tools, 8 operation families, `list_operations`, and `describe_operation`).
+All configurations below launch the published **2.2.0** local stdio MCP server via [uv](https://docs.astral.sh/uv/) (`uvx`) with Kinocut's default **18-tool** surface (8 hot-path tools, 8 operation families, `list_operations`, and `describe_operation`).
 
-**Prerequisites:** [FFmpeg](https://ffmpeg.org/) on `PATH` and `uv` (or `pip install kinocut==2.0.1`). Verify your machine with:
+**Prerequisites:** [FFmpeg](https://ffmpeg.org/) on `PATH` and `uv` (or `pip install kinocut==2.2.0`). Verify your machine with:
 
 ```bash
-uvx --from kinocut==2.0.1 kino doctor
+uvx --from kinocut==2.2.0 kino doctor
 ```
 
 To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:editor"` or `"KINOCUT_TOOLS": "all"` to your client's server environment block and restart the host. See [INSTALL.md](INSTALL.md) for optional extras.
@@ -14,7 +14,7 @@ To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:
 
 ## VS Code & GitHub Copilot
 
-- **One-click install:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install Kinocut in VS Code</a>
+- **One-click install:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.2.0%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install Kinocut in VS Code</a>
 - **Workspace config:** copy [examples/vscode_mcp.json](../examples/vscode_mcp.json) to `.vscode/mcp.json`:
 
 ```json
@@ -23,7 +23,7 @@ To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:
     "kinocut": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
     }
   }
 }
@@ -31,7 +31,7 @@ To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:
 
 ## Cursor
 
-- **One-click install:** <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install Kinocut in Cursor</a>
+- **One-click install:** <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjIuMCIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install Kinocut in Cursor</a>
 - **Manual config (`.cursor/mcp.json` or `~/.cursor/mcp.json`):**
 
 ```json
@@ -39,7 +39,7 @@ To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
     }
   }
 }
@@ -54,7 +54,7 @@ Add Kinocut to `~/.codex/config.toml` (template: [examples/codex_config.toml](..
 ```toml
 [mcp_servers.kinocut]
 command = "uvx"
-args = ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+args = ["--from", "kinocut==2.2.0", "kino", "--mcp"]
 ```
 
 Codex skill metadata lives in [skills/kinocut/agents/openai.yaml](../skills/kinocut/agents/openai.yaml) and [skills/kinocut-repurpose/agents/openai.yaml](../skills/kinocut-repurpose/agents/openai.yaml).
@@ -68,7 +68,7 @@ Add Kinocut to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
     }
   }
 }
@@ -84,7 +84,7 @@ Add Kinocut under `context_servers` in your Zed `settings.json`:
     "kinocut": {
       "command": {
         "path": "uvx",
-        "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+        "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"]
       }
     }
   }
@@ -100,7 +100,7 @@ Add Kinocut to `cline_mcp_settings.json` (Cline) or `.roo/mcp.json` (Roo Code):
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"],
+      "args": ["--from", "kinocut==2.2.0", "kino", "--mcp"],
       "disabled": false
     }
   }
@@ -117,7 +117,7 @@ Copy [plugins/kinocut/opencode-plugin/opencode.json](../plugins/kinocut/opencode
   "mcp": {
     "kinocut": {
       "type": "local",
-      "command": ["uvx", "kinocut==2.0.1"],
+      "command": ["uvx", "kinocut==2.2.0"],
       "enabled": true
     }
   }
@@ -139,7 +139,7 @@ For manual `config.yaml` setup or tool allowlists, see [plugins/kinocut/README.m
 **Claude Code:**
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.2.0 kino --mcp
 ```
 
 **Claude Desktop (`claude_desktop_config.json`):** copy [examples/claude_mcp_config.json](../examples/claude_mcp_config.json), or build the local `.mcpb` desktop extension as documented in [MCPB.md](MCPB.md).
@@ -153,7 +153,7 @@ Add Kinocut to `~/.gemini/settings.json` (or install via the repository's [gemin
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["kinocut==2.0.1"]
+      "args": ["kinocut==2.2.0"]
     }
   }
 }
@@ -163,6 +163,6 @@ Add Kinocut to `~/.gemini/settings.json` (or install via the repository's [gemin
 
 The local Chrome Companion MV3 extension lives under [extensions/chrome/](../extensions/chrome/README.md) and talks to your local Kinocut installation over Chrome Native Messaging (`tech.kyanitelabs.kinocut`) with zero remote server or account.
 
-1. Install the local CLI: `pip install kinocut==2.0.1` (or `pip install -e .` from this checkout).
+1. Install the local CLI: `pip install kinocut==2.2.0` (or `pip install -e .` from this checkout).
 2. Load `extensions/chrome/` as an unpacked extension at `chrome://extensions` (Developer mode) and copy its 32-character extension ID.
 3. Register the local Native Messaging host manifest: `python -m kinocut.native_messaging --install --extension-id <EXTENSION_ID>`.

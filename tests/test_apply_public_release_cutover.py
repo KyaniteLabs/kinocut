@@ -241,3 +241,49 @@ def test_post_publish_phase_requires_the_shim_version(tmp_path: Path, monkeypatc
         require_live=True,
     )
     assert cutover.post_publish_phase(namespace, "2.1.0", "2.0.1") == 1
+
+
+def test_post_publish_phase_moves_the_opencode_javascript_runtime(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The OpenCode host reads a JS helper, so the Python pin regexes cannot reach it.
+
+    A release that skips this leaves the OpenCode plugin launching the outgoing
+    runtime while every JSON manifest says the new one.
+    """
+    helper = tmp_path / cutover.OPENCODE_HELPER
+    helper.parent.mkdir(parents=True, exist_ok=True)
+    helper.write_text('const RUNTIME_VERSION = "2.0.1";\n', encoding="utf-8")
+    manifest = tmp_path / cutover.OPENCODE_MANIFEST
+    manifest.write_text('{"command": ["uvx", "kinocut==2.0.1"]}\n', encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "public_claims.json").write_text("{}", encoding="utf-8")
+    for relative in (*cutover.PLUGIN_MANIFESTS, "gemini-extension.json", "smithery.yaml"):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"version": "2.0.1"}\n', encoding="utf-8")
+    (tmp_path / cutover.VIDEO_CI_ACTION).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / cutover.VIDEO_CI_ACTION).write_text('    default: "2.0.1"\n', encoding="utf-8")
+    (tmp_path / "packaging" / "claude-plugin").mkdir(parents=True)
+    (tmp_path / "packaging" / "claude-plugin" / "pyproject.toml").write_text(
+        'dependencies = ["kinocut==2.0.1"]\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(cutover, "ROOT", tmp_path)
+    monkeypatch.setattr(cutover, "live_pypi_has_version", lambda version: True)
+    monkeypatch.setattr(cutover.subprocess, "call", lambda cmd, cwd=None: 0)
+    namespace = cutover.argparse.Namespace(
+        phase="post-publish",
+        apply=True,
+        version="2.1.0",
+        previous_version="2.0.1",
+        date="2026-11-30",
+        mcp_tools=208,
+        cli_commands=178,
+        mcp_video_version="1.6.23",
+        keep_dev_ahead=False,
+        require_live=True,
+    )
+
+    assert cutover.post_publish_phase(namespace, "2.1.0", "2.0.1") == 0
+    assert 'const RUNTIME_VERSION = "2.1.0";' in helper.read_text(encoding="utf-8")
+    assert "kinocut==2.1.0" in manifest.read_text(encoding="utf-8")

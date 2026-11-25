@@ -12,7 +12,7 @@ Copy `opencode.json` into your project root or merge its `mcp.kinocut` entry int
   "mcp": {
     "kinocut": {
       "type": "local",
-      "command": ["uvx", "kinocut==2.0.1"],
+      "command": ["uvx", "kinocut==2.2.0"],
       "enabled": true
     }
   }
@@ -33,7 +33,7 @@ const editorConfig = createOpenCodeConfig({ toolsProfile: "profile:editor" });
 ## Verify your environment
 
 ```bash
-uvx kinocut==2.0.1 doctor
+uvx kinocut==2.2.0 doctor
 ```
 
 Requirements: [uv](https://docs.astral.sh/uv/) and FFmpeg on `PATH`.

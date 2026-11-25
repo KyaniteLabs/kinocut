@@ -51,10 +51,10 @@ def test_plugin_skill_matches_root_skill_guidance() -> None:
 
 
 def test_plugin_readme_has_no_stale_1_16_4_pin() -> None:
-    """D8-011: plugins/kinocut/README.md aligns on the 2.0.1 published runtime pin."""
+    """D8-011: plugins/kinocut/README.md aligns on the published runtime pin."""
     text = (ROOT / "plugins" / "kinocut" / "README.md").read_text(encoding="utf-8")
     assert "kinocut==1.16.4" not in text
-    assert "kinocut==2.0.1" in text
+    assert "kinocut==2.2.0" in text
 
 
 def test_status_now_docs_testing_and_ci_dockerfile_hygiene() -> None:
@@ -64,7 +64,7 @@ def test_status_now_docs_testing_and_ci_dockerfile_hygiene() -> None:
     assert first_nonempty[0] == "# Kinocut now"
     import kinocut
 
-    assert first_nonempty[1].startswith("**Published:** 2.0.1")
+    assert first_nonempty[1].startswith("**Published:** 2.2.0")
     assert first_nonempty[2].startswith(f"**Development candidate:** {kinocut.__version__}")
     assert "Runtime 1.16.5 is published" not in now_text
     assert "the18" not in now_text

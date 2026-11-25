@@ -160,7 +160,7 @@ def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
         "--model",
         default=None,
         help=(
-            "u2net_human_seg (people, default) or birefnet-general (products/objects; needs kinocut[object-matte]==2.0.1)"
+            "u2net_human_seg (people, default) or birefnet-general (products/objects; needs kinocut[object-matte]==2.2.0)"
         ),
     )
     remove_bg_p.add_argument(

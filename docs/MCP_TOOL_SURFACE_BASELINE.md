@@ -150,7 +150,7 @@ Compare two releases side by side by naming each server:
 ```bash
 python scripts/task_benchmark.py \
   --server "old=<older venv>/bin/kinocut --mcp" \
-  --server "new=uvx --from kinocut==2.0.1 kinocut --mcp" \
+  --server "new=uvx --from kinocut==2.2.0 kinocut --mcp" \
   --model anthropic:<model id> --model openai:<model id> \
   --out bench.json
 ```

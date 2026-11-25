@@ -29,7 +29,7 @@ runs:
           pkg="kinocut==${KINOCUT_VERSION}"
           python -m pip install "${pkg}"
         else
-          python -m pip install "kinocut==2.0.1"
+          python -m pip install "kinocut==2.2.0"
         fi
     - name: Optional cutfile render
       shell: bash
