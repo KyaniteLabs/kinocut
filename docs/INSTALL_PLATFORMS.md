@@ -1,6 +1,6 @@
 # Install Kinocut Across Platforms
 
-All configurations below launch the published **2.0.1** local stdio MCP server via [uv](https://docs.astral.sh/uv/) (`uvx`) with Kinocut's default **18-tool** surface (8 hot-path tools, 8 operation families, `list_operations`, and `describe_operation`).
+All configurations below launch the published **2.2.0** local stdio MCP server via [uv](https://docs.astral.sh/uv/) (`uvx`) with Kinocut's default **18-tool** surface (8 hot-path tools, 8 operation families, `list_operations`, and `describe_operation`).
 
 **Prerequisites:** [FFmpeg](https://ffmpeg.org/) on `PATH` and `uv` (or `pip install kinocut==2.2.0`). Verify your machine with:
 

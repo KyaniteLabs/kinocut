@@ -8,7 +8,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 video editing by AI agents. It wraps FFmpeg in typed, preflight-checked tools that write
 new files, run quality gates and record Video Receipts.
 
-- **Published 2.0.1:** 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
+- **Published 2.2.0:** 208 MCP tools / 178 CLI commands with `KINOCUT_TOOLS=all`;
   18 tools listed by default: an 8-tool hot path, eight operation families, and
   `list_operations` / `describe_operation`, which reach every other operation.
 - **Development (unreleased #458):** 208 MCP tools / 178 CLI commands. Pass spoken edit
@@ -119,7 +119,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 
 High-leverage listing targets:
 
-- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - the November 10, 2026 release verification confirmed `tech.kyanitelabs/kinocut` 2.0.1 as a local stdio package.
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - the November 25, 2026 release verification confirmed `tech.kyanitelabs/kinocut` 2.2.0 as a local stdio package.
 - [Directory rebrand status](DIRECTORY_REBRAND_STATUS.md) - live reconciliation ledger for stale former-name listings and downstream mirrors.
 - [Glama MCP Registry](https://glama.ai/mcp/servers) — Submit via GitHub repo URL.
 - [Smithery](https://smithery.ai) — Submit via GitHub repo URL once the official registry and Glama listings are fresh.

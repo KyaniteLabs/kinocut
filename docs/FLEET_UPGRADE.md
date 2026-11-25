@@ -1,6 +1,6 @@
-# Fleet upgrade to Kinocut 2.0.1
+# Fleet upgrade to Kinocut 2.2.0
 
-2.0.1 is published (verified 2026-11-10 on PyPI/npm/GitHub release/canonical MCP Registry); the matching published compatibility installer is `mcp-video==1.6.22`. 2.0 changed the default tool list; read the CHANGELOG **Breaking changes** before restarting a consumer that calls tools by name. This verifies package publication, not fleet rollout. Use the owned consumer environment, configured extras and reviewed upgrade/restart plan below. A merge, successful build, or saved cloud setup draft does not update
+2.2.0 is published (verified 2026-11-25 on PyPI/npm/GitHub release/canonical MCP Registry); the matching published compatibility installer is `mcp-video==1.6.24`. 2.0 changed the default tool list; read the CHANGELOG **Breaking changes** before restarting a consumer that calls tools by name. This verifies package publication, not fleet rollout. Use the owned consumer environment, configured extras and reviewed upgrade/restart plan below. A merge, successful build, or saved cloud setup draft does not update
 an installed package or a running MCP process.
 
 ## Inventory and rollout
@@ -89,7 +89,7 @@ do not reuse a 1.15.3 bundle or imply Desktop acceptance from CI checks.
 After the controlled restart, verify the exact interpreter used by the service:
 
 ```bash
-/path/to/environment/bin/python -c 'import importlib.metadata as m, kinocut, mcp_video; assert m.version("kinocut") == kinocut.__version__ == "2.0.1"; assert kinocut.Client is mcp_video.Client; print(kinocut.__version__, kinocut.__file__)'
+/path/to/environment/bin/python -c 'import importlib.metadata as m, kinocut, mcp_video; assert m.version("kinocut") == kinocut.__version__ == "2.2.0"; assert kinocut.Client is mcp_video.Client; print(kinocut.__version__, kinocut.__file__)'
 ```
 
 Confirm that the MCP process was replaced, starts successfully, discovers the
