@@ -80,7 +80,11 @@ def split_screen(
         _warnings.warn(message, stacklevel=2)
     # --- End guardrails ---
 
-    filter_complex = _split_filter(left_info.width, left_info.height, right_info.width, right_info.height, layout)
+    left_w = left_info.display_width or left_info.width
+    left_h = left_info.display_height or left_info.height
+    right_w = right_info.display_width or right_info.width
+    right_h = right_info.display_height or right_info.height
+    filter_complex = _split_filter(left_w, left_h, right_w, right_h, layout)
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
@@ -95,6 +99,8 @@ def split_screen(
                     "[v]",
                     "-map",
                     "0:a?",
+                    "-pix_fmt",
+                    "yuv420p",
                 ],
             )
         )
@@ -105,25 +111,31 @@ def split_screen(
     return result
 
 
+def _even_dim(value: int) -> int:
+    return max(2, value + (value % 2))
+
+
 def _split_filter(left_width: int, left_height: int, right_width: int, right_height: int, layout: SplitLayout) -> str:
     if layout not in ("side-by-side", "top-bottom"):
         raise MCPVideoError("Unknown split-screen layout", error_type="validation_error", code="invalid_layout")
     if layout == "side-by-side":
-        target_h = _safe_dimension(max(left_height, right_height), "target_h")
-        if left_height != right_height:
+        target_h = _safe_dimension(_even_dim(max(left_height, right_height)), "target_h")
+        needs_scale = left_height != right_height or left_height % 2 != 0 or left_width % 2 != 0 or right_width % 2 != 0
+        if needs_scale:
             return (
-                f"[0:v]scale=-2:{target_h},setsar=1[left];"
-                f"[1:v]scale=-2:{target_h},setsar=1[right];"
-                f"[left][right]hstack=inputs=2[v]"
+                f"[0:v]scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,scale=-2:{target_h},setsar=1[left];"
+                f"[1:v]scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,scale=-2:{target_h},setsar=1[right];"
+                r"[left][right]hstack=inputs=2,pad=iw+mod(iw\,2):ih+mod(ih\,2)[v]"
             )
         return "[0:v][1:v]hstack=inputs=2[v]"
 
-    target_w = _safe_dimension(max(left_width, right_width), "target_w")
-    if left_width != right_width:
+    target_w = _safe_dimension(_even_dim(max(left_width, right_width)), "target_w")
+    needs_scale = left_width != right_width or left_width % 2 != 0 or left_height % 2 != 0 or right_height % 2 != 0
+    if needs_scale:
         return (
-            f"[0:v]scale={target_w}:-2,setsar=1[top];"
-            f"[1:v]scale={target_w}:-2,setsar=1[bottom];"
-            f"[top][bottom]vstack=inputs=2[v]"
+            f"[0:v]scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,scale={target_w}:-2,setsar=1[top];"
+            f"[1:v]scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,scale={target_w}:-2,setsar=1[bottom];"
+            r"[top][bottom]vstack=inputs=2,pad=iw+mod(iw\,2):ih+mod(ih\,2)[v]"
         )
     return "[0:v][1:v]vstack=inputs=2[v]"
 

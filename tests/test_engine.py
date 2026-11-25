@@ -704,7 +704,7 @@ class TestNormalizeClips:
         assert "pad=640:480" in vf
         assert len(result) == 1
 
-    def test_normalize_applies_transpose_for_rotation(self, monkeypatch, tmp_path):
+    def test_normalize_relies_on_autorotate_and_normalizes_sar(self, monkeypatch, tmp_path):
         from mcp_video.engine_merge import _normalize_clips
 
         calls = []
@@ -725,8 +725,11 @@ class TestNormalizeClips:
         _normalize_clips(clips, infos, 640, 480, str(tmp_path))
 
         assert len(calls) == 2
-        assert "transpose=2" in calls[0][calls[0].index("-vf") + 1]
-        assert "transpose=1" in calls[1][calls[1].index("-vf") + 1]
+        vf0 = calls[0][calls[0].index("-vf") + 1]
+        vf1 = calls[1][calls[1].index("-vf") + 1]
+        assert "transpose=" not in vf0
+        assert "transpose=" not in vf1
+        assert "setsar=1" in vf0 and "setsar=1" in vf1
 
 
 class TestMergeSingleClip:

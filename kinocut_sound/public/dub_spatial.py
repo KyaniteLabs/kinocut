@@ -22,6 +22,7 @@ from kinocut_sound.limits import (
 )
 from kinocut_sound.mix._errors import MIX_OVER_LIMIT, mix_error
 from kinocut_sound.mix._wav import wav_from_pcm
+from kinocut_sound.post._subprocess import resolve_configured_binary
 from kinocut_sound.post.spatial import _distance_filter, MAX_DISTANCE_PCT
 from kinocut_sound.public.dub_job import _validated_cue
 from kinocut_sound.public.dub_process import remaining
@@ -58,8 +59,9 @@ def _dry_cue(job, index, cue):
 
 
 def _binary():
-    binary = shutil.which("ffmpeg")
-    if binary is None:
+    override = resolve_configured_binary("ffmpeg")
+    binary = override if override is not None else shutil.which("ffmpeg")
+    if not binary:
         raise mix_error("distance speech requires FFmpeg", "dub_spatial_unavailable")
     return binary
 
@@ -77,6 +79,8 @@ def _args(binary):
         threads,
         "-filter_threads",
         threads,
+        "-protocol_whitelist",
+        "file,pipe",
         "-f",
         "wav",
         "-i",

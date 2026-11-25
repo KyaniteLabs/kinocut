@@ -59,10 +59,9 @@ class TestGetColorPresetFilter:
 
 
 class TestBuildPitchShiftFilter:
-    def test_zero_semitones_contains_atempo(self):
-        result = _build_pitch_shift_filter(0)
-        assert "atempo=" in result
-        assert "asetrate=" in result
+    def test_zero_semitones_is_noop(self):
+        assert _build_pitch_shift_filter(0) == "anull"
+        assert _build_pitch_shift_filter(0, sample_rate=48000) == "anull"
 
     def test_positive_shift(self):
         result = _build_pitch_shift_filter(12)

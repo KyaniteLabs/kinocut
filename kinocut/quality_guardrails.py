@@ -7,10 +7,12 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import subprocess
 from pathlib import Path
 from typing import Any
 
+from .engine_runtime_utils import _ffmpeg
 from .ffmpeg_helpers import _validate_input_path
 from .errors import MCPVideoError
 from .defaults import (
@@ -190,7 +192,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
     def _run_ffmpeg_signalstats(self, video: str) -> dict[str, Any]:
         """Run ffmpeg with signalstats filter to get video statistics."""
         cmd = [
-            "ffmpeg",
+            _ffmpeg(),
             "-i",
             video,
             *self._input_limit_args(),
@@ -231,7 +233,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
     def _analyze_loudnorm(self, video: str) -> dict[str, Any]:
         """Analyze audio loudness using loudnorm filter."""
         cmd = [
-            "ffmpeg",
+            _ffmpeg(),
             "-i",
             video,
             *self._input_limit_args(),
@@ -293,9 +295,11 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
             diagnostic = _diagnostic("ffprobe_rgb_means", "batch signalstats returned incomplete YUV values")
             logger.warning("batch signalstats returned incomplete YUV values")
             return {"_error": diagnostic}
-        y = y_raw
-        u = u_raw - 128
-        v = v_raw - 128
+        # Signalstats reports 8-bit limited-range TV YUV (Y in [16, 235], U/V in [16, 240]).
+        # Convert to full-range BT.601 RGB with the black-level offset (Y - 16) * 1.16438.
+        y = max(0.0, (y_raw - 16.0) * (255.0 / 219.0))
+        u = (u_raw - 128.0) * (255.0 / 224.0)
+        v = (v_raw - 128.0) * (255.0 / 224.0)
         r = max(0.0, min(255.0, y + 1.402 * v))
         g = max(0.0, min(255.0, y - 0.344136 * u - 0.714136 * v))
         b = max(0.0, min(255.0, y + 1.772 * u))
@@ -329,23 +333,45 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 details=details,
             )
 
-        # Parse loudnorm output
-        input_i = float(loudness_data.get("input_i", "-70"))  # Integrated LUFS
-        input_tp = float(loudness_data.get("input_tp", "-10"))  # True peak dBTP
-        input_lra = float(loudness_data.get("input_lra", "1"))  # Loudness range
+        # Parse loudnorm output (sanitize non-finite values such as -inf on digital silence)
+        def _finite_or_none(raw_val: Any, default: str) -> float | None:
+            try:
+                parsed = float(raw_val if raw_val is not None else default)
+            except (TypeError, ValueError):
+                return None
+            return parsed if math.isfinite(parsed) else None
+
+        input_i = _finite_or_none(loudness_data.get("input_i"), "-70")
+        input_tp = _finite_or_none(loudness_data.get("input_tp"), "-10")
+        input_lra = _finite_or_none(loudness_data.get("input_lra"), "1")
+
+        if input_i is None:
+            return QualityReport(
+                check_name="audio_levels",
+                passed=False,
+                score=0.0,
+                message=f"Audio is silent or unmeasurable (-inf LUFS). Target: {self.AUDIO_LUFS_TARGET} LUFS",
+                details={
+                    "lufs": None,
+                    "true_peak": input_tp,
+                    "loudness_range": input_lra,
+                    "target_lufs": self.AUDIO_LUFS_TARGET,
+                    "silent": True,
+                },
+            )
 
         # Check against thresholds
         loudness_ok = self.AUDIO_LUFS_MIN <= input_i <= self.AUDIO_LUFS_MAX
-        peak_ok = input_tp <= self.AUDIO_TRUE_PEAK_MAX
+        peak_ok = input_tp is None or input_tp <= self.AUDIO_TRUE_PEAK_MAX
 
         passed = loudness_ok and peak_ok
 
-        # Calculate score
+        # Calculate score (2 points per dB deviation from target)
         target_lufs = self.AUDIO_LUFS_TARGET
         deviation = abs(input_i - target_lufs)
-        score = float(max(0, 100 - (deviation / 10) * 20))  # 20 points per dB deviation
+        score = float(max(0, 100 - (deviation / 10) * 20))
 
-        if input_tp > self.AUDIO_TRUE_PEAK_MAX:
+        if input_tp is not None and input_tp > self.AUDIO_TRUE_PEAK_MAX:
             score = float(score * 0.5)  # Penalize clipping heavily
 
         messages = []
@@ -356,7 +382,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         else:
             messages.append(f"Audio loudness is good ({input_i:.1f} LUFS)")
 
-        if input_tp > self.AUDIO_TRUE_PEAK_MAX:
+        if input_tp is not None and input_tp > self.AUDIO_TRUE_PEAK_MAX:
             messages.append(f"Audio is clipping ({input_tp:.1f} dBTP). Reduce volume to prevent distortion.")
 
         return QualityReport(
@@ -387,14 +413,14 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
 
         r, g, b = rgb["r"], rgb["g"], rgb["b"]
 
-        # Calculate deviation from neutral gray (all channels should be similar)
+        # Calculate deviation from neutral gray (floor denominator so dark scenes
+        # do not amplify modest shadow tints by dividing by near-zero mean luma).
         avg = (r + g + b) / 3
-        if avg == 0:
-            avg = 1  # Prevent division by zero
+        denom = max(avg, 64.0)
 
-        r_dev = abs(r - avg) / avg * 100
-        g_dev = abs(g - avg) / avg * 100
-        b_dev = abs(b - avg) / avg * 100
+        r_dev = abs(r - avg) / denom * 100
+        g_dev = abs(g - avg) / denom * 100
+        b_dev = abs(b - avg) / denom * 100
 
         max_deviation = max(r_dev, g_dev, b_dev)
 

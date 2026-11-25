@@ -6,11 +6,12 @@ import warnings as _warnings
 
 from typing import Any
 
-from .defaults import DEFAULT_FPS, DEFAULT_KEN_BURNS_FRAME_DURATION, DEFAULT_NOISE_REDUCTION_FLOOR_DB
+from .defaults import DEFAULT_FPS, DEFAULT_NOISE_REDUCTION_FLOOR_DB, DEFAULT_SAMPLE_RATE
 from .engine_probe import probe
 from .engine_runtime_utils import (
     _build_edit_result,
     _require_filter,
+    _run_video_only,
     _timed_operation,
 )
 from .paths import (
@@ -48,17 +49,20 @@ def _get_color_preset_filter(preset: ColorPreset) -> str:
     return preset_filters[preset]
 
 
-def _build_pitch_shift_filter(semitones: float = 0) -> str:
-    """Build FFmpeg audio filter string for pitch shifting."""
-    if not (-48 <= semitones <= 48):
+def _build_pitch_shift_filter(semitones: float = 0, sample_rate: int | None = None) -> str:
+    """Build FFmpeg audio filter string for pitch shifting at the input's sample rate."""
+    safe_semitones = _sanitize_ffmpeg_number(semitones, "semitones")
+    if not (-48 <= safe_semitones <= 48):
         raise MCPVideoError(
             f"Pitch shift semitones must be between -48 and 48, got {semitones}",
             error_type="validation_error",
             code="invalid_parameter",
         )
-    safe_semitones = _sanitize_ffmpeg_number(semitones, "semitones")
+    if safe_semitones == 0.0:
+        return "anull"
+    base_rate = int(sample_rate) if (sample_rate is not None and sample_rate > 0) else DEFAULT_SAMPLE_RATE
     rate_mult = 2 ** (safe_semitones / 12)
-    new_rate = 44100 * rate_mult
+    new_rate = base_rate * rate_mult
     tempo = 1.0 / rate_mult
     if tempo < 0.5:
         chain_count = 2
@@ -74,7 +78,7 @@ def _build_pitch_shift_filter(semitones: float = 0) -> str:
         atempo_str = ",".join([f"atempo={_safe_filter_number(tempo_val, 'atempo')}"] * chain_count)
     else:
         atempo_str = f"atempo={_safe_filter_number(tempo, 'atempo')}"
-    return f"asetrate={_safe_filter_number(new_rate, 'sample_rate')},aresample=44100,{atempo_str}"
+    return f"asetrate={_safe_filter_number(new_rate, 'sample_rate')},aresample={base_rate},{atempo_str}"
 
 
 def apply_filter(
@@ -100,7 +104,13 @@ def apply_filter(
     _validate_output_path(output)
     info = probe(input_path)
 
-    filter_map = _filter_map(params, info.width, info.height, info.fps)
+    filter_map = _filter_map(
+        params,
+        info.display_width or info.width,
+        info.display_height or info.height,
+        info.fps,
+        audio_sample_rate=info.audio_sample_rate,
+    )
     if filter_type not in filter_map:
         valid = ", ".join(sorted(VALID_FILTER_TYPES))
         raise MCPVideoError(
@@ -134,8 +144,17 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def _filter_map(
-    params: dict[str, Any], width: int, height: int, fps: float = DEFAULT_FPS
+    params: dict[str, Any],
+    width: int,
+    height: int,
+    fps: float = DEFAULT_FPS,
+    *,
+    audio_sample_rate: int | None = None,
 ) -> dict[FilterType, tuple[str, str, bool]]:
+    kb_w = max(2, width + (width % 2)) if width > 0 else 1280
+    kb_h = max(2, height + (height % 2)) if height > 0 else 720
+    semitones = params.get("semitones", 0)
+    pitch_filter = _build_pitch_shift_filter(semitones, sample_rate=audio_sample_rate)
     return {
         "blur": ("boxblur", f"boxblur={_param(params, 'radius', 5)}:{_param(params, 'strength', 1)}", False),
         "sharpen": ("unsharp", f"unsharp=5:5:{_param(params, 'amount', 1.0)}:5:5:0.0", False),
@@ -162,9 +181,9 @@ def _filter_map(
             "zoompan",
             (
                 f"zoompan=z='min(max(zoom,pzoom)+{_param(params, 'zoom_speed', 0.0015)},1.5)':"
-                f"d={_param(params, 'duration', DEFAULT_KEN_BURNS_FRAME_DURATION)}:"
+                f"d={_param(params, 'duration', 1)}:"
                 f"x='iw/2-(iw/zoom)/2':y='ih/2-(ih/zoom)/2':"
-                f"s={_safe_filter_int(width, 'width')}x{_safe_filter_int(height, 'height')}:"
+                f"s={_safe_filter_int(kb_w, 'width')}x{_safe_filter_int(kb_h, 'height')}:"
                 f"fps={_safe_filter_number(fps, 'fps')}"
             ),
             False,
@@ -189,7 +208,7 @@ def _filter_map(
             ),
             True,
         ),
-        "pitch_shift": ("asetrate", _build_pitch_shift_filter(params.get("semitones", 0)), True),
+        "pitch_shift": ("anull" if pitch_filter == "anull" else "asetrate", pitch_filter, True),
         "noise_reduction": (
             "afftdn",
             f"afftdn=nf={_param(params, 'noise_level', DEFAULT_NOISE_REDUCTION_FLOOR_DB)}",
@@ -231,7 +250,8 @@ def _run_audio_filter(input_path: str, filter_type: FilterType, filter_string: s
 
 
 def _run_video_filter(input_path: str, filter_string: str, output: str, crf: int | None, preset: str | None) -> None:
-    _run_filter_ffmpeg(
+    _run_video_only(
+        _run_filter_ffmpeg,
         _build_ffmpeg_cmd(
             input_path,
             output_path=output,
@@ -240,7 +260,7 @@ def _run_video_filter(input_path: str, filter_string: str, output: str, crf: int
             crf=crf,
             preset=preset,
             extra=["-pix_fmt", "yuv420p"],
-        )
+        ),
     )
 
 

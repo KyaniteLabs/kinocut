@@ -5,6 +5,8 @@ import itertools
 import json
 import math
 import os
+import secrets
+import shutil
 from collections.abc import Iterable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -107,7 +109,21 @@ def _matches(entry: Path, digest: str) -> bool:
 def _produce(shot: ShotSpec, output: Path, upstream: dict[str, Path]) -> None:
     if not shot.command:
         end = shot.start_frame + shot.frame_count
-        trim = f"trim=start_frame={shot.start_frame}:end_frame={end},setpts=PTS-STARTPTS"
+        warmup_start = max(0, shot.start_frame - shot.warmup_frames)
+        if shot.warmup_frames > 0 and shot.start_frame > warmup_start:
+            drop = shot.start_frame - warmup_start
+            # Avoid setpts here: in FFmpeg 7.x, setpts clears frame duration and
+            # drops the terminal frame under -fps_mode passthrough.
+            trim = (
+                f"trim=start_frame={warmup_start}:end_frame={end},"
+                f"trim=start_frame={drop}:end_frame={drop + shot.frame_count},"
+                r"pad=iw+mod(iw\,2):ih+mod(ih\,2)"
+            )
+        else:
+            trim = (
+                f"trim=start_frame={shot.start_frame}:end_frame={end},"
+                r"pad=iw+mod(iw\,2):ih+mod(ih\,2)"
+            )
         _run_ffmpeg(
             [
                 "-v",
@@ -118,6 +134,8 @@ def _produce(shot: ShotSpec, output: Path, upstream: dict[str, Path]) -> None:
                 "0:v:0",
                 "-vf",
                 trim,
+                "-fps_mode",
+                "passthrough",
                 "-an",
                 "-c:v",
                 "libx264",
@@ -143,11 +161,41 @@ def _produce(shot: ShotSpec, output: Path, upstream: dict[str, Path]) -> None:
         raise MCPVideoError("Shot renderer exited unsuccessfully", code="shot_renderer_failed")
 
 
+def _has_symlink_in_tree(entry: Path) -> bool:
+    if entry.parent.is_symlink() or entry.is_symlink():
+        return True
+    if not entry.is_dir():
+        return False
+    for root, dirs, files in os.walk(entry, followlinks=False):
+        root_path = Path(root)
+        for name in (*dirs, *files):
+            if (root_path / name).is_symlink():
+                return True
+    return False
+
+
+def _quarantine_corrupt_entry(entry: Path, digest: str) -> Path | None:
+    if not os.path.lexists(entry):
+        return None
+    if _has_symlink_in_tree(entry):
+        raise MCPVideoError(
+            "Shot cache entry contains a symlink. Leave it untouched and choose a new cache directory.",
+            code="shot_cache_unsafe_entry",
+        )
+    quarantine = entry.parent / f".corrupt_{digest[:16]}_{secrets.token_hex(6)}"
+    try:
+        os.rename(entry, quarantine)
+        return quarantine
+    except FileNotFoundError:
+        return None
+
+
 def _build(shot: ShotSpec, cache: Path, digest: str, upstream: dict[str, Path]) -> bool:
     entry = cache / digest
-    overwrite = entry.exists()
     if _matches(entry / "media", digest):
         return False
+    quarantine = _quarantine_corrupt_entry(entry, digest)
+    overwrite = entry.exists()
     try:
         with anchored_tree(entry, overwrite=overwrite) as stage:
             stage = stage / "media"
@@ -161,6 +209,9 @@ def _build(shot: ShotSpec, cache: Path, digest: str, upstream: dict[str, Path]) 
         if exc.code == "package_write_conflict" and _matches(entry / "media", digest):
             return False
         raise
+    finally:
+        if quarantine is not None:
+            shutil.rmtree(quarantine, ignore_errors=True)
     return True
 
 

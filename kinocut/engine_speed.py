@@ -43,11 +43,11 @@ def speed(
     output = output_path or _auto_output(input_path, f"speed_{factor}x")
     _validate_output_path(output)
 
-    # Use setpts for video, atempo for audio
-    video_filter = f"setpts={1 / factor}*PTS"
+    # Use PTS-STARTPTS so non-zero start_time clips do not drift; ensure even dims for libx264
+    video_filter = rf"setpts=(PTS-STARTPTS)/{factor},pad=iw+mod(iw\,2):ih+mod(ih\,2)"
     audio_filter = _speed_audio_filter(factor)
 
-    # Check if input has audio
+    # Check if input has audio (and how many audio tracks to preserve)
     info = probe(input_path)
     if info.duration / factor > MAX_VIDEO_DURATION:
         raise MCPVideoError(
@@ -56,20 +56,25 @@ def speed(
             code="duration_too_long",
         )
     has_audio = info.audio_codec is not None
+    audio_tracks = max(1, getattr(info, "audio_stream_count", 1) or 1) if has_audio else 0
 
     def render(staged: str) -> None:
         if has_audio:
+            audio_chains = [f"[0:a:{idx}]{audio_filter}[a{idx}]" for idx in range(audio_tracks)]
+            audio_maps = [item for idx in range(audio_tracks) for item in ("-map", f"[a{idx}]")]
+            filter_graph = ";".join([f"[0:v]{video_filter}[v]", *audio_chains])
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
                     output_path=staged,
                     extra=[
                         "-filter_complex",
-                        f"[0:v]{video_filter}[v];[0:a]{audio_filter}[a]",
+                        filter_graph,
                         "-map",
                         "[v]",
-                        "-map",
-                        "[a]",
+                        *audio_maps,
+                        "-pix_fmt",
+                        "yuv420p",
                     ],
                 )
             )
@@ -80,7 +85,7 @@ def speed(
                     output_path=staged,
                     video_filter=video_filter,
                     audio_codec=None,
-                    extra=["-an"],
+                    extra=["-an", "-pix_fmt", "yuv420p"],
                 )
             )
 

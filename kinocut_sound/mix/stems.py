@@ -33,8 +33,8 @@ def _decode_stems(layout, stems):
     first, rate, channels = next(iter(decoded.values()))
     if any(r != rate or c != channels for _, r, c in decoded.values()):
         raise mix_error("all stems must share rate and channels", MIX_INPUT_INVALID)
-    if channels > 1 and any(len(samples) != len(first) for samples, _, _ in decoded.values()):
-        raise mix_error("stereo stems must share frame count", MIX_INPUT_INVALID)
+    if any(len(samples) != len(first) for samples, _, _ in decoded.values()):
+        raise mix_error("all stems must share frame count", MIX_INPUT_INVALID)
     return {name: samples for name, (samples, _, _) in decoded.items()}, rate, channels
 
 
@@ -52,7 +52,7 @@ def recombine_stems(
     *,
     policy: StemRecombinationPolicy | None = None,
 ) -> bytes:
-    """Sum matching PCM stems in insertion order, clamping each addition."""
+    """Sum matching PCM stems in int64, clamping once at final PCM16 output."""
 
     policy = policy or StemRecombinationPolicy()
     if not bundle.stems:
@@ -61,10 +61,11 @@ def recombine_stems(
     if type(bundle.channel_count) is not int or bundle.channel_count != channels or bundle.sample_rate_hz != rate:
         raise mix_error("stem bundle metadata does not match audio", MIX_STEM_RECOMBINE_FAILED)
     length = max(len(s) for s in parsed.values())
-    out = array("h", [0] * length)
+    acc = array("q", [0] * length)
     for samples in parsed.values():
         for i, v in enumerate(samples):
-            out[i] = max(-32768, min(32767, out[i] + v))
+            acc[i] += v
+    out = array("h", (max(-32768, min(32767, v)) for v in acc))
     master = pcm_to_wav(out, sample_rate_hz=bundle.sample_rate_hz, channel_count=channels)
     # Self-recombination identity check within LSB tolerance (here exact for int sum clamp).
     _ = getattr(policy, "tolerance_lsb_at_24bit", 1)

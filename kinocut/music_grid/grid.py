@@ -254,19 +254,26 @@ def estimate_bpm_from_audio(audio_path):
         ],
         timeout=45,
         text=False,
-        stdout_limit=960000,
+        stdout_limit=1048576,
     )
     if result.returncode:
         raise ValueError("Could not decode music bed")
-    samples = array("h", result.stdout)
+    samples = array("h", result.stdout[:960000])
     if sys.byteorder != "little":
         samples.byteswap()
     energy = [sum(map(abs, samples[pos : pos + 80])) for pos in range(0, len(samples), 80)]
     onsets = [max(0, right - left) for left, right in itertools.pairwise(energy)]
+    n = len(onsets)
     scores = [
-        (sum(first * second for first, second in zip(onsets, onsets[lag:], strict=False)), lag)
+        (
+            sum(first * second for first, second in zip(onsets, onsets[lag:], strict=False)) / (n - lag),
+            lag,
+        )
         for lag in range(32, 101)
+        if n > lag
     ]
+    if not scores:
+        raise ValueError("No repeating onsets found")
     score, lag = max(scores, key=lambda pair: pair[0])
     if not score:
         raise ValueError("No repeating onsets found")

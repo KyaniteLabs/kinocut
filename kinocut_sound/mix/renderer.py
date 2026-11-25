@@ -29,7 +29,7 @@ from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
 from kinocut_sound.mix.routing_protocol import RoutingProcessor
 from kinocut_sound.mix.layers import MixLayer, apply_layers
-from kinocut_sound.mix.pcm_ops import _overlay
+from kinocut_sound.mix.pcm_ops import _overlay, _quantize_pcm16
 from kinocut_sound.timeline import Timeline
 from kinocut_sound.world.layers import DuckingContract
 from kinocut_sound._canonical import location_violation
@@ -62,7 +62,7 @@ class MixResult:
 
 
 def _blank(length: int) -> array:
-    return array("h", [0] * length)
+    return array("d", [0.0] * length)
 
 
 class MixRenderer:
@@ -161,7 +161,10 @@ class MixRenderer:
             canvases, layers, self.sample_rate_hz, self.channel_count, layer_ducking
         )
         if routing is not None:
+            if hasattr(routing, "graph") or hasattr(routing, "sidechain_processor"):
+                canvases = {sid: _quantize_pcm16(samples) for sid, samples in canvases.items()}
             canvases = routing.process_buses(canvases)
+        canvases = {sid: _quantize_pcm16(samples) for sid, samples in canvases.items()}
 
         return self._finish_mix(
             canvases,
@@ -210,7 +213,11 @@ class MixRenderer:
         return samples
 
     def _encode(self, samples):
-        return pcm_to_wav(samples, sample_rate_hz=self.sample_rate_hz, channel_count=self.channel_count)
+        return pcm_to_wav(
+            _quantize_pcm16(samples),
+            sample_rate_hz=self.sample_rate_hz,
+            channel_count=self.channel_count,
+        )
 
     def _render_clips(
         self,

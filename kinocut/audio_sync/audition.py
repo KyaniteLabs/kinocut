@@ -41,7 +41,13 @@ def _measure_audio(source: str, stream: int = 0) -> _AudioLevels:
     try:
         log = _run_ffmpeg([*measure, "-af", f"{_STATS},loudnorm=print_format=json", "-f", "null", "-"]).stderr
     except ProcessingError:
-        log = _run_ffmpeg([*measure, "-af", _STATS, "-f", "null", "-"]).stderr
+        try:
+            log = _run_ffmpeg([*measure, "-af", _STATS, "-f", "null", "-"]).stderr
+        except ProcessingError:
+            raise MCPVideoError(
+                "Audition mix input does not contain a readable audio stream",
+                code="invalid_audition_audio",
+            ) from None
     peak = _PEAK.search(log)
     if peak is None:
         raise MCPVideoError("Could not measure audition audio sample peak", code="audio_measurement_failed")
@@ -155,16 +161,32 @@ def _volume(entry: dict) -> str:
     return f"volume={entry['applied_gain_db']:.12g}dB:precision=double"
 
 
-def _mux(video: Path, entries: list[dict], stage: str) -> list[tuple[str, int]]:
+_MP4_COMPATIBLE_VIDEO_CODECS = frozenset({"h264", "hevc", "mpeg4", "av1"})
+
+
+def _mux(
+    video: Path,
+    entries: list[dict],
+    stage: str,
+    *,
+    picture_stream: int = 0,
+    video_codec: str = "",
+    output_suffix: str = ".mkv",
+) -> list[tuple[str, int]]:
     args = ["-nostdin", "-v", "error", "-i", str(video)]
     for entry in entries:
         args.extend(["-i", entry["source"]])
+    copy_video = output_suffix != ".mp4" or (video_codec.lower() in _MP4_COMPATIBLE_VIDEO_CODECS)
+    video_encode_args = (
+        ["-c:v", "copy"]
+        if copy_video
+        else ["-vf", r"pad=iw+mod(iw\,2):ih+mod(ih\,2)", "-c:v", "libx264", "-pix_fmt", "yuv420p"]
+    )
     args.extend(
         [
             "-map",
-            "0:v:0",
-            "-c:v",
-            "copy",
+            f"0:{picture_stream}",
+            *video_encode_args,
             "-c:a",
             "aac",
             "-b:a",
@@ -327,7 +349,7 @@ def _is_still_image_format(probe: dict) -> bool:
     return not tokens or any(tok in _IMAGE_FORMATS or tok.endswith("_pipe") for tok in tokens)
 
 
-def _picture_stream(video: Path) -> int:
+def _picture_stream_info(video: Path) -> tuple[int, str]:
     try:
         if not stat.S_ISREG(video.lstat().st_mode):
             raise MCPVideoError("Picture must be a non-symlink regular file", code="invalid_picture")
@@ -347,8 +369,12 @@ def _picture_stream(video: Path) -> int:
             and stream.get("width", 0) > 0
             and stream.get("height", 0) > 0
         ):
-            return stream["index"]
+            return stream["index"], str(stream.get("codec_name") or "")
     raise MCPVideoError("Picture must contain a video stream", code="invalid_picture")
+
+
+def _picture_stream(video: Path) -> int:
+    return _picture_stream_info(video)[0]
 
 
 def _render_wavs(entries: list[dict], tracks: list[Path]) -> list[tuple[str, int]]:
@@ -438,7 +464,7 @@ def build_ab_audition(
         or _nonnegative(loop_start_s, "loop_start_s") >= _nonnegative(loop_end_s, "loop_end_s")
     ):
         raise MCPVideoError("Supply an increasing loop start and end in seconds", code="invalid_parameter")
-    picture_stream = _picture_stream(video) if mode == "review_page" else None
+    picture_stream, video_codec = _picture_stream_info(video)
     record_operation_input(str(video))
     entries, sources = _mix_receipts(mixes, blind=blind)
     receipt = {
@@ -458,9 +484,22 @@ def build_ab_audition(
         "loop_end_s": loop_end_s,
     }
     explicit = target_lufs is not None
-    if picture_stream is None:
+    if mode == "multi_audio":
         with atomic_output(str(output)) as stage:
-            _render_matched(lambda: _mux(video, entries, stage), entries, sources, receipt, explicit=explicit)
+            _render_matched(
+                lambda: _mux(
+                    video,
+                    entries,
+                    stage,
+                    picture_stream=picture_stream,
+                    video_codec=video_codec,
+                    output_suffix=output.suffix.lower(),
+                ),
+                entries,
+                sources,
+                receipt,
+                explicit=explicit,
+            )
     else:
         _review(video, picture_stream, entries, sources, output, receipt, loop, explicit=explicit)
     return receipt

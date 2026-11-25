@@ -89,7 +89,7 @@ def test_saturated_stems_preserve_nonsorted_insertion_order(channels):
         for name, sample in (("z", 30000), ("a", 30000), ("m", -30000))
     }
     result = recombine_stems(build_stem_bundle(layout=layout, stem_wavs=data))
-    assert tuple(decode_pcm_wav(result)[0]) == (2767,) * channels
+    assert tuple(decode_pcm_wav(result)[0]) == (30000,) * channels
 
 
 @pytest.mark.parametrize("kind", ["metadata", "channels", "rate", "frames"])

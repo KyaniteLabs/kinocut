@@ -29,6 +29,10 @@ def place_rhythm_cell(cell, grid, *, phrase_bars=2, events=None, sfx=None, start
             raise ValueError("Unknown rhythm cell")
         division, pattern = _CELLS[cell]
         period = grid.steps_per_bar * (2 if cell == "son_clave" else 1)
+        if span < period:
+            raise ValueError(
+                f"Phrase of {phrase_bars} bar(s) is too short for {cell} (requires at least {period // grid.steps_per_bar} bars)"
+            )
         if any(step * period % division for step in pattern):
             raise ValueError("Cell does not fit this phrase resolution")
         slots = [

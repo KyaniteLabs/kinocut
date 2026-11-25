@@ -64,9 +64,12 @@ def _probe(path):
         ],
         timeout=600,
     )
-    if result.returncode or result.stderr:
+    if result.returncode:
         _mismatch("probe")
-    streams = json.loads(result.stdout).get("streams", [])
+    try:
+        streams = json.loads(result.stdout).get("streams", [])
+    except (ValueError, TypeError, AttributeError):
+        _mismatch("probe")
     if [stream.get("codec_type") for stream in streams] != ["video"]:
         _mismatch("stream layout")
     stream = streams[0]
@@ -79,7 +82,11 @@ def _probe(path):
         stream[field] = _parse_ratio(stream[field], field)
     sar = stream.get("sample_aspect_ratio")
     stream["sample_aspect_ratio"] = None if sar in _UNSPECIFIED_SAR else _parse_ratio(sar, "sample_aspect_ratio")
-    return stream, int(stream.pop("nb_read_frames"))
+    try:
+        frame_count = int(stream.pop("nb_read_frames"))
+    except (ValueError, TypeError):
+        _mismatch("nb_read_frames")
+    return stream, frame_count
 
 
 def verify_concat_compatibility(clip_paths, expected_frame_counts=None) -> int:

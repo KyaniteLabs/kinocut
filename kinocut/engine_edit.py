@@ -193,7 +193,11 @@ def trim(
         encode = (
             ["-map", "0:v?", "-map", "0:a?", "-map", "0:s?", "-c", "copy", *_movflags_args(staged), staged]
             if stream_copy
-            else _build_ffmpeg_cmd(output_path=staged)
+            else _build_ffmpeg_cmd(
+                output_path=staged,
+                video_filter=r"pad=iw+mod(iw\,2):ih+mod(ih\,2)",
+                extra=["-map", "0:v?", "-map", "0:a?", "-pix_fmt", "yuv420p"],
+            )
         )
         try:
             if on_progress is None:

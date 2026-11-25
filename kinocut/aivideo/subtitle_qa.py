@@ -748,17 +748,45 @@ def _resolve_profile(profile: str | None, media_path: str) -> SafeAreaProfile:
         if profile not in PLATFORM_PROFILES:
             raise _qa_error("profile must be one of: vertical, horizontal, square")
         return PLATFORM_PROFILES[profile]
+    from fractions import Fraction
+
     raw = _run_ffprobe_json(media_path)
     video = next(
-        (s for s in raw.get("streams", []) if s.get("codec_type") == "video"),
+        (
+            s
+            for s in raw.get("streams", [])
+            if s.get("codec_type") == "video" and not s.get("disposition", {}).get("attached_pic")
+        ),
         {},
     )
     width = int(video.get("width", 0))
     height = int(video.get("height", 0))
     if width == 0 or height == 0:
         raise _qa_error("could not determine display dimensions for profile inference")
-    if width < height:
+    raw_sar = video.get("sample_aspect_ratio")
+    sar = Fraction(1, 1)
+    if isinstance(raw_sar, str) and raw_sar.strip() not in ("", "N/A", "unknown", "0:1", "0/1", "0:0", "0/0"):
+        try:
+            parsed_sar = Fraction(raw_sar.replace(":", "/"))
+            if parsed_sar > 0:
+                sar = parsed_sar
+        except (ValueError, ZeroDivisionError):
+            sar = Fraction(1, 1)
+    display_w = max(1, round(width * sar)) if sar != 1 else width
+    display_h = height
+    rotation = 0
+    for side in video.get("side_data_list", []) or ():
+        rot = side.get("rotation")
+        if rot is not None:
+            try:
+                rotation = int(rot)
+            except (ValueError, TypeError):
+                rotation = 0
+            break
+    if (rotation % 360) in (90, 270):
+        display_w, display_h = display_h, display_w
+    if display_w < display_h:
         return PLATFORM_PROFILES["vertical"]
-    if width > height:
+    if display_w > display_h:
         return PLATFORM_PROFILES["horizontal"]
     return PLATFORM_PROFILES["square"]

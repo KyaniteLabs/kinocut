@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from kinocut_sound.limits import MAX_AMBIENT_EXTRA_REPEATS
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, mix_error
 from kinocut_sound.mix._wav import decode_pcm_wav
-from kinocut_sound.mix.pcm_ops import _scale_in_place, _overlay
+from kinocut_sound.mix.pcm_ops import _clamp_pcm16, _overlay, _overlay_scaled, _scale_in_place
 from kinocut_sound.mix.layer_ducking import duck_layer_in_place, _checked_contract
 from kinocut_sound.validation import PCM_MIX_CHANNEL_COUNTS
 from kinocut_sound.world.layers import AmbientLayer, LayerStack
@@ -94,19 +94,32 @@ def apply_layers(canvases, layers, sample_rate_hz, channels, ducking=None):
         raise mix_error("layer ducking requires a distinct declared source bus", MIX_INPUT_INVALID)
     detector = canvases[ducking.source_bus_id] if ducking is not None else None
     summary = None
-    target_frames = len(canvases["ambience"]) // channels
+    ambience = canvases["ambience"]
+    target_frames = len(ambience) // channels
+    wide_ambience = ambience if isinstance(ambience, array) and ambience.typecode == "d" else array("d", ambience)
     source_frames = []
     for item, state in zip(layers, stack.mix(), strict=True):
         samples = _decode_layer(item, sample_rate_hz, channels, target_frames)
         frames = len(samples) // channels
         source_frames.append(frames)
         if state.audible:
-            _scale_in_place(samples, (10 ** (state.effective_gain_db / 20),) * channels)
-            filled = fill_layer(samples, channels, target_frames, item.fill_mode, item.crossfade_frames)
-            if detector is not None:
-                summary = duck_layer_in_place(filled, detector, channels, sample_rate_hz, stack.ducking)
-            _overlay(canvases["ambience"], filled, 0)
+            gain = 10 ** (state.effective_gain_db / 20)
+            peak = max((abs(sample) for sample in samples), default=0)
+            if peak * gain <= 32767:
+                _scale_in_place(samples, (gain,) * channels)
+                filled = fill_layer(samples, channels, target_frames, item.fill_mode, item.crossfade_frames)
+                if detector is not None:
+                    summary = duck_layer_in_place(filled, detector, channels, sample_rate_hz, stack.ducking)
+                _overlay(wide_ambience, filled, 0)
+            else:
+                filled = fill_layer(samples, channels, target_frames, item.fill_mode, item.crossfade_frames)
+                if detector is not None:
+                    summary = duck_layer_in_place(filled, detector, channels, sample_rate_hz, stack.ducking)
+                _overlay_scaled(wide_ambience, filled, gain)
             del filled
+    if wide_ambience is not ambience:
+        for index, value in enumerate(wide_ambience):
+            ambience[index] = _clamp_pcm16(value)
     if detector is not None and summary is None:
         summary = duck_layer_in_place(None, detector, channels, sample_rate_hz, stack.ducking)
     return tuple(source_frames), summary

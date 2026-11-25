@@ -57,7 +57,7 @@ def test_incoming_send_order_preserves_observable_saturation():
         canvases = {"dialogue": array("h", [30000]), "ambience": array("h", [-30000]), "sfx": array("h", [10000])}
         BusSendGraph(buses(), order, 1, 1).process_buses(canvases)
         results.append(canvases["sfx"][0])
-    assert results == [2767, 10000]
+    assert results == [10000, 10000]
 
 
 @pytest.mark.parametrize("post,expected", [(False, 15000), (True, 16384)])

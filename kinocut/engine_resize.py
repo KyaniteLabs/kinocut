@@ -137,6 +137,10 @@ def resize(
     if fit_mode == "crop":
         vf = crop_framing_filter(w, h)
     else:
-        vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
+        vf = (
+            "scale='max(2,trunc(iw*sar/2)*2)':ih,setsar=1,"
+            f"scale={w}:{h}:force_original_aspect_ratio=decrease,"
+            f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1"
+        )
 
     return render_resize(input_path, output, vf, quality, info.duration, on_progress)

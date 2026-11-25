@@ -38,8 +38,8 @@ def validate_merge_compatibility(
             "Consider normalizing all clips to the same audio presence."
         )
 
-    # 3. Check resolution mismatch
-    resolutions = {(i.width, i.height) for i in infos}
+    # 3. Check resolution mismatch (using SAR- and rotation-aware display geometry)
+    resolutions = {(i.display_width, i.display_height) for i in infos}
     if len(resolutions) > 1:
         warnings.append(
             f"Clips have different resolutions: {sorted(resolutions)}. Merge will normalize by re-encoding all clips."

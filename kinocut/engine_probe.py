@@ -116,11 +116,31 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
         # audio-derived video streams; 0 fps poisons all downstream frame math.
         fps = float(DEFAULT_FPS)
 
-    # Codecs
+    # Codecs & stream geometry metadata
     codec = vs.get("codec_name", "unknown")
     audio_s = _get_audio_stream(data)
     audio_codec = audio_s.get("codec_name") if audio_s else None
     audio_sr = int(audio_s.get("sample_rate", 0)) if audio_s else None
+    audio_channels: int | None = None
+    if audio_s:
+        try:
+            ch_val = int(audio_s.get("channels", 0))
+            audio_channels = ch_val if ch_val > 0 else None
+        except (ValueError, TypeError):
+            audio_channels = None
+    audio_stream_count = sum(1 for s in data.get("streams", []) if s.get("codec_type") == "audio")
+
+    raw_sar = vs.get("sample_aspect_ratio")
+    sample_aspect_ratio = (
+        str(raw_sar)
+        if isinstance(raw_sar, str)
+        and raw_sar.strip()
+        and raw_sar.strip() not in ("N/A", "unknown", "0:1", "0/1", "0:0", "0/0")
+        else None
+    )
+    raw_pix_fmt = vs.get("pix_fmt")
+    pix_fmt = str(raw_pix_fmt) if isinstance(raw_pix_fmt, str) and raw_pix_fmt.strip() else None
+    avg_frame_rate = _raw_rational_rate(vs.get("avg_frame_rate"))
 
     # Rotation from side_data_list
     rotation = 0
@@ -151,10 +171,15 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
         codec=codec,
         audio_codec=audio_codec,
         audio_sample_rate=audio_sr,
+        audio_channels=audio_channels,
+        audio_stream_count=audio_stream_count,
         bitrate=bitrate,
         size_bytes=size_bytes,
         format=fmt_name,
         rotation=rotation,
+        sample_aspect_ratio=sample_aspect_ratio,
+        pix_fmt=pix_fmt,
+        avg_frame_rate=avg_frame_rate,
     )
 
 
@@ -247,7 +272,7 @@ def probe_exact(path: str) -> ExactVideoInfo:
         raise InputFileError(path, "Not a valid video file, or decoding it for an exact probe failed") from exc
     info = _build_video_info(path, data)
     video_stream = _get_video_stream(data) or {}
-    return ExactVideoInfo(**info.model_dump(), **_exact_stream_fields(video_stream))
+    return ExactVideoInfo(**{**info.model_dump(), **_exact_stream_fields(video_stream)})
 
 
 def probe_audio_input(path: str) -> VideoInfo:
@@ -301,6 +326,12 @@ def _build_audio_input_info(path: str, data: dict) -> VideoInfo:
             audio_sr = int(audio_s.get("sample_rate", 0)) or None
         except (ValueError, TypeError):
             audio_sr = None
+        try:
+            ch_val = int(audio_s.get("channels", 0))
+            audio_channels = ch_val if ch_val > 0 else None
+        except (ValueError, TypeError):
+            audio_channels = None
+        audio_stream_count = sum(1 for s in data.get("streams", []) if s.get("codec_type") == "audio")
 
         info = VideoInfo(
             path=path,
@@ -311,6 +342,8 @@ def _build_audio_input_info(path: str, data: dict) -> VideoInfo:
             codec="none",
             audio_codec=audio_s.get("codec_name"),
             audio_sample_rate=audio_sr,
+            audio_channels=audio_channels,
+            audio_stream_count=audio_stream_count,
             format=fmt.get("format_name"),
         )
 

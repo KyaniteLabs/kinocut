@@ -170,7 +170,7 @@ def test_bus_gain_follows_saturated_clip_and_bed_sum(routed_project):
     request["plan"]["routing"]["buses"][1]["gain_db"] = -6.020599913279624
     add_bed(root, request, 30000)
     pcm = rendered_pcm(root, request)
-    assert pcm[0] == 16384 and pcm[-1] == 15000
+    assert pcm[0] == 19000 and pcm[-1] == 15000
 
 
 @pytest.mark.parametrize("optional_bed", [False, True])
