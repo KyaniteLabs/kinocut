@@ -64,6 +64,7 @@ def video_find_moments(
             tuple(selected_span_ids),
             query_text=text,
             selection_example_ids=tuple(selection_example_ids or ()),
+            created_by="agent:find_moments",
         )
     return _result(
         {

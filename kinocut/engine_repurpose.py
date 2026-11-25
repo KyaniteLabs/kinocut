@@ -186,7 +186,7 @@ def repurpose(
     policy = repurpose_release_policy(include_release_checkpoint, min_score)
     input_path = _validate_input_path(input_path)
     selected = _select_platforms(platforms)
-    package_dir = _prepare_output_dir(input_path, output_dir, RENDER_MANIFEST)
+    package_dir = _prepare_output_dir(input_path, output_dir, RENDER_MANIFEST, allow_replace_owned=True)
     manifest = _build_manifest(input_path, package_dir, selected, render=True)
 
     for variant in manifest["variants"]:
@@ -225,5 +225,5 @@ def repurpose(
                 min_score=policy.min_score,
             )
 
-    manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST)
+    manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST, allow_replace_owned=True)
     return manifest

@@ -32,7 +32,8 @@ def test_public_plan_refusals_keep_the_package_reason_and_drop_caller_paths(tmp_
     with pytest.raises(MCPVideoError) as missing:
         load_shorts_plan(str(plan_dir / "missing.json"))
     assert missing.value.code == "shorts_plan_not_found"
-    assert "Likely cause: str" in str(missing.value)
+    assert "Likely cause: str" not in str(missing.value)
+    assert "The requested path is not an existing plan file or directory." in str(missing.value)
     assert "«redacted:sk-dir»" not in str(missing.value)
 
     # A malformed plan names the foreign parser by kind too.

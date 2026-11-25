@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
+import json
 import math
+import re
 from typing import Any
 
 from kinocut.defaults import (
@@ -24,6 +27,26 @@ from ..validation_errors import rejected_value
 
 # Review states a stored plan may hold; only APPROVED may render.
 _PLAN_STATES = frozenset({ProposalStatus.PROPOSED, ProposalStatus.APPROVED, ProposalStatus.REJECTED})
+_SAFE_CAMERA_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+def sphere_plan_digest(plan: dict[str, Any]) -> str:
+    """Compute a deterministic SHA-256 digest over a plan's editorial fields."""
+    payload = {
+        "artifact_kind": plan.get("artifact_kind"),
+        "schema_version": plan.get("schema_version"),
+        "source": plan.get("source"),
+        "projection": plan.get("projection"),
+        "preset": plan.get("preset"),
+        "output": plan.get("output"),
+        "cameras": plan.get("cameras"),
+        "layout": plan.get("layout"),
+        "windows": plan.get("windows"),
+        "writer": plan.get("writer"),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
 
 _FRONT = {"id": "front", "yaw": 0.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
 _BACK = {"id": "back", "yaw": 180.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
@@ -149,9 +172,12 @@ def decide_sphere_plan(plan: dict[str, Any], decision: str, *, layout: str | Non
             for window in current.get("windows") or []:
                 window["layout"] = layout
         current["status"] = ProposalStatus.APPROVED
-        return validate_sphere_plan(current)
+        validated = validate_sphere_plan(current)
+        validated["approval"] = {"plan_sha256": sphere_plan_digest(validated)}
+        return validated
     if verb == "reject":
         current["status"] = ProposalStatus.REJECTED
+        current.pop("approval", None)
         return current
     raise MCPVideoError(
         "360 review decision must be approve, accept, or reject.",
@@ -168,6 +194,15 @@ def require_approved(plan: dict[str, Any]) -> dict[str, Any]:
             error_type="validation_error",
             code="human_apply_required",
         )
+    if "approval" in current:
+        approval = current.get("approval")
+        expected = sphere_plan_digest(current)
+        if not isinstance(approval, dict) or approval.get("plan_sha256") != expected:
+            raise MCPVideoError(
+                "360 assembly plan approval digest is invalid or tampered; re-approve before rendering.",
+                error_type="validation_error",
+                code="human_apply_required",
+            )
     return current
 
 
@@ -261,14 +296,32 @@ def _validate_cameras(cameras: list[dict[str, Any]]) -> None:
             raise MCPVideoError(
                 "360 camera must be an object.", error_type="validation_error", code="invalid_sphere_plan"
             )
-        cam_id = str(camera.get("id") or "")
-        if not cam_id or cam_id in seen:
+        raw_id = camera.get("id")
+        if not isinstance(raw_id, str) or not raw_id:
             raise MCPVideoError(
                 "Each 360 camera needs a unique id.",
                 error_type="validation_error",
                 code="invalid_sphere_plan",
             )
-        seen.add(cam_id)
+        if (
+            "\x00" in raw_id
+            or "/" in raw_id
+            or "\\" in raw_id
+            or ".." in raw_id
+            or not _SAFE_CAMERA_ID_RE.fullmatch(raw_id)
+        ):
+            raise MCPVideoError(
+                "Each 360 camera id must be a safe single filename segment.",
+                error_type="validation_error",
+                code="invalid_sphere_plan",
+            )
+        if raw_id in seen:
+            raise MCPVideoError(
+                "Each 360 camera needs a unique id.",
+                error_type="validation_error",
+                code="invalid_sphere_plan",
+            )
+        seen.add(raw_id)
         for key in ("yaw", "pitch", "roll", "fov"):
             _finite_number(camera.get(key), f"camera.{key}")
 

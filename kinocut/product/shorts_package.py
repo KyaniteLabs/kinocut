@@ -82,7 +82,7 @@ def _require_renders_of_the_approved_cut(
         raise _package_error(
             "Platform renders do not match the approved cut.",
             code="shorts_package_render_stale",
-            cause=f"render digests for {', '.join(stale)} predate the current approved revision.",
+            cause=own_reason(f"render digests for {', '.join(stale)} predate the current approved revision."),
             recovery="Re-run render_approved_candidate(...) for the approved cut, then package again.",
         )
 
@@ -142,7 +142,7 @@ def package_approved_candidate(
         raise _package_error(
             "No platform renders exist for this approved candidate.",
             code="shorts_package_render_required",
-            cause=f"candidate {candidate.candidate_id!r} has no RenderRecord entries.",
+            cause=own_reason("the approved candidate has no RenderRecord entries."),
             recovery="Call render_approved_candidate(...) first, then package.",
         )
 
@@ -156,7 +156,7 @@ def package_approved_candidate(
         raise _package_error(
             "Package root escapes plan.output_dir.",
             code="unsafe_path",
-            cause=f"{requested!r} is outside {plan.output_dir!r}.",
+            cause=own_reason("the requested package_root resolves outside plan.output_dir."),
             recovery="Pass a dedicated package_root under the plan output directory.",
         )
     with anchored_tree(base, overwrite=overwrite) as stage:

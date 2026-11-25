@@ -19,7 +19,15 @@ from ..engine_audio_normalize import normalize_audio
 from ..engine_edit import trim
 from ..engine_resize import resize
 from ..engine_thumbnail import thumbnail
-from ..ffmpeg_helpers import _build_ffmpeg_cmd, _run_ffmpeg, _validate_input_path, _validate_output_path
+from ..ffmpeg_helpers import (
+    _atomic_artifact,
+    _build_ffmpeg_cmd,
+    _open_staged_writer,
+    _run_ffmpeg,
+    _validate_input_path,
+    _validate_output_path,
+)
+from ..publication import durable_receipt_ownership
 from .captions import CaptionConfig, WordTiming, build_caption_artifact
 from .clip_pipeline import clip_moment
 from .config import normalise_platform
@@ -256,7 +264,13 @@ def _render_one_platform(
         )
     srt_path = os.path.join(platform_dir, "captions.srt")
     body = build_caption_artifact(_words_for(plan, rendered), config=CaptionConfig()).srt_body
-    Path(srt_path).write_text(body + ("" if body.endswith("\n") else "\n"), encoding="utf-8")
+    srt_payload = (body + ("" if body.endswith("\n") else "\n")).encode("utf-8")
+    with (
+        durable_receipt_ownership(Path(srt_path)),
+        _atomic_artifact(srt_path) as staged_srt,
+        _open_staged_writer(staged_srt) as stream,
+    ):
+        stream.write(srt_payload)
     thumb = thumbnail(finished, output_path=os.path.join(platform_dir, "thumbnail.jpg")).output_path
     record = RenderRecord(
         candidate_id=candidate.candidate_id,

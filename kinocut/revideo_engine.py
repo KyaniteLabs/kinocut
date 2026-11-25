@@ -40,13 +40,16 @@ from .errors import (
     ValidationError,
 )
 from .type_names import exception_kind, number_text, type_label
-from .ffmpeg_helpers import _atomic_output, _run_command, _run_ffprobe_json, _validate_write_path
+from .ffmpeg_helpers import _atomic_output, _open_staged_writer, _run_command, _run_ffprobe_json, _validate_write_path
 from .limits import (
     DOCTOR_COMMAND_TIMEOUT,
     MAX_REVIDEO_JOB_JSON_BYTES,
     REVIDEO_NODE_MAJOR_MIN,
     REVIDEO_TIMEOUT_MAX_SECONDS,
 )
+from .offline import is_offline_mode
+from .process_tree import sanitized_subprocess_env
+from .publication._staging import is_staged_output
 from .revideo_models import RevideoRenderResult
 from .validation import (
     REVIDEO_FPS_MAX,
@@ -74,6 +77,7 @@ _BARE_MAKESCENE_RE = re.compile(r"makeScene2D\(\s*(?:async\s+)?function")
 _RUN_OUTPUT_ENV = "KINOCUT_REVIDEO_OUTPUT_FILE"
 _PRIVATE_NAME_ATTEMPTS = 8
 _PROBE_INTEGER_MAX = 2**63 - 1
+_REAL_COPYFILE = shutil.copyfile
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +96,7 @@ def _require_revideo_deps() -> None:
             text=True,
             timeout=DOCTOR_COMMAND_TIMEOUT,
             check=False,
+            env=sanitized_subprocess_env(),
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise RevideoNotFoundError(f"node --version failed to run ({exception_kind(exc)})") from exc
@@ -329,7 +334,11 @@ def _run_npm(
     telemetry = os.environ.get("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)).strip().lower()
     if telemetry not in {"true", "false"}:
         raise MCPVideoError("KINOCUT_REVIDEO_TELEMETRY must be true or false", error_type="validation_error")
-    child_env = {**os.environ, **(extra_env or {}), "DISABLE_TELEMETRY": str(telemetry != "true").lower()}
+    child_env = {
+        **sanitized_subprocess_env(),
+        **(extra_env or {}),
+        "DISABLE_TELEMETRY": str(telemetry != "true").lower(),
+    }
     try:
         return subprocess.run(  # noqa: S603
             cmd,
@@ -350,15 +359,26 @@ def _run_npm(
         ) from exc
 
 
+def _require_revideo_online() -> None:
+    if is_offline_mode():
+        raise MCPVideoError(
+            "Revideo dependency installation requires network access and is blocked in offline mode (KINOCUT_OFFLINE=1)",
+            error_type="validation_error",
+            code="offline_network_blocked",
+        )
+
+
 def install_deps(project_dir: str | Path, timeout: int = DEFAULT_REVIDEO_INSTALL_TIMEOUT) -> None:
     """Install the materialized bridge's pinned dependencies via npm ci."""
     _validate_timeout(timeout, "timeout")
+    _require_revideo_online()
     project, _job, _job_sha256 = _validate_materialized_project(project_dir)
     _require_revideo_deps()
     _install_validated(project, timeout)
 
 
 def _install_validated(project: Path, timeout: int | float) -> None:
+    _require_revideo_online()
     result = _run_npm(["ci", "--no-audit", "--no-fund"], project, timeout)
     if result.returncode != 0:
         raise RevideoRenderError("npm ci", result.returncode, result.stderr)
@@ -635,7 +655,11 @@ def _publish_external(canonical: Path, output_path: str, expected_sha256: str) -
     try:
         with _atomic_output(output_path) as stage_name:
             stage = Path(stage_name)
-            shutil.copyfile(canonical, stage)
+            if shutil.copyfile is _REAL_COPYFILE and is_staged_output(stage_name):
+                with canonical.open("rb") as src_fh, _open_staged_writer(stage_name) as dst_fh:
+                    shutil.copyfileobj(src_fh, dst_fh)
+            else:
+                shutil.copyfile(canonical, stage)
             _require_digest(stage, expected_sha256, "verify Revideo final output")
     except OSError as exc:
         raise RevideoRenderError(

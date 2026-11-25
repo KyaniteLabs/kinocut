@@ -37,7 +37,7 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _TreeSnap
         raise _tree_error(
             "Package destination is not a directory.",
             code="unsafe_path",
-            cause="The destination is a symlink or a non-directory entry.",
+            cause=own_reason("The destination is a symlink or a non-directory entry."),
             recovery="Choose a new package_root under the plan output directory.",
         )
     platforms: dict[str, tuple[int, int]] = {}
@@ -65,7 +65,7 @@ def _snapshot_replaceable(base: Path, stage: Path, overwrite: bool) -> _TreeSnap
     raise _tree_error(
         "Package destination already exists.",
         code="package_write_conflict",
-        cause="Overwrite consent is missing or the destination contains unrelated entries.",
+        cause=own_reason("Overwrite consent is missing or the destination contains unrelated entries."),
         recovery="Choose a new dedicated package_root or authorize replacement of the existing package.",
     )
 
@@ -78,7 +78,7 @@ def _preserve_displaced(displaced: Path, base: Path) -> None:
     raise _tree_error(
         "Package destination changed concurrently during replacement; prior contents were preserved.",
         code="package_write_conflict",
-        cause="Destination directory identity or contents changed between inspection and replacement.",
+        cause=own_reason("Destination directory identity or contents changed between inspection and replacement."),
         recovery="Inspect the preserved sibling directory and re-run packaging on a clean package_root.",
     )
 

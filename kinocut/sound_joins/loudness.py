@@ -35,6 +35,7 @@ from kinocut.engine_runtime_utils import _ffmpeg, _ffprobe
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json
 from kinocut.limits import FFPROBE_TIMEOUT
+from kinocut.offline import offline_media_command
 
 
 def _pcm(data: bytes) -> bool:
@@ -82,7 +83,7 @@ def _prepare_encoded(path, raw, binary):
     args = measurement_args(binary, path)
     args[args.index("-i") : args.index("-i")] = ["-xerror", "-protocol_whitelist", "file,pipe"]
     args[args.index("-af") : args.index("-af")] = ["-map", "0:a:0", "-vn"]
-    return args, audio
+    return offline_media_command(args, probe=False), audio
 
 
 def _encoded_receipt(data, policy, audio, metrics, version):
@@ -121,7 +122,10 @@ async def inspect_loudness_async(*, request=None, project_root=None):
     if _pcm(data):
         return _receipt(data, policy, demo, await measure_with_identity_async(data))
     with _encoded_input(data) as (path, binary):
-        probe_args = [_ffprobe(), "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", str(path)]
+        probe_args = offline_media_command(
+            [_ffprobe(), "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", str(path)],
+            probe=True,
+        )
         raw = json.loads(await run_meter_async(probe_args, FFPROBE_TIMEOUT))
         args, audio = _prepare_encoded(path, raw, binary)
         version = _version(await run_meter_async([binary, "-version"], DEFAULT_LOUDNESS_VERSION_TIMEOUT_SECONDS))

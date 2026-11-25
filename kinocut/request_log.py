@@ -143,11 +143,12 @@ _REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
     # assignment rule so the token after "Bearer" is consumed even when the
     # assignment value itself stops at whitespace.
     (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+"), "Bearer " + _PLACEHOLDER),
-    # Credential-shaped assignments: api_key=..., "token": ..., password: ...
+    # Credential-shaped assignments: api_key=..., HF_TOKEN=..., "token": ..., password: ...
     (
         re.compile(
-            r"(?i)\b(api[-_]?key|access[-_]?key|secret|client[-_]?secret|token|password|passwd|"
-            r"authorization|credential)\b([\"']?\s*[=:]\s*[\"']?)(\"[^\"]*\"|'[^']*'|[^\s,;}&\]]+)"
+            r"(?i)(?<![A-Za-z0-9])([A-Za-z0-9_-]*(?:api[-_]?key|access[-_]?key|secret|client[-_]?secret|token|"
+            r"password|passwd|authorization|auth|cookie|credential|private[-_]?key|jwt|session[-_]?id))"
+            r"(?![A-Za-z0-9])([\"']?\s*[=:]\s*[\"']?)(\"[^\"]*\"|'[^']*'|[^\s,;}&\]]+)"
         ),
         r"\1\2" + _PLACEHOLDER,
     ),
@@ -166,16 +167,20 @@ _REDACTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^\s/:@\"'<>]+(?::[^\s/@\"'<>]*)?@"),
         r"\1" + _PLACEHOLDER + "@",
     ),
-    # URLs with a query string: drop the query (queries carry tokens and ids).
+    # URLs with a query string or fragment: drop both (both carry tokens and ids).
     (
-        re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://[^\s\"'<>?)]+)\?[^\s\"'<>]+"),
+        re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://[^\s\"'<>?#)]+)\?(?:<redacted>|[^\s\"'<>#])+"),
         r"\1?<redacted-query>",
+    ),
+    (
+        re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://[^\s\"'<>#)]+)#(?:<redacted>|[^\s\"'<>])+"),
+        r"\1#<redacted-fragment>",
     ),
     # Absolute POSIX paths and home-relative paths (~, /home/<name>, /Users/<name>).
     (re.compile(r"(?<![\w:~/])/(?:[^\s\"'<>|]+/)*[^\s\"'<>|]+"), "<path>"),
     (re.compile(r"(?<![\w])~(?:/(?:[^\s\"'<>|]+/)*[^\s\"'<>|]*)?"), "<path>"),
-    # Windows drive paths.
-    (re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:\\(?:[^\s\"'<>|]+\\)*[^\s\"'<>|]+"), "<path>"),
+    # Windows drive paths (backslash or forward-slash separators).
+    (re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/](?:[^\s\"'<>|]+[\\/])*[^\s\"'<>|]+"), "<path>"),
     # Relative paths containing a separator and ending in a dotted filename,
     # then bare media/document filenames.  Word pairs like "and/or" or "24/7"
     # have no dotted final segment and stay untouched.

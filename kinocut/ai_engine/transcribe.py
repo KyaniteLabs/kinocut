@@ -18,7 +18,14 @@ from typing import Any
 from .._install_hints import pip_install_hint
 from ..defaults import DEFAULT_LONGFORM_TRANSCRIBE_SECONDS
 from ..errors import InputFileError, MCPVideoError
-from ..ffmpeg_helpers import _get_video_duration, _run_command, _seconds_to_srt_time, _validate_output_path
+from ..ffmpeg_helpers import (
+    _atomic_artifact,
+    _get_video_duration,
+    _open_staged_writer,
+    _run_command,
+    _seconds_to_srt_time,
+    _validate_artifact_path,
+)
 from ..host_probes import whisper_model_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_TRANSCRIBE_DURATION
 from ..offline import is_offline_mode, require_offline_local_artifact
@@ -168,6 +175,8 @@ def ai_transcribe(
     video_path = Path(video)
     if not video_path.exists():
         raise InputFileError(video)
+    if output_srt:
+        _validate_artifact_path(output_srt, allow_recorded=True)
     duration = _validate_transcribe_duration(str(video_path))
     if selected == "lfm3-audio":
         from .lfm3_audio import transcribe_video
@@ -189,8 +198,8 @@ def ai_transcribe(
     else:
         result = _single_pass(video_path, whisper, model, language)
     if output_srt:
-        _validate_output_path(output_srt)
-        Path(output_srt).write_text(_format_srt(result["segments"]), encoding="utf-8")
+        with _atomic_artifact(output_srt, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+            stream.write(_format_srt(result["segments"]).encode("utf-8"))
     return result
 
 

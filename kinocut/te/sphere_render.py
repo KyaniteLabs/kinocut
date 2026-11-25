@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import tempfile
 from copy import deepcopy
@@ -15,6 +16,7 @@ from kinocut.engine_merge import merge
 from kinocut.engine_probe import _cache_key
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_output_path
+from kinocut.publication import validate_artifact_location
 from kinocut.quality_guardrails import assert_quality
 from kinocut.source_identity import assert_source_identity, stream_source_identity
 from kinocut.te.sphere_graph import render_window_single_pass
@@ -60,7 +62,15 @@ def render_sphere_plan(
     assert_equirect_geometry(source)
     source_key = _cache_key(source)
     _validate_output_path(output_path)
-    root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
+    raw_root = str(work_dir) if work_dir is not None else str(Path(output_path).resolve().parent / "_sphere_work")
+    resolved_root = validate_artifact_location(raw_root, "Work directory")
+    if os.path.lexists(resolved_root) and not os.path.isdir(resolved_root):
+        raise MCPVideoError(
+            "Work directory target is not a directory.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    root = Path(resolved_root)
     root.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="render-", dir=root))
     pieces = [_render_window(current, window, work, index) for index, window in enumerate(current["windows"])]

@@ -56,10 +56,11 @@ class CompiledSpec:
     order: tuple[str, ...]  # deterministic topological node order
 
     def write(self, path: str) -> None:
-        """Write the canonical spec bytes verbatim so the executor's hash matches."""
+        """Write the canonical spec bytes atomically via publication validation."""
+        from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer
 
-        with open(path, "wb") as handle:
-            handle.write(self.spec_bytes)
+        with _atomic_artifact(str(path), allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+            stream.write(self.spec_bytes)
 
 
 # --- the one shared canonical serializer -------------------------------------

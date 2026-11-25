@@ -11,6 +11,7 @@ from typing import Any
 
 from pydantic import ValidationError as PydanticValidationError
 
+from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer
 from ..workflow._versions import versions
 from ._errors import (
     INVALID_RESCUE_PLAN,
@@ -74,6 +75,8 @@ def _normalize_save_plan(save_plan: str | None, output: Path) -> Path | None:
         return None
     if not save_plan:
         raise rescue_error("save_plan must be a non-empty JSON path", UNSAFE_RESCUE_OUTPUT)
+    if os.path.islink(save_plan):
+        raise rescue_error("save_plan must not resolve through a symlink", UNSAFE_RESCUE_OUTPUT)
     plan_path = _realpath(save_plan)
     if plan_path.suffix.lower() != ".json" or not _is_confined(plan_path, output):
         raise rescue_error("save_plan must be a JSON file inside output_dir", UNSAFE_RESCUE_OUTPUT)
@@ -134,10 +137,12 @@ def _validate_policy_classification(plan: RescuePlan) -> None:
 
 def _write_plan(plan: RescuePlan, plan_path: Path) -> None:
     plan_path.parent.mkdir(parents=True, exist_ok=True)
-    plan_path.write_text(
-        json.dumps(plan.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    payload = (json.dumps(plan.model_dump(mode="json"), indent=2, sort_keys=True) + "\n").encode("utf-8")
+    with (
+        _atomic_artifact(str(plan_path)) as staged,
+        _open_staged_writer(staged) as stream,
+    ):
+        stream.write(payload)
 
 
 def plan_rescue(

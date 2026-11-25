@@ -9,6 +9,7 @@ from typing import Any
 
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_input_path
+from kinocut.publication import durable_receipt_ownership, validate_artifact_location
 from ..validation_errors import exception_kind
 
 
@@ -28,7 +29,13 @@ class BrandKit:
 
 def save_brand_kit(path: str, kit: BrandKit) -> dict[str, Any]:
     payload = {"artifact_kind": "brand_kit", **kit.to_dict()}
-    with _atomic_artifact(path) as staged, _open_staged_writer(staged) as stream:
+    resolved = Path(validate_artifact_location(path, "Brand kit path"))
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    with (
+        durable_receipt_ownership(resolved),
+        _atomic_artifact(str(resolved)) as staged,
+        _open_staged_writer(staged) as stream,
+    ):
         stream.write((json.dumps(payload, indent=2) + "\n").encode("utf-8"))
     return payload
 

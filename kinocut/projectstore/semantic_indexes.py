@@ -144,6 +144,7 @@ def persist_moment_selection(
     *,
     query_text: str | None = None,
     selection_example_ids: tuple[str, ...] = (),
+    created_by: str = "agent:find_moments",
 ) -> MomentSelectionRecord:
     """Persist only an explicit subset of hits; searching alone never selects."""
 
@@ -169,7 +170,7 @@ def persist_moment_selection(
         MomentSelectionRecord,
         {
             "project_id": project.project_id,
-            "created_by": "human:review",
+            "created_by": created_by,
             "edit_project_id": edit_project_id,
             "revision_id": revision_id,
             "index_digest": index_digest,

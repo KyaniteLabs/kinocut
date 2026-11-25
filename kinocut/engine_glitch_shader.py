@@ -28,6 +28,7 @@ from .ffmpeg_helpers import (
     _validate_output_path,
 )
 from .limits import FFPROBE_TIMEOUT, MAX_SHADER_FRAMES
+from .process_tree import sanitized_subprocess_env
 from .validation_errors import exception_kind
 
 # Path to the CRUSH.js module bundled with Kinocut
@@ -81,6 +82,7 @@ def _crush_canvas_available() -> bool:
             text=True,
             timeout=30,
             cwd=str(_CRUSH_JS_DIR),
+            env=sanitized_subprocess_env(),
         )
     except (OSError, subprocess.TimeoutExpired):
         raise ProcessingError(
@@ -194,7 +196,7 @@ def _check_shader_dependencies() -> None:
     if not _crush_canvas_available():
         raise MCPVideoError(
             "The `canvas` npm package needed for GPU shader rendering is not installed. "
-            f"Run: npm install (in {_CRUSH_JS_DIR}). "
+            "Install the optional `canvas` npm package in Kinocut's bundled CRUSH shader directory. "
             "The FFmpeg-based glitch_* tools work without it.",
             error_type="dependency_error",
             code="missing_canvas",
@@ -203,7 +205,7 @@ def _check_shader_dependencies() -> None:
 
 def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
     """Run the Node.js CRUSH render subprocess."""
-    env = os.environ.copy()
+    env = sanitized_subprocess_env()
     env["MCP_VIDEO_CRUSH_PATH"] = _resolve_crush_path()
     render_cmd = [node, str(_RENDER_SCRIPT), json.dumps(render_params)]
     try:

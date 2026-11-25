@@ -230,12 +230,23 @@ def _sanitize_error(exc: MCPVideoError, workspace_root: Path) -> dict[str, Any]:
 # host (/Users, /home, /opt, /srv, /etc, /tmp, /private/var/folders, /mnt, /data, ...);
 # leaving any of them in a receipt or MCP error envelope is an information leak.
 _ABSOLUTE_PATH_RE = re.compile(r"/[^\s:'\"/]+(?:/[^\s:'\"/]+)*")
+_WINDOWS_PATH_RE = re.compile(r"(?:[A-Za-z]:[\\/][^\s:'\"]+|\\\\[^\s:'\"\\]+\\[^\s:'\"]+)")
 _REDACTED_PATH = "<redacted-path>"
 
 
 def _sanitize_message(message: str, workspace_root: Path) -> str:
-    """Strip the workspace prefix, then redact any residual out-of-workspace absolute path."""
-    return _ABSOLUTE_PATH_RE.sub(_REDACTED_PATH, _strip_workspace(message, workspace_root))
+    """Strip the workspace prefix, redact out-of-workspace absolute paths, and scrub secrets."""
+    from ..request_log import _REDACTIONS, _redact_pem_blocks
+
+    stripped = _strip_workspace(message, workspace_root)
+    scrubbed = _redact_pem_blocks(stripped)
+    # Apply secret and URL redaction rules without clobbering in-workspace relative filenames.
+    for pattern, replacement in _REDACTIONS:
+        if replacement == "<path>":
+            continue
+        scrubbed = pattern.sub(replacement, scrubbed)
+    scrubbed = _WINDOWS_PATH_RE.sub(_REDACTED_PATH, scrubbed)
+    return _ABSOLUTE_PATH_RE.sub(_REDACTED_PATH, scrubbed)
 
 
 def _strip_workspace(message: str, workspace_root: Path) -> str:

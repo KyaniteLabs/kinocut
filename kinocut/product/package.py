@@ -6,11 +6,19 @@ import os
 import re
 import tempfile
 import shutil
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from collections.abc import Iterable
 
 from ..errors import MCPVideoError
-from ..ffmpeg_helpers import _validate_artifact_path, _validate_input_path
+from ..ffmpeg_helpers import (
+    _atomic_artifact,
+    _atomic_output,
+    _open_staged_writer,
+    _validate_artifact_path,
+    _validate_input_path,
+)
+from ..publication import output_operation
+from ..publication._operation import _OVERWRITE
 from .captions import CaptionArtifact
 from .models import CandidateMoment
 from .package_models import (
@@ -147,7 +155,7 @@ def _assert_safe_output(output_paths: tuple[str, ...], cfg: PackageConfig) -> No
             code="unsafe_path",
         )
     conflicts = tuple(path for path in output_paths if os.path.lexists(path))
-    if conflicts and not cfg.overwrite_package:
+    if conflicts and (not cfg.overwrite_package or _OVERWRITE.get() is False):
         raise MCPVideoError(
             f"package assets already exist: {len(conflicts)} of {len(output_paths)} output path(s) are present",
             error_type="validation_error",
@@ -271,14 +279,45 @@ def package_approved_clip(
             performance=performance,
         )
         staged_manifest = _stage_bytes(canonical_manifest_bytes(manifest) + b"\n", stage_dir)
-        for staged_path, output_path in (
-            (staged_video, video_path),
-            (staged_srt, srt_path),
-            (staged_thumbnail, thumbnail_path),
-            (staged_metadata, metadata_path),
-            (staged_manifest, manifest_path),
-        ):
-            os.replace(staged_path, output_path)
+        if logical_output_root is not None:
+            # Writing into an already-private anchored_tree stage directory.
+            for staged_path, output_path in (
+                (staged_video, video_path),
+                (staged_srt, srt_path),
+                (staged_thumbnail, thumbnail_path),
+                (staged_metadata, metadata_path),
+                (staged_manifest, manifest_path),
+            ):
+                if os.path.islink(output_path):
+                    raise MCPVideoError(
+                        "package output path resolves through a symlink",
+                        error_type="validation_error",
+                        code="unsafe_path",
+                    )
+                os.replace(staged_path, output_path)
+        else:
+            # Standalone direct call: route through anchored publication with
+            # descriptor pinning and overwrite/ownership checks.
+            publish_ctx = (
+                output_operation(True) if cfg.overwrite_package and _OVERWRITE.get() is None else nullcontext()
+            )
+            with publish_ctx:
+                for staged_path, output_path, is_media in (
+                    (staged_video, video_path, True),
+                    (staged_thumbnail, thumbnail_path, True),
+                    (staged_srt, srt_path, False),
+                    (staged_metadata, metadata_path, False),
+                    (staged_manifest, manifest_path, False),
+                ):
+                    pub = (
+                        _atomic_output(output_path) if is_media else _atomic_artifact(output_path, allow_recorded=True)
+                    )
+                    with (
+                        pub as atomic_stage,
+                        open(staged_path, "rb") as reader,
+                        _open_staged_writer(atomic_stage) as writer,
+                    ):
+                        shutil.copyfileobj(reader, writer)
 
     return PackagedClipResult(
         package_root=safe_dir,

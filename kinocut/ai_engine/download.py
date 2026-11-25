@@ -15,6 +15,7 @@ import re
 import shutil
 import socket as _socket
 import tempfile
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -24,19 +25,19 @@ from ..validation_errors import exception_kind, rejected_value
 
 logger = logging.getLogger(__name__)
 
+_CGNAT_NET = _ipaddress.ip_network("100.64.0.0/10")
+_NAT64_WELL_KNOWN_NET = _ipaddress.ip_network("64:ff9b::/96")
+_NAT64_LOCAL_NET = _ipaddress.ip_network("64:ff9b:1::/48")
+
 
 def _safe_resolved_addrs(host: str, port: int) -> list[tuple[int, tuple]]:
     """Resolve *host* to validated (family, sockaddr) pairs, filtering blocked IP ranges.
 
-    Returns only addresses that are NOT private, loopback, link-local, or reserved.
+    Returns only addresses that are globally routable (not private, CGNAT,
+    loopback, link-local, multicast, unspecified, reserved, or NAT64).
     Raises MCPVideoError if every resolved address is blocked.
     """
-    previous_timeout = _socket.getdefaulttimeout()
-    _socket.setdefaulttimeout(10)
-    try:
-        addrinfos = _socket.getaddrinfo(host, port, proto=_socket.IPPROTO_TCP)
-    finally:
-        _socket.setdefaulttimeout(previous_timeout)
+    addrinfos = _socket.getaddrinfo(host, port, proto=_socket.IPPROTO_TCP)
     safe: list[tuple[int, tuple]] = []
     for family, _type, _proto, _canon, sockaddr in addrinfos:
         ip_str = sockaddr[0]
@@ -119,22 +120,29 @@ def _split_host_port(host_str: str, default_port: int) -> tuple[str, int]:
     return host_str, default_port
 
 
-class _PinnedHTTPHandler(urllib.request.AbstractHTTPHandler):
-    """urllib opener handler that uses :class:`_PinnedHTTPConnection`."""
+class _PinnedHTTPHandler(urllib.request.HTTPHandler):
+    """urllib HTTPHandler subclass that connects exclusively via :class:`_PinnedHTTPConnection`."""
 
     def http_open(self, req):
         return self.do_open(_PinnedHTTPConnection, req)
 
-    http_request = urllib.request.AbstractHTTPHandler.do_request_
 
-
-class _PinnedHTTPSHandler(urllib.request.AbstractHTTPHandler):
-    """urllib opener handler that uses :class:`_PinnedHTTPSConnection`."""
+class _PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    """urllib HTTPSHandler subclass that connects exclusively via :class:`_PinnedHTTPSConnection`."""
 
     def https_open(self, req):
         return self.do_open(_PinnedHTTPSConnection, req)
 
-    https_request = urllib.request.AbstractHTTPHandler.do_request_
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse all HTTP redirects to prevent redirect-based SSRF."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise MCPVideoError(
+            "URL blocked (SSRF protection): HTTP redirects are not permitted",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
 
 
 class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -143,16 +151,57 @@ class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         if not _is_safe_url(newurl):
             raise MCPVideoError(
-                f"URL blocked (SSRF protection): redirect target {newurl}",
+                f"URL blocked (SSRF protection): redirect target {rejected_value(newurl)}",
                 error_type="validation_error",
                 code="ssrf_blocked",
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+def _build_pinned_opener() -> urllib.request.OpenerDirector:
+    """Construct a strict opener with ONLY pinned HTTP/HTTPS, no redirects, and no proxies."""
+    handlers = (
+        _PinnedHTTPHandler(),
+        _PinnedHTTPSHandler(),
+        _NoRedirect(),
+        urllib.request.ProxyHandler({}),
+        urllib.request.HTTPDefaultErrorHandler(),
+        urllib.request.HTTPErrorProcessor(),
+    )
+    opener = urllib.request.build_opener(*handlers)
+    if not isinstance(opener, urllib.request.OpenerDirector):
+        # Preserve test monkeypatch hooks on urllib.request.build_opener.
+        return opener
+    # Rebuild strictly without CPython's default FTPHandler/FileHandler/DataHandler/UnknownHandler.
+    strict = urllib.request.OpenerDirector()
+    for handler in handlers:
+        strict.add_handler(handler)
+    return strict
+
+
 def _is_blocked_ip(ip_str: str) -> bool:
-    addr = _ipaddress.ip_address(ip_str)
-    return addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved
+    clean = ip_str.split("%", 1)[0]
+    addr = _ipaddress.ip_address(clean)
+    if isinstance(addr, _ipaddress.IPv6Address):
+        if addr.ipv4_mapped is not None:
+            return _is_blocked_ip(str(addr.ipv4_mapped))
+        if addr.sixtofour is not None and _is_blocked_ip(str(addr.sixtofour)):
+            return True
+        if addr.teredo is not None and (_is_blocked_ip(str(addr.teredo[0])) or _is_blocked_ip(str(addr.teredo[1]))):
+            return True
+        if addr in _NAT64_WELL_KNOWN_NET or addr in _NAT64_LOCAL_NET:
+            return True
+    elif isinstance(addr, _ipaddress.IPv4Address) and addr in _CGNAT_NET:
+        return True
+    return (
+        not addr.is_global
+        or addr.is_private
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_reserved
+        or addr.is_multicast
+        or addr.is_unspecified
+    )
 
 
 def _response_peer_ip(resp) -> str | None:
@@ -204,21 +253,20 @@ def _is_http_url(s: object) -> bool:
 
 # --- SSRF protection: block private/reserved IP ranges ---
 def _is_safe_url(url: str) -> bool:
-    """Reject URLs that resolve to private, loopback, or link-local IPs (SSRF protection)."""
+    """Reject non-http(s) URLs or URLs resolving to non-global/private/loopback/link-local IPs."""
+    if not isinstance(url, str) or not url or any(ch.isspace() or ord(ch) < 32 for ch in url):
+        return False
     try:
-        from urllib.parse import urlparse
-
-        parsed = urlparse(url)
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme.lower() not in {"http", "https"}:
+            return False
         hostname = parsed.hostname
         if not hostname:
             return False
-        # Resolve hostname to IP addresses (with timeout to prevent hangs).
-        previous_timeout = _socket.getdefaulttimeout()
-        _socket.setdefaulttimeout(10)
-        try:
-            addrinfos = _socket.getaddrinfo(hostname, parsed.port or 80, proto=_socket.IPPROTO_TCP)
-        finally:
-            _socket.setdefaulttimeout(previous_timeout)
+        port = parsed.port or (443 if parsed.scheme.lower() == "https" else 80)
+        addrinfos = _socket.getaddrinfo(hostname, port, proto=_socket.IPPROTO_TCP)
+        if not addrinfos:
+            return False
         for _family, _type, _proto, _canonname, sockaddr in addrinfos:
             ip_str = sockaddr[0]
             if _is_blocked_ip(ip_str):
@@ -281,11 +329,12 @@ _PLATFORM_HOSTS = {
 
 
 def _url_host(url: str) -> str:
-    """Extract the hostname from a URL (no stdlib urllib needed for this)."""
-    # Strip scheme
-    rest = url.split("://", 1)[-1]
-    # Strip path/query
-    return rest.split("/")[0].split("?")[0].lower()
+    """Extract normalized host[:port] from a URL (stripping userinfo, path, query, fragment)."""
+    try:
+        parsed = urllib.parse.urlsplit(url if "://" in url else f"https://{url}")
+        return parsed.netloc.rsplit("@", 1)[-1].lower()
+    except ValueError:
+        return ""
 
 
 def _download_direct_url(url: str, dest_dir: str) -> str:
@@ -309,12 +358,7 @@ def _download_direct_url(url: str, dest_dir: str) -> str:
     headers = {"User-Agent": f"mcp-video/{__version__} (+https://git.kyanitelabs.tech/KyaniteLabs/kinocut)"}
     req = urllib.request.Request(url, headers=headers)  # noqa: S310
     max_download_bytes = 2 * (1 << 30)  # 2 GiB limit
-    opener = urllib.request.build_opener(
-        _PinnedHTTPHandler(),
-        _PinnedHTTPSHandler(),
-        _SafeRedirectHandler(),
-        urllib.request.ProxyHandler({}),
-    )
+    opener = _build_pinned_opener()
     with opener.open(req, timeout=120) as resp:
         _validate_response_peer(resp)
         with open(dest, "wb") as fh:
@@ -339,10 +383,28 @@ def _iter_ytdlp_info_urls(value: object):
     """Yield network URLs from yt-dlp's nested metadata shape."""
     if isinstance(value, dict):
         for key, item in value.items():
-            if key in {"url", "webpage_url", "original_url", "manifest_url"} and _is_http_url(item):
+            if key in {"url", "webpage_url", "original_url", "manifest_url", "fragment_base_url"} and _is_http_url(
+                item
+            ):
                 yield item
-            elif key in {"formats", "requested_formats", "requested_downloads", "entries", "fragments"}:
+            elif key in {
+                "formats",
+                "requested_formats",
+                "requested_downloads",
+                "entries",
+                "fragments",
+                "subtitles",
+                "automatic_captions",
+                "thumbnails",
+            }:
                 yield from _iter_ytdlp_info_urls(item)
+            elif (
+                isinstance(item, dict)
+                and key not in {"http_headers"}
+                and all(isinstance(v, list) for v in item.values())
+            ):
+                # Inspect nested language-keyed subtitle/caption maps too.
+                yield from _iter_ytdlp_info_urls(list(item.values()))
     elif isinstance(value, list | tuple):
         for item in value:
             yield from _iter_ytdlp_info_urls(item)
@@ -353,17 +415,20 @@ def _validate_ytdlp_info_urls(info: object) -> None:
     for media_url in _iter_ytdlp_info_urls(info):
         if not _is_safe_url(media_url):
             raise MCPVideoError(
-                f"URL blocked (SSRF protection): yt-dlp resolved media URL {media_url}",
+                f"URL blocked (SSRF protection): yt-dlp resolved media URL {rejected_value(media_url)}",
                 error_type="validation_error",
                 code="ssrf_blocked",
             )
 
 
 def _download_with_ytdlp(url: str, dest_dir: str) -> str:
-    """Download a platform video URL using yt-dlp. Returns local path.
-
-    Raises RuntimeError if yt-dlp is not installed.
-    """
+    """Download a platform video URL using yt-dlp. Returns local path."""
+    if not _is_safe_url(url):
+        raise MCPVideoError(
+            f"URL blocked (SSRF protection): {rejected_value(url)}",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
     try:
         import yt_dlp
     except ImportError:
@@ -399,8 +464,8 @@ def _download_with_ytdlp(url: str, dest_dir: str) -> str:
 
 
 def _direct_download_extension(video: str) -> str:
-    """The file extension of a direct video URL, query string stripped."""
-    url_path = video.split("?")[0]  # strip query string for ext detection
+    """The file extension of a direct video URL, query string and fragment stripped."""
+    url_path = urllib.parse.urlsplit(video).path
     return Path(url_path).suffix.lower()
 
 
@@ -413,6 +478,9 @@ def _download_with_urllib(video: str) -> tuple[str, str]:
     tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
     try:
         local = _download_direct_url(video, tmp)
+    except MCPVideoError:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
     except Exception as exc:
         shutil.rmtree(tmp, ignore_errors=True)
         raise ProcessingError(
@@ -445,8 +513,8 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
         )
 
     source_url = video
-    host = _url_host(video)
-    is_platform = host in _PLATFORM_HOSTS
+    host_name = (urllib.parse.urlsplit(video).hostname or "").lower()
+    is_platform = host_name in _PLATFORM_HOSTS
 
     if is_platform:
         # Must use yt-dlp
@@ -467,9 +535,11 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
         try:
             tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
             local = _download_with_ytdlp(video, tmp)
-        except MCPVideoError:
-            # yt-dlp not installed — fall back to urllib for direct URLs
+        except MCPVideoError as exc:
             shutil.rmtree(tmp, ignore_errors=True)
+            # Only fall back to urllib when yt-dlp is missing; NEVER swallow SSRF or policy errors.
+            if exc.code != "missing_ytdlp":
+                raise
             ext = _direct_download_extension(video)
             if ext not in _DIRECT_VIDEO_EXTENSIONS:
                 raise MCPVideoError(
@@ -487,6 +557,9 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
                 tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
                 try:
                     local = _download_direct_url(video, tmp)
+                except MCPVideoError:
+                    shutil.rmtree(tmp, ignore_errors=True)
+                    raise
                 except Exception as dl_exc:
                     shutil.rmtree(tmp, ignore_errors=True)
                     raise ProcessingError(

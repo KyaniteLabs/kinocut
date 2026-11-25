@@ -56,7 +56,7 @@ def fetch_response(payload: bytes) -> bytes:
             "accept-encoding": "identity",
         },
     )
-    opener = urllib.request.build_opener(_NoRedirect())
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
     try:
         with opener.open(request, timeout=DEFAULT_VISION_PROVIDER_TIMEOUT) as response:
             if response.status != 200:

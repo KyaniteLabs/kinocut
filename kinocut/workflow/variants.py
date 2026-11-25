@@ -23,6 +23,7 @@ declarations are never a valid override target — variants reuse them verbatim.
 from __future__ import annotations
 
 import copy
+import re
 from pathlib import PurePosixPath
 from typing import Any
 
@@ -34,6 +35,25 @@ _OUTPUTS = "outputs"
 _PARAMS = "params"
 _OUTPUT = "output"
 _PATH = "path"
+_SAFE_VARIANT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+def validate_variant_id(variant_id: Any) -> str:
+    """Validate a variant id as a safe single filename segment."""
+    if (
+        not isinstance(variant_id, str)
+        or not variant_id
+        or "\x00" in variant_id
+        or "/" in variant_id
+        or "\\" in variant_id
+        or ".." in variant_id
+        or not _SAFE_VARIANT_ID_RE.fullmatch(variant_id)
+    ):
+        raise workflow_error(
+            f"variant id {rejected_value(variant_id)!r} must be a safe single segment (letters, digits, '.', '_', '-')",
+            INVALID_WORKFLOW_VARIANT,
+        )
+    return variant_id
 
 
 def variant_ids(spec_data: dict[str, Any]) -> list[str]:
@@ -53,6 +73,7 @@ def apply_variant_overrides(spec_data: dict[str, Any], variant_id: str) -> dict[
     that output's path was itself overridden. Fails closed (``invalid_workflow_variant``)
     on an unknown variant id or a structurally malformed override.
     """
+    validate_variant_id(variant_id)
     variant = _find_variant(spec_data, variant_id)
     overrides = variant.get("overrides") or {}
     if not isinstance(overrides, dict):
@@ -185,5 +206,6 @@ def _name_variant_outputs(merged: dict[str, Any], variant_id: str, overridden_ou
 
 def _suffix_path(path: str, variant_id: str) -> str:
     """``output/final.mp4`` + ``square`` -> ``output/final.square.mp4`` (distinct per variant)."""
+    safe_id = validate_variant_id(variant_id)
     posix = PurePosixPath(path)
-    return str(posix.with_name(f"{posix.stem}.{variant_id}{posix.suffix}"))
+    return str(posix.with_name(f"{posix.stem}.{safe_id}{posix.suffix}"))

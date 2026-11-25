@@ -14,6 +14,7 @@ from ..engine_convert import convert
 from ..engine_filters import apply_filter
 from ..engine_rotate import rotate
 from ..engine_transcode import normalize
+from ..ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_output_path
 from ..hashing import prefixed_file_sha256 as _sha256
 from ._errors import RESCUE_POLICY_VIOLATION, UNSAFE_RESCUE_OUTPUT, rescue_error
 from .models import Disposition, Repair, RepairType
@@ -117,9 +118,14 @@ def _copy_result(operation: str, source: str, destination: str) -> OperationResu
     destination_path = Path(destination).resolve()
     if source_path == destination_path:
         raise rescue_error("rescue output may not overwrite its input", UNSAFE_RESCUE_OUTPUT)
-    destination_path.parent.mkdir(parents=True, exist_ok=True)
+    _validate_output_path(destination)
     started = time.monotonic()
-    shutil.copy2(source_path, destination_path)
+    with (
+        _atomic_output(destination) as staged,
+        open(source_path, "rb") as reader,
+        _open_staged_writer(staged) as writer,
+    ):
+        shutil.copyfileobj(reader, writer)
     return OperationResult(
         operation=operation,
         output_path=str(destination_path),

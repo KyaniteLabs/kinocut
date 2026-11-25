@@ -90,18 +90,17 @@ def video_batch(
             return {"input": input_path, "success": False, "error": reason(e)}
 
     max_workers = min(len(inputs), os.cpu_count() or 4, 4)
-    # Serial fallback for duplicate inputs (same file → same output path → race)
-    has_dupes = len(set(inputs)) < len(inputs)
+    # Serial fallback for duplicate or canonically-aliased inputs (same file → same output path → race)
+    canonical_inputs = [os.path.realpath(inp) for inp in inputs]
+    has_dupes = len(set(canonical_inputs)) < len(inputs)
     if has_dupes or max_workers <= 1:
         results = [_process_one(inp) for inp in inputs]
     else:
         indexed: list[dict[str, Any] | None] = [None] * len(inputs)
-        idx_map = {inp: i for i, inp in enumerate(inputs)}
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            futures = {pool.submit(copy_context().run, _process_one, inp): inp for inp in inputs}
+            futures = {pool.submit(copy_context().run, _process_one, inp): idx for idx, inp in enumerate(inputs)}
             for future in as_completed(futures):
-                orig = futures[future]
-                indexed[idx_map[orig]] = future.result()
+                indexed[futures[future]] = future.result()
         results = indexed
 
     succeeded = sum(1 for r in results if r and r.get("success"))

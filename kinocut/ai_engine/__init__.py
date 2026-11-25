@@ -10,7 +10,8 @@ from typing import Any
 from collections.abc import Callable
 
 from ..errors import InputFileError, MCPVideoError
-from ..ffmpeg_helpers import _validate_output_path
+from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_artifact_path
+from ..request_log import redact_text
 
 # Public API re-exports
 from .color import ai_color_grade as ai_color_grade
@@ -51,7 +52,7 @@ def _validate_analysis_output_paths(
 ) -> None:
     for path in (output_srt, output_txt, output_md, output_json):
         if path is not None:
-            _validate_output_path(path)
+            _validate_artifact_path(path, allow_recorded=True)
 
 
 def _run_analysis(
@@ -66,7 +67,7 @@ def _run_analysis(
         return fn(*args, **kwargs)
     except Exception as exc:
         logger.warning("Analysis section %s failed: %s", name, exc)
-        errors.append({"section": name, "error": str(exc)})
+        errors.append({"section": name, "error": redact_text(str(exc))})
         return fallback
 
 
@@ -127,24 +128,21 @@ def _build_transcript_result(
     json_path: str | None = None
 
     if output_txt:
-        _validate_output_path(output_txt)
-        Path(output_txt).write_text(_format_txt(segments), encoding="utf-8")
+        with _atomic_artifact(output_txt, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+            stream.write(_format_txt(segments).encode("utf-8"))
         txt_path = output_txt
     if output_md:
-        _validate_output_path(output_md)
-        Path(output_md).write_text(_format_md(segments), encoding="utf-8")
+        with _atomic_artifact(output_md, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+            stream.write(_format_md(segments).encode("utf-8"))
         md_path = output_md
     if output_json:
-        _validate_output_path(output_json)
         json_data = _format_json_transcript(
             raw.get("transcript", ""),
             segments,
             raw.get("language", "unknown"),
         )
-        Path(output_json).write_text(
-            json.dumps(json_data, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        with _atomic_artifact(output_json, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+            stream.write(json.dumps(json_data, indent=2, ensure_ascii=False).encode("utf-8"))
         json_path = output_json
 
     return {

@@ -265,10 +265,11 @@ def render_cutfile(
         suffix=".json",
         dir=str(workspace),
     )
-    os.close(spec_fd)
     spec_path = Path(spec_name)
     try:
-        spec_path.write_text(json.dumps(spec, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        spec_text = json.dumps(spec, indent=2, sort_keys=True) + "\n"
+        with os.fdopen(spec_fd, "w", encoding="utf-8") as handle:
+            handle.write(spec_text)
 
         receipt_path = save_receipt
         if receipt_path is None:
@@ -276,8 +277,10 @@ def render_cutfile(
             receipts_dir.mkdir(parents=True, exist_ok=True)
             receipt_path = str(receipts_dir / f"{_safe_slug(cf.name)}.receipt.json")
 
+        resume_from = _matching_owned_receipt(Path(receipt_path), spec_text.encode("utf-8"))
         receipt = render_workflow(
             str(spec_path),
+            resume_receipt=resume_from,
             save_receipt=receipt_path,
             keep_intermediates=keep_intermediates,
         )
@@ -297,6 +300,25 @@ def render_cutfile(
         "receipt_path": receipt_path,
         "workflow": receipt,
     }
+
+
+def _matching_owned_receipt(receipt_file: Path, spec_bytes: bytes) -> str | None:
+    """Return receipt path for safe in-place resume when an owned prior receipt matches this spec."""
+    if not receipt_file.is_file() or receipt_file.is_symlink():
+        return None
+    ownership_dir = receipt_file.parent / f".{receipt_file.name}.ownership"
+    if not ownership_dir.is_dir() or ownership_dir.is_symlink():
+        return None
+    try:
+        data = json.loads(receipt_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    import hashlib
+
+    expected_hash = f"sha256:{hashlib.sha256(spec_bytes).hexdigest()}"
+    if isinstance(data, dict) and data.get("spec_hash") == expected_hash:
+        return str(receipt_file)
+    return None
 
 
 def _safe_slug(name: str) -> str:

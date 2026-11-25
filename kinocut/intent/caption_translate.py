@@ -9,9 +9,16 @@ from typing import Any
 from collections.abc import Callable, Mapping
 
 from kinocut.errors import MCPVideoError
-from kinocut.ffmpeg_helpers import _validate_input_path, _validate_output_path
+from kinocut.ffmpeg_helpers import (
+    _atomic_artifact,
+    _open_staged_writer,
+    _validate_artifact_path,
+    _validate_input_path,
+)
 from kinocut.intent.language_coverage import language_coverage_report
 from kinocut_sound.captions import _parse_srt as _parse_srt
+
+_SAFE_LANG_TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$")
 
 # Small deterministic EN→ES map for offline honesty tests (not a full MT system).
 _EN_ES: Mapping[str, str] = {
@@ -113,12 +120,18 @@ def translate_caption_file(
             used = backend
         out_cues.append((start, end, translated))
     if output_path:
-        out_str = _validate_output_path(output_path)
+        out_str = _validate_artifact_path(output_path, allow_recorded=True)
     else:
-        out_str = _validate_output_path(str(src.with_name(f"{src.stem}.{tgt_l}.srt")))
+        if not _SAFE_LANG_TAG_RE.fullmatch(tgt_l):
+            raise MCPVideoError(
+                "target_lang must be a safe language tag (letters, digits, '_', '-')",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        out_str = _validate_artifact_path(str(src.with_name(f"{src.stem}.{tgt_l}.srt")), allow_recorded=True)
     out = Path(out_str)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(_render_srt(out_cues), encoding="utf-8")
+    with _atomic_artifact(out_str, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+        stream.write(_render_srt(out_cues).encode("utf-8"))
     warnings: list[str] = []
     if translated_words is not None and total_words and translated_words < total_words:
         percent = round(100 * translated_words / total_words)

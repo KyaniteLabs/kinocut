@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 from ..errors import InputFileError, MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import _run_command, _validate_input_path, _validate_output_path
+from ..ffmpeg_helpers import _atomic_output, _run_command, _validate_input_path, _validate_output_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT
 from ..validation_errors import reason, rejected_value
 
@@ -108,47 +108,47 @@ def _build_style_filter_string(params: dict[str, float]) -> str:
 
 
 def _apply_style_filter(video_path: Path, output: str, filter_string: str) -> str:
-    """Apply a color filter chain via FFmpeg and write output."""
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        str(video_path),
-        "-vf",
-        filter_string,
-        "-c:a",
-        "copy",  # Copy audio without re-encoding
-        "-pix_fmt",
-        "yuv420p",  # Ensure compatibility
-        output,
-    ]
+    """Apply a color filter chain via FFmpeg and write output atomically."""
     _validate_output_path(output)
-    Path(output).parent.mkdir(parents=True, exist_ok=True)
-    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    with _atomic_output(output) as staged:
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(video_path),
+            "-vf",
+            filter_string,
+            "-c:a",
+            "copy",  # Copy audio without re-encoding
+            "-pix_fmt",
+            "yuv420p",  # Ensure compatibility
+            staged,
+        ]
+        _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
     return output
 
 
 def _apply_lut(video: str, output: str, lut_path: str) -> str:
-    """Apply a .cube/.3dl LUT with FFmpeg's lut3d filter."""
+    """Apply a .cube/.3dl LUT with FFmpeg's lut3d filter atomically."""
     from ..ffmpeg_helpers import _escape_ffmpeg_filter_path
 
     filter_string = f"lut3d={_escape_ffmpeg_filter_path(lut_path)}"
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        video,
-        "-vf",
-        filter_string,
-        "-c:a",
-        "copy",
-        "-pix_fmt",
-        "yuv420p",
-        output,
-    ]
     _validate_output_path(output)
-    Path(output).parent.mkdir(parents=True, exist_ok=True)
-    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    with _atomic_output(output) as staged:
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video,
+            "-vf",
+            filter_string,
+            "-c:a",
+            "copy",
+            "-pix_fmt",
+            "yuv420p",
+            staged,
+        ]
+        _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
     return output
 
 

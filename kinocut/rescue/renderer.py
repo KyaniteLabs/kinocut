@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib
 import json
@@ -18,6 +19,8 @@ from pathlib import Path
 from typing import Any, Literal, NoReturn
 
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer
+from ..publication import durable_receipt_ownership
 from ..workflow._versions import versions
 from ..ai_engine.transcribe import ai_transcribe
 from ._errors import (
@@ -74,11 +77,14 @@ def _relative(path: str | Path, root: Path) -> str:
     return Path(path).resolve().relative_to(root).as_posix()
 
 
-def _atomic_json(path: Path, payload: dict[str, Any]) -> None:
+def _atomic_json(path: Path, payload: dict[str, Any], *, durable: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
-    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    encoded = (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    ctx: contextlib.AbstractContextManager[Any] = (
+        durable_receipt_ownership(path) if durable else contextlib.nullcontext()
+    )
+    with ctx, _atomic_artifact(str(path), allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+        stream.write(encoded)
 
 
 def _entry(result: OperationResult, input_path: Path, workspace_root: Path, executor: str) -> OperationEntry:
@@ -161,7 +167,9 @@ def _run_local_transcript(
         result = ai_transcribe(str(master), output_srt=str(captions), model="base", backend="whisper")
     else:
         result = ai_transcribe(str(master), output_srt=str(captions), model="base")
-    transcript.write_text(str(result.get("transcript", "")).strip() + "\n", encoding="utf-8")
+    transcript_payload = (str(result.get("transcript", "")).strip() + "\n").encode("utf-8")
+    with _atomic_artifact(str(transcript)) as staged_txt, _open_staged_writer(staged_txt) as stream:
+        stream.write(transcript_payload)
     parameters: dict[str, int | float | str | bool] = {
         "transcript_path": _relative(transcript, workspace),
         "model": "base",
@@ -646,9 +654,14 @@ def _promote_success(
     )
     packaged_receipt = prep.package_dir / "rescue-receipt.json"
     _write_receipt(receipt, packaged_receipt)
-    os.replace(prep.package_dir, prep.final_dir)
+    if os.path.lexists(prep.final_dir):
+        raise rescue_error("rescue package destination already exists", UNSAFE_RESCUE_OUTPUT)
+    try:
+        os.rename(prep.package_dir, prep.final_dir)
+    except OSError as exc:
+        raise rescue_error("could not atomically promote rescue package directory", UNSAFE_RESCUE_OUTPUT) from exc
     if prep.receipt_copy:
-        _write_receipt(receipt, prep.receipt_copy)
+        _atomic_json(prep.receipt_copy, receipt.model_dump(mode="json"), durable=True)
     if not keep_intermediates:
         shutil.rmtree(prep.job_dir, ignore_errors=True)
     return receipt.model_dump(mode="json")
@@ -702,6 +715,7 @@ def render_rescue(
                 "approved_repair_ids": prep.approved,
                 "operations": [entry.model_dump(mode="json") for entry in prep.operations],
             },
+            durable=True,
         )
 
     try:
