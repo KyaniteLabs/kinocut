@@ -44,6 +44,7 @@ class DesignQualityReport:
     motion_score: float  # animation quality
     issues: list[DesignIssue] = field(default_factory=list)
     fixes_applied: list[str] = field(default_factory=list)
+    fixes_failed: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
 
     def get_errors(self) -> list[DesignIssue]:

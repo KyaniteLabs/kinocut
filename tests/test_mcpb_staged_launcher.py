@@ -312,6 +312,7 @@ def test_launcher_exports_bounded_preflight_without_running_main() -> None:
         ("python_not_startable", "could not be started"),
         ("python_too_old", "Python 3.11+"),
         ("kinocut_missing", "kinocut==1.15.1"),
+        ("kinocut_not_importable", "could not be imported"),
         ("wrong_kinocut_version", "different Kinocut version"),
         ("invalid_probe_output", "invalid preflight response"),
         ("probe_failed", "preflight command failed"),
@@ -498,3 +499,67 @@ def test_launcher_main_rejects_invalid_ffmpeg_before_python_probe(tmp_path: Path
     assert result.stdout == ""
     assert "must point to an executable named ffmpeg" in result.stderr
     assert "Python 3.11" not in result.stderr
+
+
+@pytest.mark.skipif(NODE is None or os.name == "nt", reason="POSIX system Python user-site fixture required")
+def test_launcher_discovers_importable_user_site_via_pythonuserbase_and_rejects_metadata_only(
+    tmp_path: Path,
+) -> None:
+    """D7-017 / C5-003: probePython and launch share user-site policy and verify importability."""
+    system_python = shutil.which("python3")
+    if not system_python:
+        pytest.skip("system python3 required")
+    probe_ver = subprocess.run(
+        [system_python, "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    py_xy = probe_ver.stdout.strip()
+    user_base = tmp_path / "userbase"
+    user_site = user_base / "lib" / f"python{py_xy}" / "site-packages"
+    dist_info = user_site / "kinocut-9.9.9.dist-info"
+    dist_info.mkdir(parents=True)
+    (dist_info / "METADATA").write_text("Metadata-Version: 2.1\nName: kinocut\nVersion: 9.9.9\n", encoding="utf-8")
+
+    env = dict(os.environ)
+    env["PYTHONUSERBASE"] = str(user_base)
+    env.pop("PYTHONNOUSERSITE", None)
+    env.pop("PYTHONPATH", None)
+
+    node_cmd = (
+        "const launcher = require(process.argv[1]);"
+        "launcher.probePython(process.argv[2], process.argv[3])"
+        ".then((r) => console.log(JSON.stringify(r)));"
+    )
+    # Metadata-only user-site install must be detected as not importable (not silently accepted or hidden by PYTHONNOUSERSITE).
+    # Run from tmp_path so CWD (the repo root) does not put the checkout's kinocut/ on sys.path[0].
+    meta_only = subprocess.run(
+        [NODE, "-e", node_cmd, str(LAUNCHER), system_python, "9.9.9"],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    assert meta_only.returncode == 0, meta_only.stderr
+    assert json.loads(meta_only.stdout) == {"ok": False, "reason": "kinocut_not_importable"}
+
+    # Adding an actual importable kinocut package + __main__ in PYTHONUSERBASE satisfies probePython.
+    pkg = user_site / "kinocut"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("__version__ = '9.9.9'\n", encoding="utf-8")
+    (pkg / "__main__.py").write_text("print('ok')\n", encoding="utf-8")
+
+    importable = subprocess.run(
+        [NODE, "-e", node_cmd, str(LAUNCHER), system_python, "9.9.9"],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    assert importable.returncode == 0, importable.stderr
+    assert json.loads(importable.stdout) == {"ok": True}

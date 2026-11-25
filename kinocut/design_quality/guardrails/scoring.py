@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import logging
-import os
-import tempfile
 
-from ...ffmpeg_helpers import _run_command, _validate_input_path
+from ...ffmpeg_helpers import _validate_input_path
 
 logger = logging.getLogger(__name__)
 
@@ -192,53 +190,16 @@ class ScoringMixin:
     def _detect_text_elements(self, video_path: str) -> list[dict]:
         """Detect text elements in video using frame analysis.
 
-        Returns list of text elements with estimated sizes.
-        This is a simplified implementation - full OCR would need Tesseract.
+        OCR/text-region detection is not yet implemented; return an empty list
+        immediately instead of spawning discarded FFmpeg passes.
         """
-        # Sample frames at different timestamps
-        duration = self._get_duration(video_path)
-        sample_times = [duration * 0.1, duration * 0.3, duration * 0.5, duration * 0.7, duration * 0.9]
-
-        text_elements = []
-
-        for time_sec in sample_times:
-            frame_elements = self._analyze_frame_for_text(video_path, time_sec)
-            text_elements.extend(frame_elements)
-
-        return text_elements
+        _validate_input_path(video_path)
+        return []
 
     def _analyze_frame_for_text(self, video_path: str, time_sec: float) -> list[dict]:
-        """Analyze a single frame for text elements.
-
-        Uses edge detection and region analysis to estimate text presence.
-        """
-
-        video_path = _validate_input_path(video_path)
-        # Extract frame securely
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
-            frame_path = tmp_file.name
-        try:
-            cmd = ["ffmpeg", "-y", "-i", video_path, "-ss", str(time_sec), "-vframes", "1", frame_path]
-            _run_command(cmd)
-
-            if not os.path.exists(frame_path):
-                return []
-
-            # Analyze frame for text regions using ffmpeg's signature filter
-            # This gives us an estimate of complexity which correlates with text amount
-            cmd = ["ffmpeg", "-y", "-i", frame_path, "-vf", "signature=format=xml", "-f", "null", "-"]
-            _run_command(cmd)
-
-            # Text detection is not yet implemented (would require OCR).
-            # Return empty list rather than fabricated data.
-            return []
-
-        except Exception as exc:
-            logger.debug("Frame text analysis failed for %s at %ss: %s", video_path, time_sec, exc)
-            return []
-        finally:
-            if os.path.exists(frame_path):
-                os.unlink(frame_path)
+        """Analyze a single frame for text elements (unimplemented stub)."""
+        _validate_input_path(video_path)
+        return []
 
     def _calculate_motion_score(self, video_path: str) -> float:
         """Calculate motion/animation quality score."""

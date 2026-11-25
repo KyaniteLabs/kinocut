@@ -23,8 +23,13 @@ class ProbeMixin:
         return None
 
     def _probe_video(self, video_path: str) -> dict:
-        """Get video metadata."""
+        """Get video metadata (cached per source identity on this guardrail)."""
         video_path = _validate_input_path(video_path)
+        cache = getattr(self, "_probe_cache", None)
+        key_fn = getattr(self, "_source_identity_key", None)
+        key = key_fn(video_path) if callable(key_fn) else None
+        if cache is not None and key is not None and key in cache:
+            return dict(cache[key])
         cmd = [
             "ffprobe",
             "-v",
@@ -45,9 +50,10 @@ class ProbeMixin:
                 " ".join(cmd), result.returncode, "", reason=f"Invalid JSON from ffprobe: {exception_kind(exc)}"
             ) from None
 
-        if data.get("streams"):
-            return data["streams"][0]
-        return {}
+        stream = data["streams"][0] if data.get("streams") else {}
+        if cache is not None and key is not None and key_fn(video_path) == key:
+            cache[key] = dict(stream)
+        return dict(stream)
 
     def _get_fps(self, video_path: str) -> float:
         """Get video frame rate."""
