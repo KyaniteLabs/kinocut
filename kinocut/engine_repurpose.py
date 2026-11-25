@@ -161,8 +161,20 @@ def repurpose_plan(
     return manifest
 
 
-def _release_checkpoint(video_path: str, output_dir: str, min_score: float) -> dict[str, Any]:
-    quality = assert_quality(video_path, min_score=min_score)
+def _release_checkpoint(
+    video_path: str,
+    output_dir: str,
+    min_score: float,
+    *,
+    profile: str | None = None,
+    profile_reason: str | None = None,
+) -> dict[str, Any]:
+    quality = assert_quality(
+        video_path,
+        min_score=min_score,
+        profile=profile,
+        profile_reason=profile_reason,
+    )
     review_dir = os.path.join(output_dir, "release_review")
     os.makedirs(review_dir, exist_ok=True)
     thumb = thumbnail(video_path, output_path=os.path.join(review_dir, "thumbnail.jpg"))
@@ -181,6 +193,8 @@ def repurpose(
     platforms: list[str] | None = None,
     include_release_checkpoint: bool = True,
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
+    profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Render a local content repurposing package and manifest."""
     policy = repurpose_release_policy(include_release_checkpoint, min_score)
@@ -223,6 +237,8 @@ def repurpose(
                 exported.output_path,
                 os.path.join(platform_dir, "checkpoint"),
                 min_score=policy.min_score,
+                profile=profile,
+                profile_reason=profile_reason,
             )
 
     manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST, allow_replace_owned=True)

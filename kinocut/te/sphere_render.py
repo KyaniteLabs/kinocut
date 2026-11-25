@@ -34,6 +34,8 @@ def render_sphere_plan(
     work_dir: str | None = None,
     allow_fail: bool = False,
     min_score: float | None = None,
+    profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Extract cameras and assemble split/pip/switch/single. Requires approved.
 
@@ -81,7 +83,9 @@ def render_sphere_plan(
     with _atomic_output(output_path) as staged:
         with open(assembled, "rb") as rendered, _open_staged_writer(staged) as writer:
             shutil.copyfileobj(rendered, writer)
-        gate = _maybe_quality(staged, allow_fail=allow_fail, min_score=min_score)
+        gate = _maybe_quality(
+            staged, allow_fail=allow_fail, min_score=min_score, profile=profile, profile_reason=profile_reason
+        )
         assert_source_identity(source, identity)
         if _cache_key(source) != source_key:
             raise MCPVideoError(
@@ -124,10 +128,23 @@ def _render_window(plan: dict[str, Any], window: dict[str, Any], work: Path, ind
     )
 
 
-def _maybe_quality(output_path: str, *, allow_fail: bool, min_score: float | None) -> dict[str, Any]:
+def _maybe_quality(
+    output_path: str,
+    *,
+    allow_fail: bool,
+    min_score: float | None,
+    profile: str | None = None,
+    profile_reason: str | None = None,
+) -> dict[str, Any]:
     score = DEFAULT_QUALITY_GATE_SCORE if min_score is None else float(min_score)
     try:
-        report = assert_quality(output_path, min_score=score, max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS)
+        report = assert_quality(
+            output_path,
+            min_score=score,
+            max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS,
+            profile=profile,
+            profile_reason=profile_reason,
+        )
         return {"passed": True, "report": report}
     except Exception as exc:
         from ..validation_errors import reason

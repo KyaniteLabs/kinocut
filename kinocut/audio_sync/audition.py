@@ -8,6 +8,7 @@ import json
 import math
 import re
 import stat
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -272,7 +273,8 @@ enable.addEventListener('click', async () => {
     context ??= new AudioContext();
     await context.resume();
     buffers ??= await Promise.all(tracks.map(track => {
-      const bytes = Uint8Array.from(atob(track.textContent), character => character.charCodeAt(0));
+      const payload = track.textContent.replace(/^data:[^;]+;base64,/, '');
+      const bytes = Uint8Array.from(atob(payload), character => character.charCodeAt(0));
       return context.decodeAudioData(bytes.buffer);
     }));
     gains ??= buffers.map(() => {
@@ -313,6 +315,45 @@ requestAnimationFrame(tick);
 """
 
 
+def _write_encoded_track(page, track: Path) -> None:
+    """Embed compact AAC/M4A inline when FFmpeg is available; fall back to WAV."""
+    source = track
+    mime = "audio/wav"
+    with tempfile.TemporaryDirectory(prefix="kinocut-audition-") as tmpdir:
+        compact = Path(tmpdir) / "track.m4a"
+        try:
+            _run_ffmpeg(
+                [
+                    "-nostdin",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(track),
+                    "-vn",
+                    "-map_metadata",
+                    "-1",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                    "-movflags",
+                    "+faststart",
+                    str(compact),
+                ]
+            )
+            if compact.is_file() and compact.stat().st_size > 0:
+                source = compact
+                mime = "audio/mp4"
+        except (MCPVideoError, OSError):
+            source = track
+            mime = "audio/wav"
+        page.write(f'<script class="track" type="application/octet-stream">data:{mime};base64,')
+        with source.open("rb") as audio:
+            while chunk := audio.read(3 * 16384):
+                page.write(base64.b64encode(chunk).decode("ascii"))
+        page.write("</script>\n")
+
+
 def _write_page(path: Path, picture: str, entries: list[dict], tracks: list[Path], loop: list) -> None:
     with path.open("w", encoding="utf-8") as page:
         page.write("""<!doctype html><html lang="en"><meta charset="utf-8">
@@ -332,11 +373,7 @@ label,button{margin-inline-end:1rem} select,button{font:inherit}
         )
         page.write(f'<script id="loop-range" type="application/json">{json.dumps(loop)}</script>\n')
         for track in tracks:
-            page.write('<script class="track" type="application/octet-stream">')
-            with track.open("rb") as audio:
-                while chunk := audio.read(3 * 16384):
-                    page.write(base64.b64encode(chunk).decode("ascii"))
-            page.write("</script>\n")
+            _write_encoded_track(page, track)
         page.write(f"<script>{_PLAYER}</script></html>\n")
 
 
