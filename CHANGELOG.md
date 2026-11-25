@@ -9,7 +9,7 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## 2.2.0 - 2026-11-24
+## 2.2.0 - 2026-11-25
 
 Kinocut now ships a local Chrome Manifest V3 Companion extension backed by a fail-closed stdio Native Messaging host.
 
