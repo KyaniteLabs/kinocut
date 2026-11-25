@@ -8,12 +8,13 @@ import wave
 from array import array
 from bisect import bisect_left
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from ..bounded_process import run_bounded
 from ..engine_runtime_utils import _ffmpeg
 from ..errors import MCPVideoError
+from ..offline import offline_media_command
 from ..publication import record_operation_input
 
 _BANDS = {"kick": (40, 150), "snare": (180, 2000), "hat": (5000, 14000)}
@@ -30,18 +31,21 @@ class Onset:
 
 def _pcm_frames(raw: bytes, width: int, channels: int) -> array:
     if width == 1:
-        values = [value - 128 for value in raw]
+        values = (value - 128 for value in raw)
     elif width == 3:
-        values = [int.from_bytes(raw[start : start + 3], "little", signed=True) for start in range(0, len(raw), 3)]
-    else:
+        values = (int.from_bytes(raw[start : start + 3], "little", signed=True) for start in range(0, len(raw), 3))
+    elif width in (2, 4):
         values = array({2: "h", 4: "i"}[width])
         values.frombytes(raw)
         if sys.byteorder == "big":
             values.byteswap()
+    else:
+        raise ValueError(f"Unsupported PCM sample width: {width}")
     divisor = channels * (1 << (8 * width - 1))
     if channels == 1:
         return array("f", (value / divisor for value in values))
-    return array("f", (sum(values[start : start + channels]) / divisor for start in range(0, len(values), channels)))
+    iterator = iter(values)
+    return array("f", (sum(frame) / divisor for frame in zip(*([iterator] * channels), strict=False)))
 
 
 def _read_wav(path: Path, rate: int) -> array | None:
@@ -63,23 +67,26 @@ def _read_mono(path: str | Path, rate: int) -> array:
     if source.suffix.lower() == ".wav" and (pcm := _read_wav(source, rate)) is not None:
         return pcm
     proc = run_bounded(
-        [
-            _ffmpeg(),
-            "-nostdin",
-            "-v",
-            "error",
-            "-i",
-            str(source),
-            "-map",
-            "0:a:0",
-            "-ac",
-            "1",
-            "-ar",
-            str(rate),
-            "-f",
-            "f32le",
-            "-",
-        ],
+        offline_media_command(
+            [
+                _ffmpeg(),
+                "-nostdin",
+                "-v",
+                "error",
+                "-i",
+                str(source),
+                "-map",
+                "0:a:0",
+                "-ac",
+                "1",
+                "-ar",
+                str(rate),
+                "-f",
+                "f32le",
+                "-",
+            ],
+            probe=False,
+        ),
         timeout=120,
         text=False,
         stdout_limit=_PCM_BYTE_LIMIT,
@@ -121,7 +128,7 @@ def _envelope(pcm: array, low: int, high: int, rate: int, hop: int) -> list[floa
 def _envelope_onsets(levels: list[float], band: str, step_s: float) -> list[Onset]:
     peak = max(levels, default=0.0)
     gate = max(0.002, peak * 0.08)
-    baseline = 0.0
+    baseline = levels[0] if levels else 0.0
     last = -math.inf
     found = []
     for index, level in enumerate(levels):
@@ -204,7 +211,8 @@ def pocket_lock(events, onsets, *, band="hat", max_window_ms=25.0, min_confidenc
         if onset is not None and lower <= onset.time_s <= upper:
             final = onset.time_s
             if step:
-                quantized = round(final / step) * step
+                grid = Decimal(str(fine_grid_step_ms)).scaleb(-3)
+                quantized = float((Decimal(str(final)) / grid).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * grid)
                 if lower <= quantized <= upper:
                     final = quantized
         else:

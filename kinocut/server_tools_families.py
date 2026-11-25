@@ -42,7 +42,7 @@ from .tool_families import (
     operation_side_effects,
     operation_verb,
 )
-from .tool_registry import TOOL_REGISTRY, discovery_catalog, load_operation_tool
+from .tool_registry import TOOL_MODULE_BY_NAME, TOOL_REGISTRY, discovery_catalog, load_operation_tool
 
 
 # Worst-case-accurate for the mutating hints; open-world is decided per family
@@ -258,7 +258,9 @@ def describe_operation(
                 code="unknown_operation",
             )
         tool = load_operation_tool(operation)
-        catalog_row = next((row for row in discovery_catalog() if row["name"] == operation), {})
+        catalog_row = next(
+            (row for row in discovery_catalog((TOOL_MODULE_BY_NAME[operation],)) if row["name"] == operation), {}
+        )
         route = cli_route_for_operation(operation)
         return {
             "success": True,
