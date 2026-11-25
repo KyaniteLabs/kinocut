@@ -117,38 +117,8 @@ def test_qa_runner_supports_v210_paths_and_portable_browser_tempdir(tmp_path) ->
     assert "node" in runner.COMMAND_ALLOWLIST
 
     catalog = runner.load_catalog(QA_CATALOG_PATH)
-    for path_id, argv in (
-        ("trim-music-grid", ["kino", "--format", "json", "trim", "{{qa_work}}/fixtures/input.mp4", "--bpm", "120"]),
-        (
-            "direct-plan-and-apply",
-            ["kino", "--format", "json", "direct", "skip 1s", "-i", "{{qa_work}}/fixtures/input.mp4", "--apply"],
-        ),
-        (
-            "quality-check-dark-grade",
-            [
-                "kino",
-                "--format",
-                "json",
-                "video-quality-check",
-                "--profile",
-                "dark-grade",
-                "{{qa_work}}/fixtures/input.mp4",
-            ],
-        ),
-        ("offline-doctor", ["kino", "--format", "json", "doctor"]),
-        ("hermes-desktop-plugin", ["node", "--test", "{{product_root}}/plugins/kinocut/desktop/plugin.test.mjs"]),
-    ):
-        catalog["paths"].append(
-            {
-                "id": path_id,
-                "category": "operator",
-                "required": True,
-                "action": "cli",
-                "argv": argv,
-                "sources": [{"file": "README.md", "line": 1, "quote": "test"}],
-                "assertions": ["deterministic test assertion"],
-            }
-        )
+    existing_ids = {entry["id"] for entry in catalog["paths"]}
+    assert expected_v210.issubset(existing_ids)
     runner.validate_catalog(catalog)
 
     instance = object.__new__(runner.OperatorRunner)
@@ -182,7 +152,14 @@ def test_qa_runner_supports_v210_paths_and_portable_browser_tempdir(tmp_path) ->
         if "video-quality-check" in argv:
             payload = {"success": True, "profile": "dark-grade", "overall_score": 92}
             return subprocess.CompletedProcess(argv, 0, stdout=json.dumps(payload), stderr="")
-        payload = {"success": True, "output_path": str(fake_out)}
+        out_path = fake_out
+        if "-o" in argv:
+            idx = argv.index("-o")
+            if idx + 1 < len(argv):
+                out_path = Path(argv[idx + 1])
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                out_path.write_bytes(b"fake")
+        payload = {"success": True, "output_path": str(out_path)}
         return subprocess.CompletedProcess(argv, 0, stdout=json.dumps(payload), stderr="")
 
     instance._run = fake_run

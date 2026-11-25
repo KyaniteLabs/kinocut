@@ -26,7 +26,7 @@ def test_catalog_keeps_original_required_operator_ids_and_provenance():
     required = runner.required_paths(catalog)
     ids = [path["id"] for path in required]
 
-    assert len(ids) == 26
+    assert len(ids) == 31
     assert len(ids) == len(set(ids))
     assert {
         "clean-environment",
@@ -117,9 +117,9 @@ def test_mcp_inventory_is_reported_separately_from_action_coverage():
         catalog,
     )
 
-    assert summary["required_path_count"] == 26
+    assert summary["required_path_count"] == 31
     assert summary["reported_path_count"] == 3
-    assert summary["required_operator_action_path_count"] == 20
+    assert summary["required_operator_action_path_count"] == 25
     assert summary["passed_operator_action_path_count"] == 1
     assert summary["discovery_passed_path_ids"] == ["mcp-protocol"]
 

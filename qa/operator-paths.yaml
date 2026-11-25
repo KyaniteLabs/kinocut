@@ -456,9 +456,9 @@ paths:
   - --bpm
   - '120'
   - -s
-  - 1:1:1
+  - '1:1:1'
   - -e
-  - 2:1:1
+  - '2:1:1'
   - -o
   - '{{qa_work}}/artifacts/bar.mp4'
 - id: direct-plan-and-apply
@@ -472,7 +472,7 @@ paths:
   sources:
   - file: docs/CLI_REFERENCE.md
     line: 36
-    quote: '| `direct DIRECTION -i INPUT` | Plan an edit from the user's words; `--apply` renders after review (2.1.0). |'
+    quote: '| `direct DIRECTION -i INPUT` | Plan an edit from the user''s words; `--apply` renders after review (2.1.0). |'
   argv:
   - kino
   - --format
