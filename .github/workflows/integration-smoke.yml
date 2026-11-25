@@ -25,6 +25,7 @@ jobs:
       pull-requests: read
     outputs:
       # A master push whose tree its pull request head already passed re-tests nothing.
+      tested: ${{ steps.premerge.outputs.tested }}
       relevant: ${{ steps.premerge.outputs.tested == 'true' && 'false' || steps.classify.outputs.relevant }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -215,9 +216,12 @@ jobs:
           PY
 
   clean-wheel-onboarding:
+    # A master push whose tree differs from its pull request head (manual
+    # conflict resolution, release prep) has no onboarding evidence yet, so the
+    # job runs for it; a tree its pull request already passed skips below.
     name: Clean-wheel onboarding journey
     needs: changes
-    if: ${{ !cancelled() && github.event_name != 'push' && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true') }}
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true' || github.event_name == 'push') && needs.changes.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

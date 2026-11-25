@@ -198,13 +198,18 @@ def make_source(workdir: Path) -> Path:
     return src
 
 
-def task_passed(task: Task, output: Path, source: Probe) -> bool:
+def task_passed(task: Task, output: Path, source: Probe, row: TaskResult | None = None) -> bool:
+    """Judge one output; a check that raises records why instead of silently failing."""
     probe = ffprobe(output)
     if probe is None:
         return False
     try:
         return bool(task.check(probe, source))
-    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+    except (KeyError, TypeError, ValueError, ZeroDivisionError) as exc:
+        reason = f"{type(exc).__name__}: {exc}"
+        if row is not None:
+            row.check_error = reason
+        print(f"{task.id}: output check raised {reason}", file=sys.stderr)
         return False
 
 
@@ -265,7 +270,9 @@ class AnthropicModel:
         calls = [ToolCall(b["id"], b["name"], b.get("input") or {}) for b in data["content"] if b["type"] == "tool_use"]
         usage = data.get("usage", {})
         # Cached prompt tokens are reported apart from input_tokens; all three are input.
-        prompt = sum(usage.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
+        prompt = sum(
+            usage.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+        )
         return Turn(calls, prompt, usage.get("output_tokens") or 0)
 
     def add_results(self, results: list[tuple[ToolCall, str, bool]]) -> None:
@@ -364,6 +371,7 @@ class TaskResult:
     retries: int = 0
     turns: int = 0
     error: str | None = None
+    check_error: str | None = None
 
 
 def result_text(result: Any) -> tuple[str, bool]:
@@ -435,9 +443,11 @@ async def run_server(
                     await run_task(session, model, tools, prompt, row)
                 except Exception as exc:  # one broken task must not sink the run
                     row.error = f"{type(exc).__name__}: {exc}"
-                row.success = task_passed(task, output, source_probe)
+                row.success = task_passed(task, output, source_probe, row)
                 rows.append(row)
-                print(f"{label:>8} {model.label:<32} {task.id:<10} {'ok' if row.success else 'FAIL'}", file=sys.stderr)
+                outcome = "ok" if row.success else "FAIL"
+                detail = f" ({row.check_error})" if row.check_error else ""
+                print(f"{label:>8} {model.label:<32} {task.id:<10} {outcome}{detail}", file=sys.stderr)
     return rows
 
 

@@ -9,6 +9,8 @@ import textwrap
 import pytest
 
 WORKFLOWS = Path(__file__).resolve().parents[1] / ".github/workflows"
+# ci.yml's classify step delegates the code/docker rules to this script.
+CI_SCOPE = Path(__file__).resolve().parents[1] / "scripts" / "ci_scope.py"
 pytestmark = pytest.mark.skipif(
     os.name == "nt" or shutil.which("bash") is None or shutil.which("git") is None,
     reason="Hosted classifiers execute with POSIX Bash and Git",
@@ -95,6 +97,9 @@ def workflow(request):
 
 
 def _classify(repository, workflow, tmp_path, head, base=None, pr_base=""):
+    # The real workflow runs from a full checkout; mirror the classifier it calls.
+    (repository.directory / "scripts").mkdir(exist_ok=True)
+    shutil.copy(CI_SCOPE, repository.directory / "scripts" / "ci_scope.py")
     runner_temp = tmp_path / "runner-temp"
     runner_temp.mkdir()
     output = tmp_path / "github-output"

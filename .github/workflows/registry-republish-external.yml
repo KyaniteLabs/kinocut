@@ -25,7 +25,7 @@ permissions:
 jobs:
   publish-external:
     name: Publish ${{ inputs.server_repo }}@${{ inputs.server_ref }} server.json
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Whitelist guard
         run: |

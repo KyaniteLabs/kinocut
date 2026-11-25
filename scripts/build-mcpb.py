@@ -10,6 +10,7 @@ import os
 import stat
 import subprocess
 import sys
+import tomllib
 import zipfile
 import zlib
 from pathlib import Path, PurePosixPath
@@ -26,7 +27,18 @@ from kinocut.limits import (  # noqa: E402
 )
 
 MCPB_DIR = ROOT / "mcpb"
-VERSION = "2.1.0"
+
+
+def _project_version() -> str:
+    """The release the bundle must carry: pyproject.toml is the single source of truth."""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    version = project.get("version")
+    if not isinstance(version, str) or not version:
+        raise ValueError("pyproject.toml must declare a release version")
+    return version
+
+
+VERSION = _project_version()
 MEMBERS = ("README.md", "manifest.json", "server/launcher.js")
 ICON_MEMBER = "icon.png"
 TOP_LEVEL_KEYS = {

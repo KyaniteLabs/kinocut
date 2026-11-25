@@ -11,46 +11,115 @@ inputs:
     description: Optional cutfile path (relative to project_dir) to render before gate
     required: false
     default: ""
+  kinocut_version:
+    description: Optional Kinocut release override; defaults to the pinned release
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
     - name: Install Kinocut
       shell: bash
+      env:
+        KINOCUT_VERSION: ${{ inputs.kinocut_version }}
       run: |
+        set -euo pipefail
         python -m pip install -U pip
-        python -m pip install "kinocut==2.0.1"
+        if [ -n "${KINOCUT_VERSION}" ]; then
+          pkg="kinocut==${KINOCUT_VERSION}"
+          python -m pip install "${pkg}"
+        else
+          python -m pip install "kinocut==2.0.1"
+        fi
     - name: Optional cutfile render
       shell: bash
       if: ${{ inputs.cutfile != '' }}
+      env:
+        KINOCUT_PROJECT_DIR: ${{ inputs.project_dir }}
+        KINOCUT_MEDIA: ${{ inputs.media }}
+        KINOCUT_CUTFILE: ${{ inputs.cutfile }}
       run: |
-        kino cutfile-render "${{ inputs.project_dir }}/${{ inputs.cutfile }}" --format json \
+        set -euo pipefail
+        kino cutfile-render "${KINOCUT_PROJECT_DIR}/${KINOCUT_CUTFILE}" --format json \
           | tee cutfile_render.json
-        mkdir -p "${{ inputs.project_dir }}/receipts"
-        cp cutfile_render.json "${{ inputs.project_dir }}/receipts/video-ci-cutfile-render.json"
+        mkdir -p "${KINOCUT_PROJECT_DIR}/receipts"
+        cp cutfile_render.json "${KINOCUT_PROJECT_DIR}/receipts/video-ci-cutfile-render.json"
     - name: Metric floor gate
       shell: bash
+      env:
+        KINOCUT_PROJECT_DIR: ${{ inputs.project_dir }}
+        KINOCUT_MEDIA: ${{ inputs.media }}
+        KINOCUT_CUTFILE: ${{ inputs.cutfile }}
       run: |
-        kino metric-qc "${{ inputs.media }}" --format json | tee metric_qc.json
-        mkdir -p "${{ inputs.project_dir }}/receipts"
-        cp metric_qc.json "${{ inputs.project_dir }}/receipts/video-ci-metric-qc.json"
+        set -euo pipefail
+        kino metric-qc "${KINOCUT_MEDIA}" --format json | tee metric_qc.json
+        mkdir -p "${KINOCUT_PROJECT_DIR}/receipts"
+        cp metric_qc.json "${KINOCUT_PROJECT_DIR}/receipts/video-ci-metric-qc.json"
     - name: Review run gate
       shell: bash
+      env:
+        KINOCUT_PROJECT_DIR: ${{ inputs.project_dir }}
+        KINOCUT_MEDIA: ${{ inputs.media }}
+        KINOCUT_CUTFILE: ${{ inputs.cutfile }}
       run: |
-        kino review-run "${{ inputs.media }}" --format json | tee review_run.json
+        set -euo pipefail
+        kino review-run "${KINOCUT_MEDIA}" --format json | tee review_run.json
     - name: Write receipt
       shell: bash
+      env:
+        KINOCUT_PROJECT_DIR: ${{ inputs.project_dir }}
+        KINOCUT_MEDIA: ${{ inputs.media }}
+        KINOCUT_CUTFILE: ${{ inputs.cutfile }}
+        KINOCUT_VERSION: ${{ inputs.kinocut_version }}
       run: |
-        mkdir -p "${{ inputs.project_dir }}/receipts"
-        cp review_run.json "${{ inputs.project_dir }}/receipts/video-ci-review.json"
+        set -euo pipefail
+        mkdir -p "${KINOCUT_PROJECT_DIR}/receipts"
+        cp review_run.json "${KINOCUT_PROJECT_DIR}/receipts/video-ci-review.json"
         python - <<'PY'
-        import json, time
+        import json
+        import os
+        import sys
+        import time
         from pathlib import Path
-        root = Path("${{ inputs.project_dir }}") / "receipts"
+
+        project_dir = Path(os.environ["KINOCUT_PROJECT_DIR"])
+        media = os.environ["KINOCUT_MEDIA"]
+        cutfile = os.environ["KINOCUT_CUTFILE"]
+        version = os.environ["KINOCUT_VERSION"]
+        root = project_dir / "receipts"
+
+        # Every gate writes a Kinocut JSON envelope. A gate that reports
+        # success=false (or emits something that is not a JSON object) failed,
+        # even when the process exited 0: refuse to write a receipt for it.
+        gates = {"metric-qc": Path("metric_qc.json"), "review-run": Path("review_run.json")}
+        if cutfile:
+            gates["cutfile-render"] = Path("cutfile_render.json")
+        failures = []
+        for gate, path in gates.items():
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                failures.append(f"{gate}: {path} is not readable JSON ({exc})")
+                continue
+            if not isinstance(payload, dict):
+                failures.append(f"{gate}: {path} is not a JSON object")
+                continue
+            if payload.get("success") is not True:
+                error = payload.get("error")
+                failures.append(f"{gate}: success is {payload.get('success')!r}{f' ({error})' if error else ''}")
+        if failures:
+            print("Kinocut Video CI gate failure:", file=sys.stderr)
+            for failure in failures:
+                print(f"  - {failure}", file=sys.stderr)
+            sys.exit(1)
+
         receipt = {
             "artifact_kind": "kinocut_video_ci_receipt",
-            "media": "${{ inputs.media }}",
-            "cutfile": "${{ inputs.cutfile }}" or None,
+            "kinocut_version": version,
+            "media": media,
+            "cutfile": cutfile or None,
             "created_at": time.time(),
+            "gates": {gate: "passed" for gate in gates},
             "artifacts": sorted(p.name for p in root.glob("video-ci-*.json")),
         }
         (root / "video-ci.receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")

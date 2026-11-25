@@ -40,7 +40,7 @@ jobs:
         timeout-minutes: 2
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 .github/scripts/merged_tree_tested.py --repository "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA" --workflow ci.yml >> "$GITHUB_OUTPUT"
+        run: python3 .github/scripts/merged_tree_tested.py --repository "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA" --workflow ci.yml --job-name "Test (Python 3.14)" --step-name "Run full suite with coverage" >> "$GITHUB_OUTPUT"
       - id: classify
         timeout-minutes: 1
         shell: bash
@@ -68,20 +68,9 @@ jobs:
           changed_file="$(mktemp "$RUNNER_TEMP/kinocut-changes.XXXXXX")"
           trap 'rm -f -- "$changed_file"' EXIT
           git diff --no-renames --name-only -z "$base" "$head" -- > "$changed_file"
-          code=false
-          docker=false
-          while IFS= read -r -d '' changed_path; do
-            printf 'changed: %q\n' "$changed_path"
-            case "$changed_path" in
-              kinocut/*|kinocut_sound/*|plugins/*|tests/*|qa/*|scripts/*|workflows/05-confidence-baseline/*|docs/public_claims.json|README.md|README-PYPI.md|llms.txt|server.json|mcpb/*|npm/*|compat/*|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|Dockerfile.ci|.github/workflows/*|.github/scripts/*|.github/actions/cache-ffmpeg/*|.forgejo/*)
-                code=true ;;
-            esac
-            case "$changed_path" in
-              Dockerfile|Dockerfile.ci|kinocut/*|kinocut_sound/*|mcp_video.py|pyproject.toml|uv.lock|.dockerignore|.github/workflows/ci.yml)
-                docker=true ;;
-            esac
-          done < "$changed_file"
-          printf 'code=%s\ndocker=%s\n' "$code" "$docker" >> "$GITHUB_OUTPUT"
+          # Path classification lives in scripts/ci_scope.py (the single source
+          # of the code/docker rules); this step only resolves the diff base.
+          python3 scripts/ci_scope.py --github-output "$GITHUB_OUTPUT" < "$changed_file"
 
   repository-readiness:
     name: Repository readiness
@@ -98,8 +87,13 @@ jobs:
           cache-dependency-path: 'pyproject.toml'
       - name: Create venv
         run: python -m venv .venv
+      - name: Install package
+        # The reference index is generated from the live registry, CLI parser and Client API.
+        run: .venv/bin/pip install -e .
       - name: Run repository readiness audit
         run: .venv/bin/python ./scripts/repo-readiness-audit.py
+      - name: Reference docs match the live surface
+        run: .venv/bin/python scripts/generate_reference_index.py --check
 
   lint:
     name: Lint
@@ -124,7 +118,7 @@ jobs:
       - name: Ruff check
         run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/ qa/ .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Ruff format check
-        run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
+        run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/ qa/ .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Type check core modules
         run: |
           .venv/bin/pip install -e . pyright==1.1.408
@@ -153,8 +147,7 @@ jobs:
         run: .venv/bin/python .github/scripts/check-built-artifacts.py dist
 
   test:
-    # Preserve the legacy check name; setup-python below selects actual Python 3.14.
-    name: Test (Python 3.13)
+    name: Test (Python 3.14)
     needs: changes
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -186,10 +179,18 @@ jobs:
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e ".[dev]"
-      - name: Run tests with coverage
+      - name: Run full suite with coverage
         id: pytest
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov=kinocut_sound --cov-report=term --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
+        # Two phases: parallel xdist for everything except process_timing, then
+        # the 47 process_timing files serially (their sub-second deadlines flake
+        # under xdist). --cov-report is deferred to the serial phase so the
+        # combined data is reported once; the runner enforces fail_under itself
+        # if the serial phase collects nothing.
+        run: >
+          .venv/bin/python scripts/run_full_suite.py --workers 4 -m "not slow"
+          --cov=kinocut --cov=kinocut_sound --cov-report=term
+          --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
       - name: Annotate failing tests
         if: failure() && needs.changes.outputs.code == 'true' && steps.pytest.outcome == 'failure'
         run: .venv/bin/python scripts/annotate-pytest-failures.py "$RUNNER_TEMP/kinocut-pytest.xml"
@@ -280,9 +281,9 @@ jobs:
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e ".[dev]"
-      - name: Run tests
+      - name: Run full suite
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile
+        run: .venv/bin/python scripts/run_full_suite.py --workers 4 -m "not slow"
 
   minimal-install:
     name: Minimal install (no extras)
@@ -356,6 +357,27 @@ jobs:
       - name: Run slow tests
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pytest tests/ -q -m "slow" --tb=short
+
+  plugin-test:
+    # The Hermes Desktop plugin is plain Node and its suite takes ~100 ms; run
+    # it on its own instead of only inside hyperframes-integration.
+    name: Hermes Desktop plugin tests
+    needs: changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Skip plugin tests
+        if: needs.changes.outputs.code != 'true'
+        run: echo "Code inputs unchanged; marking Hermes Desktop plugin tests successful."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code == 'true'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: needs.changes.outputs.code == 'true'
+        with:
+          node-version: '24'
+      - name: Test Hermes Desktop plugin
+        if: needs.changes.outputs.code == 'true'
+        run: node --test plugins/kinocut/desktop/plugin.test.mjs
 
   hyperframes-integration:
     name: Hyperframes integration

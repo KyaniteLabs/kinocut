@@ -636,7 +636,7 @@ def test_github_mirror_smoke_runs_on_master_without_private_runners():
 
     assert "branches: [master]" in workflow
     assert "permissions:\n  contents: read" in workflow
-    assert "runs-on: ubuntu-latest" in workflow
+    assert "runs-on: ubuntu-24.04" in workflow
     assert "blacksmith" not in workflow.lower()
     assert "python -m kinocut --version" in workflow
     assert "tests/test_public_surface.py tests/test_doctor.py" in workflow

@@ -49,10 +49,10 @@ def _fake(*, pulls=None, trees=None, runs=None, jobs=None):
     jobs = (
         [
             {
-                "name": "Test (Python 3.13)",
+                "name": "Test (Python 3.14)",
                 "status": "completed",
                 "conclusion": "success",
-                "steps": [{"name": "Run tests with coverage", "conclusion": "success"}],
+                "steps": [{"name": "Run full suite with coverage", "conclusion": "success"}],
             }
         ]
         if jobs is None
@@ -85,16 +85,45 @@ def test_identical_tree_with_green_pull_request_run_is_tested():
 def test_skipped_pytest_on_pr_does_not_skip_master():
     skipped_jobs = [
         {
-            "name": "Test (Python 3.13)",
+            "name": "Test (Python 3.14)",
             "status": "completed",
             "conclusion": "success",
             "steps": [
                 {"name": "Skip tests", "conclusion": "success"},
-                {"name": "Run tests with coverage", "conclusion": "skipped"},
+                {"name": "Run full suite with coverage", "conclusion": "skipped"},
             ],
         }
     ]
     assert _decide(jobs=skipped_jobs) is False
+
+
+def test_job_and_step_names_are_parameters_not_hardcoded_strings():
+    """Renaming the ci.yml job/step must be a parameter change, never a silent fail-open."""
+    renamed = [
+        {
+            "name": "Suite (Python 3.15)",
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [{"name": "Run the suite", "conclusion": "success"}],
+        }
+    ]
+    # Default names no longer match the renamed job: fail open to testing.
+    assert MODULE.decide(_fake(jobs=renamed), REPO, PUSHED, "ci.yml")[0] is False
+    # Explicit names restore the proof.
+    assert (
+        MODULE.decide(
+            _fake(jobs=renamed), REPO, PUSHED, "ci.yml", job_name="Suite (Python 3.15)", step_name="Run the suite"
+        )[0]
+        is True
+    )
+
+
+def test_cli_exposes_job_and_step_name_options(capsys):
+    with pytest.raises(SystemExit):
+        MODULE.main(["--help"])
+    text = capsys.readouterr().out
+    assert "--job-name" in text and "--step-name" in text
+    assert "Test (Python 3.14)" in text and "Run full suite with coverage" in text
 
 
 @pytest.mark.parametrize(
@@ -210,3 +239,13 @@ def test_workflows_skip_master_pushes_only_through_the_helper():
         )
         assert "if: github.event_name == 'push'" in text
         assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text
+
+
+def test_ci_workflow_passes_its_job_and_step_names_to_the_helper():
+    """The helper's defaults and ci.yml's actual names are bound explicitly, not by coincidence."""
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    helper = MODULE.decide.__kwdefaults__
+    assert f'--job-name "{helper["job_name"]}"' in ci
+    assert f'--step-name "{helper["step_name"]}"' in ci
+    assert f"name: {helper['job_name']}" in ci
+    assert f"- name: {helper['step_name']}" in ci

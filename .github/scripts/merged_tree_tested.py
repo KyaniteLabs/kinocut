@@ -55,31 +55,39 @@ def _tree(fetch: Fetch, repository: str, sha: str) -> str | None:
     return tree.get("sha") if isinstance(tree, dict) else None
 
 
-def _ci_pytest_executed(fetch: Fetch, repository: str, run_id: Any) -> tuple[bool, str]:
+def _ci_pytest_executed(fetch: Fetch, repository: str, run_id: Any, job_name: str, step_name: str) -> tuple[bool, str]:
     """Verify the matched ci.yml PR run actually executed pytest rather than skipping to green."""
     if not isinstance(run_id, int):
         return False, "matched ci.yml run has no integer id"
     jobs_payload = fetch(f"/repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
     jobs = jobs_payload.get("jobs", []) if isinstance(jobs_payload, dict) else []
-    test_jobs = [job for job in jobs if isinstance(job, dict) and job.get("name") == "Test (Python 3.13)"]
+    test_jobs = [job for job in jobs if isinstance(job, dict) and job.get("name") == job_name]
     if not test_jobs:
-        return False, f"ci.yml run {run_id} has no Test (Python 3.13) job"
+        return False, f"ci.yml run {run_id} has no {job_name} job"
     job = test_jobs[-1]
     if job.get("status") != "completed" or job.get("conclusion") != "success":
-        return False, f"Test (Python 3.13) job in run {run_id} is {job.get('status')}/{job.get('conclusion')}"
+        return False, f"{job_name} job in run {run_id} is {job.get('status')}/{job.get('conclusion')}"
     steps = job.get("steps")
     if not isinstance(steps, list) or not steps:
-        return False, f"Test (Python 3.13) job in run {run_id} reported no step outcomes"
+        return False, f"{job_name} job in run {run_id} reported no step outcomes"
     ran_pytest = any(
-        isinstance(step, dict) and step.get("name") == "Run tests with coverage" and step.get("conclusion") == "success"
+        isinstance(step, dict) and step.get("name") == step_name and step.get("conclusion") == "success"
         for step in steps
     )
     if not ran_pytest:
-        return False, f"Test (Python 3.13) job in run {run_id} skipped pytest"
+        return False, f"{job_name} job in run {run_id} skipped pytest"
     return True, ""
 
 
-def decide(fetch: Fetch, repository: str, sha: str, workflow: str) -> tuple[bool, str]:
+def decide(
+    fetch: Fetch,
+    repository: str,
+    sha: str,
+    workflow: str,
+    *,
+    job_name: str = "Test (Python 3.14)",
+    step_name: str = "Run full suite with coverage",
+) -> tuple[bool, str]:
     pulls = fetch(f"/repos/{repository}/commits/{sha}/pulls")
     merged = [
         pull
@@ -118,7 +126,7 @@ def decide(fetch: Fetch, repository: str, sha: str, workflow: str) -> tuple[bool
             f"newest {workflow} run {newest.get('id')} for {head} is {newest.get('status')}/{newest.get('conclusion')}",
         )
     if workflow == "ci.yml":
-        executed, reason = _ci_pytest_executed(fetch, repository, newest.get("id"))
+        executed, reason = _ci_pytest_executed(fetch, repository, newest.get("id"), job_name, step_name)
         if not executed:
             return False, reason
     return (
@@ -132,11 +140,23 @@ def main(argv: list[str] | None = None, fetch: Fetch | None = None) -> int:
     parser.add_argument("--repository", required=True)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--workflow", required=True, help="workflow file name, e.g. ci.yml")
+    parser.add_argument(
+        "--job-name",
+        default="Test (Python 3.14)",
+        help="ci.yml job whose success proves the suite ran (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--step-name",
+        default="Run full suite with coverage",
+        help="step inside --job-name that must have succeeded (default: %(default)s)",
+    )
     args = parser.parse_args(argv)
     try:
         if fetch is None:
             fetch = _fetch_with(os.environ.get("GITHUB_API_URL", "https://api.github.com"), os.environ["GITHUB_TOKEN"])
-        tested, reason = decide(fetch, args.repository, args.sha, args.workflow)
+        tested, reason = decide(
+            fetch, args.repository, args.sha, args.workflow, job_name=args.job_name, step_name=args.step_name
+        )
     except Exception as error:  # any failure means "run everything"
         tested, reason = False, f"could not decide ({type(error).__name__}: {error})"
     print(f"{'Skipping' if tested else 'Running'} the {args.workflow} suite: {reason}", file=sys.stderr)

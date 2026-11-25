@@ -6,6 +6,8 @@ name: Sync Forgejo downstream
 # fast-forwards the mirror to that exact commit: never on pull_request, never
 # --force, only from the master-restricted forgejo-mirror environment.
 # Staged activation guard: unset/false KINOCUT_FORGEJO_SYNC_ACTIVE skips it.
+# KINOCUT_FORGEJO_SYNC_DRY_RUN=true keeps the activated sync in dry-run mode;
+# unset or any other value performs the real fast-forward push.
 on:
   workflow_run:
     workflows: ["CI"]
@@ -37,6 +39,6 @@ jobs:
         262986319:.github/workflows/integration-smoke.yml
       forgejo-repository: KyaniteLabs/kinocut
       downstream-workflow: none
-      dry-run: true
+      dry-run: ${{ vars.KINOCUT_FORGEJO_SYNC_DRY_RUN == 'true' }}
       toolkit-ref: a9070204d393afce800230b4eefc809569b45a4a
     secrets: inherit

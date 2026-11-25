@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import re
 import stat
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -59,17 +60,32 @@ def _valid_review(review: Any) -> bool:
     return True
 
 
-def _read_receipt(path: Path | None) -> dict[str, Any] | None:
+#: How a receipt file read went: ``missing`` (nothing on disk, gate not run),
+#: ``invalid`` (present but unreadable, oversized, not an object or not JSON),
+#: or ``ok``. An invalid receipt fails its gate closed, but says why.
+ReceiptRead = tuple[dict[str, Any] | None, str]
+
+
+def _read_receipt(path: Path | None) -> ReceiptRead:
     if path is None:
-        return None
+        return None, "missing"
+    if not path.exists():
+        return None, "missing"
     try:
         mode = path.stat(follow_symlinks=False).st_mode
         if path.is_symlink() or not stat.S_ISREG(mode) or path.stat().st_size > MAX_RECEIPT_BYTES:
-            return None
+            return None, "invalid"
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        return None
-    return payload if isinstance(payload, dict) else None
+    except json.JSONDecodeError as exc:
+        print(f"receipt {path} is corrupt JSON: {exc}", file=sys.stderr)
+        return None, "invalid"
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"receipt {path} could not be read: {exc}", file=sys.stderr)
+        return None, "invalid"
+    if not isinstance(payload, dict):
+        print(f"receipt {path} is not a JSON object", file=sys.stderr)
+        return None, "invalid"
+    return payload, "ok"
 
 
 def _bound(receipt: dict[str, Any] | None, source: str, digest: str | None, kind: str) -> bool:
@@ -235,25 +251,40 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
-    build = _read_receipt(args.build_receipt)
+    # Every receipt path paired with how its read went, so a corrupt file can
+    # be reported by name and fail its gate closed instead of reading "not_run".
+    reads: list[tuple[Path | None, ReceiptRead]] = []
+    build, build_read = _read_receipt(args.build_receipt)
+    official_receipt, official_read = _read_receipt(args.official_validation_receipt)
+    reads.append((args.build_receipt, (build, build_read)))
+    reads.append((args.official_validation_receipt, (official_receipt, official_read)))
+    hosted_reads = [(path, _read_receipt(path)) for path in args.hosted_runtime_receipt]
+    optional_reads = [(path, _read_receipt(path)) for path in args.optional_dependencies_receipt]
+    desktop_reads = [(path, _read_receipt(path)) for path in args.desktop_install_receipt]
+    reads += hosted_reads + optional_reads + desktop_reads
+    invalid = sorted({str(path) for path, (_receipt, state) in reads if state == "invalid"})
+    if invalid:
+        print("invalid receipt(s): " + ", ".join(invalid), file=sys.stderr)
+
     artifact, digest = _artifact(build, args.source_sha)
     inventory = build.get("archive_inventory") if build and digest else None
-    official = _official(_read_receipt(args.official_validation_receipt), args.source_sha, digest)
+    official = _official(official_receipt, args.source_sha, digest)
     wheel_digest = official["wheel_sha256"]
-    hosted = _hosted(
-        [_read_receipt(path) for path in args.hosted_runtime_receipt], args.source_sha, digest, wheel_digest, inventory
-    )
+    hosted = _hosted([receipt for receipt, _state in hosted_reads], args.source_sha, digest, wheel_digest, inventory)
     optional = _optional(
-        [_read_receipt(path) for path in args.optional_dependencies_receipt],
+        [receipt for receipt, _state in optional_reads],
         args.source_sha,
         digest,
         wheel_digest,
         inventory,
     )
     desktop, human_review = _desktop(
-        [_read_receipt(path) for path in args.desktop_install_receipt], args.source_sha, digest, wheel_digest
+        [receipt for receipt, _state in desktop_reads], args.source_sha, digest, wheel_digest
     )
-    ci_ready = artifact["status"] == "built" and official["status"] == "passed"
+    # A receipt that exists but cannot be trusted is a failed gate, not an
+    # un-run one: name it so the operator re-runs that step instead of assuming
+    # it merely has not happened yet.
+    ci_ready = artifact["status"] == "built" and official["status"] == "passed" and not invalid
     ci_ready = ci_ready and all(item["status"] == "passed" for item in hosted.values())
     absent_ready = all(item["status"] == "passed" for item in hosted.values())
     optional["absent"] = "passed" if absent_ready else "not_run"
@@ -271,6 +302,7 @@ def main() -> int:
         "signing": {"status": "unsigned", "rationale": "supported user-configured-local-access product"},
         "publication": {"status": "not_attempted"},
         "human_review": human_review,
+        "invalid_receipts": invalid,
         "candidate_status": status,
     }
     args.out_dir.mkdir(parents=True, exist_ok=True)
