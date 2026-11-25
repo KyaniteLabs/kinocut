@@ -1,3 +1,7 @@
-version: 1
-display_name: "Kinocut repurpose"
-default_prompt: "Use $kinocut-repurpose to produce a local platform-ready short clip package from one video path with manifest, quality artifacts, and human review gates."
+interface:
+  display_name: "Kinocut repurpose"
+  short_description: "Platform-ready local short clip packages with review gates"
+  default_prompt: "Use $kinocut-repurpose to produce a local platform-ready short clip package from one video path with manifest, quality artifacts, and human review gates."
+
+policy:
+  allow_implicit_invocation: true

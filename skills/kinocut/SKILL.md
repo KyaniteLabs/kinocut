@@ -68,7 +68,16 @@ the decision card with `gadget_ask` when supported, or require `APPROVE <review_
 or `REJECT <review_id>` from the paired TV. In the process that prepared the
 review, call `consume_tv_review_decision` with the originating ID. Run the release
 checkpoint only on the returned approved cut and export only on pass. If the
-TV path is unavailable, use the Desktop review card.
+TV path is unavailable or when running against a pinned 2.0.1 wheel where
+`kinocut.tv_preview` is not installed, fall back to `video_review_card` (family
+`video_edit_ops`, `profile:editor`) and return its `preview_directive` on its
+own line.
+
+## Beat-locked trim, audio sync, and TV preview fallback
+
+- **Beat-locked cuts (`trim --bpm` / `kinocut.music_grid`):** Use `kino trim clip.mp4 --bpm 120 --fps 30 --offset 0.0 -s 1:1:0 -d 4:0:0` or `kinocut.music_grid` for rational `bar:beat:sub` cuts without cumulative rounding drift. Against a pinned 2.0.1 wheel where `--bpm` or `kinocut.music_grid` is absent, convert beat positions to seconds and use `video_trim` or `kino trim -s SEC -d SEC`.
+- **Onset alignment & mix audition (`kinocut.audio_sync`):** Use `kinocut.audio_sync` (Python surface; no new MCP tool) to detect kick/snare/hat onsets, align hits with `pocket_lock`, `both`, or `avoid_masking`, and export A/B audition proxies against one picture. Against a pinned 2.0.1 wheel where `kinocut.audio_sync` is absent, fall back to `video_mix_audio` (family `audio_ops`) with explicit timestamps and human listening review.
+- **TV preview (`kinocut.tv_preview`) fallback:** When `kinocut.tv_preview` is unavailable on a pinned 2.0.1 wheel or no paired Hermes Gadget TV exposes `ui.show_media`, fall back directly to `video_review_card` (family `video_edit_ops`, `profile:editor`) for inline human review before `video_release_checkpoint` and `video_export`.
 
 ## Vision review and network permission (1.16.5)
 

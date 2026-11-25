@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "kinocut": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
+    }
+  }
+}

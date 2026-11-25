@@ -49,6 +49,14 @@ default, unchanged), and the whole offline path works without a network.
 - **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no
   longer scores as underexposed: `video-quality-check` and `release-checkpoint` take
   `--profile dark-grade`. A black or flat frame still fails. (#760)
+- **Multi-platform install configs & one-click links.** Added `docs/INSTALL_PLATFORMS.md` covering VS Code / GitHub Copilot (`vscode:mcp/install` one-click link + `examples/vscode_mcp.json`), Cursor (`cursor://anysphere.cursor-deeplink/mcp/install`), Codex CLI (`examples/codex_config.toml`), Windsurf, Zed, Cline / Roo Code, OpenCode (`plugins/kinocut/opencode-plugin/opencode.json` and `index.js`), Hermes, Claude, and Gemini CLI, plus Codex/OpenAI skill metadata parity (`skills/kinocut-repurpose/agents/openai.yaml`).
+- **Chrome Companion extension.** Added the local Chrome Companion browser extension and native-messaging bridge (`extensions/chrome/`) for local Kinocut review and handoff workflows without a remote server.
+
+### Security
+
+- **Offline & SSRF hardening.** Enforced fail-closed `KINOCUT_OFFLINE=1` network guards across model downloads, transcription, vision providers, and remote media fetchers; restricted local vision adapters to verified loopback endpoints with SSRF/redirect checks and stripped provider credentials from child environments.
+- **Atomic publication, C2PA, and overwrite safety.** Hardened atomic media, receipt, storyboard, and C2PA publication paths with no-follow directory-identity checks, hard-link ownership ledger validation, strict overwrite consent, and agent-config/credential home protection.
+- **Subprocess and CI/release hardening.** Enforced explicit `stdin=` handling, bounded execution, and process-tree cleanup across media subprocesses, alongside hardened two-phase release cutover and fail-closed verification gates.
 
 ### Changed
 
@@ -58,13 +66,16 @@ default, unchanged), and the whole offline path works without a network.
   `review_card.error` and never fails the edit.
 - Shorts render in a single crop-only pass, media and artifacts publish atomically, and Hyperframes
   preview, review and session boundaries are hardened. (#862, #863, #866)
-- Media subprocesses are bounded, profile loading is lazy on the hot path, and the projectstore CAS,
-  GC and ownership ledger were reworked for scale. (#860, #861, #873)
+- **O(1) WAL projectstore & lazy hot-path loading.** Reworked projectstore CAS, GC, and ownership appends onto an O(1) WAL (`projectstore._wal`), made `describe_operation` schema loading lazy on the hot path, and bounded onset extraction. (#860, #861, #873)
+- **Guardrail speedup (`37 -> <=6`).** Consolidated and accelerated architecture/reliability guardrails from 37 to `<=6` while preserving fail-closed module/function-size, error-hygiene, and subprocess contracts.
+- **Hermes Desktop job lifecycle.** Hardened Hermes Desktop plugin active/recent job lifecycle transitions, launcher environment parity, review-card digest verification, and stale-job eviction.
 - 33 unreachable modules, the dead BasicPitch bridge and orphaned tests are gone, and Pyright now
   checks only paths that exist. (#864, #876, #882)
 
 ### Fixed
 
+- **Zero-clip audio mixing.** Fixed gain-staging, peak headroom, PCM bounds, and audition mix rendering across `kinocut_sound` and `kinocut.audio_sync` so combined tracks avoid clipping.
+- **FFmpeg 7.x shot cache, rotation, and masking fidelity.** Fixed FFmpeg 7.x compatibility in `kinocut.shot_cache` concat/keying, display-matrix rotation and reframe geometry, chroma-key/advanced masking, and subtitle/merge guardrails.
 - CLI commands that draw a progress bar (`kino trim`, `kino video-ai-transcribe`, …) no longer hang on a
   real terminal. The home-directory redaction stream wrote through Rich's live-display proxy and recursed
   into itself; it now writes to the terminal underneath the proxy, so human output still shows `~` and JSON
