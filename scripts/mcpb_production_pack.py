@@ -270,16 +270,18 @@ def main() -> int:
     inventory = build.get("archive_inventory") if build and digest else None
     official = _official(official_receipt, args.source_sha, digest)
     wheel_digest = official["wheel_sha256"]
-    hosted = _hosted([receipt for receipt, _state in hosted_reads], args.source_sha, digest, wheel_digest, inventory)
+    hosted = _hosted(
+        [receipt for _path, (receipt, _state) in hosted_reads], args.source_sha, digest, wheel_digest, inventory
+    )
     optional = _optional(
-        [receipt for receipt, _state in optional_reads],
+        [receipt for _path, (receipt, _state) in optional_reads],
         args.source_sha,
         digest,
         wheel_digest,
         inventory,
     )
     desktop, human_review = _desktop(
-        [receipt for receipt, _state in desktop_reads], args.source_sha, digest, wheel_digest
+        [receipt for _path, (receipt, _state) in desktop_reads], args.source_sha, digest, wheel_digest
     )
     # A receipt that exists but cannot be trusted is a failed gate, not an
     # un-run one: name it so the operator re-runs that step instead of assuming
