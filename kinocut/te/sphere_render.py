@@ -83,9 +83,11 @@ def render_sphere_plan(
     with _atomic_output(output_path) as staged:
         with open(assembled, "rb") as rendered, _open_staged_writer(staged) as writer:
             shutil.copyfileobj(rendered, writer)
-        gate = _maybe_quality(
-            staged, allow_fail=allow_fail, min_score=min_score, profile=profile, profile_reason=profile_reason
-        )
+        quality_kwargs: dict[str, Any] = {"allow_fail": allow_fail, "min_score": min_score}
+        if profile is not None or profile_reason is not None:
+            quality_kwargs["profile"] = profile
+            quality_kwargs["profile_reason"] = profile_reason
+        gate = _maybe_quality(staged, **quality_kwargs)
         assert_source_identity(source, identity)
         if _cache_key(source) != source_key:
             raise MCPVideoError(

@@ -233,12 +233,14 @@ def repurpose(
             frame_count=4,
         ).model_dump()
         if policy.include_release_checkpoint:
+            ckpt_kwargs: dict[str, Any] = {"min_score": policy.min_score}
+            if profile is not None or profile_reason is not None:
+                ckpt_kwargs["profile"] = profile
+                ckpt_kwargs["profile_reason"] = profile_reason
             variant["release_checkpoint"] = _release_checkpoint(
                 exported.output_path,
                 os.path.join(platform_dir, "checkpoint"),
-                min_score=policy.min_score,
-                profile=profile,
-                profile_reason=profile_reason,
+                **ckpt_kwargs,
             )
 
     manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST, allow_replace_owned=True)

@@ -125,11 +125,11 @@ def _package_platform(
     )
     manifest_path = Path(result.manifest_path)
     video = next(asset.relative_path for asset in result.manifest.assets if asset.role == "vertical_video")
-    gate = _gate_package_media(
-        str(Path(result.package_root, video)),
-        profile=profile,
-        profile_reason=profile_reason,
-    )
+    gate_path = str(Path(result.package_root, video))
+    if profile is not None or profile_reason is not None:
+        gate = _gate_package_media(gate_path, profile=profile, profile_reason=profile_reason)
+    else:
+        gate = _gate_package_media(gate_path)
     if "video" in gate:
         gate = {**gate, "video": str(root / video)}
     return {
