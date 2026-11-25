@@ -425,3 +425,29 @@ def test_cli_install_and_uninstall_subprocess(tmp_path: Path) -> None:
     uninstall_payload = json.loads(uninstall_proc.stdout)
     assert uninstall_payload["removed"] is True
     assert not (tmp_path / f"{NATIVE_HOST_NAME}.json").exists()
+
+
+def test_installed_launcher_script_preserves_venv_and_executes_ping(tmp_path: Path) -> None:
+    """Generated POSIX launcher preserves venv symlink path so `python -m kinocut.native_messaging` imports cleanly."""
+    if os.name == "nt":
+        pytest.skip("POSIX launcher execution test")
+    ext_id = "b" * 32
+    receipt = install_native_host(ext_id, browser="chrome", target_dir=tmp_path)
+    launcher = Path(receipt["launcher_path"])
+    assert launcher.is_file()
+    launcher_text = launcher.read_text(encoding="utf-8")
+    assert os.path.abspath(sys.executable) in launcher_text
+
+    req = _encode_frame({"action": "ping"})
+    proc = subprocess.run(
+        [str(launcher)],
+        input=req,
+        capture_output=True,
+        timeout=30,
+        cwd=str(tmp_path),
+    )
+    assert proc.returncode == 0, proc.stderr.decode("utf-8", "replace")
+    response = read_frame(io.BytesIO(proc.stdout))
+    assert response is not None
+    assert response["success"] is True
+    assert response["protocol"] == "kinocut-native-v1"

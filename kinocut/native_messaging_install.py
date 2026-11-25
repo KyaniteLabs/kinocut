@@ -107,7 +107,9 @@ def _resolve_python_executable(python_executable: str | None) -> str:
             error_type="validation_error",
             code="invalid_python_executable",
         )
-    return str(Path(executable).expanduser().resolve())
+    # Preserve venv symlink paths (e.g. .venv/bin/python -> /usr/bin/python3.13)
+    # because Python locates pyvenv.cfg relative to argv[0], not the symlink target.
+    return os.path.abspath(os.path.expanduser(executable))
 
 
 def _build_launcher_script(python_executable: str, *, is_windows: bool) -> str:
