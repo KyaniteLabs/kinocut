@@ -825,7 +825,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/a1/19/c9e1596b5572c786b
 
 [[package]]
 name = "kinocut"
-version = "2.1.0"
+version = "2.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },

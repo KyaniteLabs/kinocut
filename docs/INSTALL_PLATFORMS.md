@@ -158,3 +158,11 @@ Add Kinocut to `~/.gemini/settings.json` (or install via the repository's [gemin
   }
 }
 ```
+
+## Chrome Companion Extension
+
+The local Chrome Companion MV3 extension lives under [extensions/chrome/](../extensions/chrome/README.md) and talks to your local Kinocut installation over Chrome Native Messaging (`tech.kyanitelabs.kinocut`) with zero remote server or account.
+
+1. Install the local CLI: `pip install kinocut==2.0.1` (or `pip install -e .` from this checkout).
+2. Load `extensions/chrome/` as an unpacked extension at `chrome://extensions` (Developer mode) and copy its 32-character extension ID.
+3. Register the local Native Messaging host manifest: `python -m kinocut.native_messaging --install --extension-id <EXTENSION_ID>`.

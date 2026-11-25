@@ -74,7 +74,7 @@ kino doctor
 `kino doctor` lists which features are ready and what each missing one needs. Optional
 features install as extras; the [install matrix](docs/INSTALL.md) lists them all.
 
-- **One-click & multi-platform setup:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install in VS Code</a> · <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install in Cursor</a> · [All platforms](docs/INSTALL_PLATFORMS.md) (Codex CLI, Windsurf, Zed, Cline/Roo Code, OpenCode, Hermes, Gemini CLI).
+- **One-click & multi-platform setup:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install in VS Code</a> · <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install in Cursor</a> · [All platforms](docs/INSTALL_PLATFORMS.md) (Codex CLI, Windsurf, Zed, Cline/Roo Code, OpenCode, Hermes, Gemini CLI, Chrome Companion).
 
 For Claude Desktop extension installs, `python3 scripts/build-mcpb.py` builds a local `.mcpb`
 from `mcpb/`. It is unsigned and labeled **user-configured-local-access**: it launches your
@@ -204,8 +204,8 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 | | Version | Surface |
 | --- | --- | --- |
 | **Published** on PyPI, npm and the MCP Registry | **2.0.1** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
-| **Development** (release candidate) | **2.1.0** | 208 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 178 CLI commands |
-| **Compatibility package** | `mcp-video==1.6.22` | Installs `kinocut==2.0.1` for anyone still on the old name; the prepared `mcp-video==1.6.23` installs `kinocut==2.1.0` |
+| **Development** (release candidate) | **2.2.0** | 208 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 178 CLI commands, plus Chrome Companion extension |
+| **Compatibility package** | `mcp-video==1.6.22` | Installs `kinocut==2.0.1` for anyone still on the old name; the prepared `mcp-video==1.6.24` installs `kinocut==2.2.0` |
 
 Install from PyPI: the published 2.0.1 package includes the optional object-matte extra
 (`kinocut[object-matte]==2.0.1`), which adds no new MCP tool.

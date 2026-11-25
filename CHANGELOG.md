@@ -9,6 +9,15 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 2.2.0 - 2026-11-24
+
+Kinocut now ships a local Chrome Manifest V3 Companion extension backed by a fail-closed stdio Native Messaging host.
+
+### Added
+
+- **Chrome Companion MV3 extension (`extensions/chrome/`).** Least-privilege browser companion (`["nativeMessaging", "downloads", "storage"]`, no `<all_urls>`, no `externally_connectable`) with accessible light/dark popup UI, recent-download picker, live Host/FFmpeg/Offline readiness pills, one-click Inspect / Quality Check (`--profile dark-grade` toggle) / Review Card, and spoken-direction plan preview with explicit `Confirm & Render` approval.
+- **Local Native Messaging host & installer (`kinocut/native_messaging.py`, `kinocut/native_messaging_install.py`).** Binary 4-byte length-prefixed JSON stdio bridge (`python -m kinocut.native_messaging`) with strict 1 MiB frame cap, 7-action allowlist (`ping`, `doctor`, `info`, `quality_check`, `direct_plan`, `direct_apply` gated on `confirm=True`, `review_card`), `output_operation(overwrite)` enforcement, redacted value-free errors, and OS manifest registration (`--install --extension-id <32-char-[a-p]-id>` for Chrome, Chromium, Brave, and Edge on Linux, macOS, and Windows).
+
 ## 2.1.0 - 2026-11-24
 
 Your agent can now cut to the beat, place sound effects on drum hits, re-render only the shots that
