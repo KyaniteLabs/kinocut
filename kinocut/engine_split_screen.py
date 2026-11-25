@@ -80,10 +80,10 @@ def split_screen(
         _warnings.warn(message, stacklevel=2)
     # --- End guardrails ---
 
-    left_w = left_info.display_width or left_info.width
-    left_h = left_info.display_height or left_info.height
-    right_w = right_info.display_width or right_info.width
-    right_h = right_info.display_height or right_info.height
+    left_w = getattr(left_info, "display_width", left_info.width) or left_info.width
+    left_h = getattr(left_info, "display_height", left_info.height) or left_info.height
+    right_w = getattr(right_info, "display_width", right_info.width) or right_info.width
+    right_h = getattr(right_info, "display_height", right_info.height) or right_info.height
     filter_complex = _split_filter(left_w, left_h, right_w, right_h, layout)
 
     with _timed_operation() as timing, _atomic_output(output) as staged:

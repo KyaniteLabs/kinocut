@@ -61,7 +61,7 @@ def sanitized_subprocess_env(
     strip_proxies: bool = False,
 ) -> dict[str, str]:
     """Return a subprocess environment with ambient credentials and injection vars scrubbed."""
-    source = os.environ if base_env is None else base_env
+    source = getattr(os, "environ", {}) if base_env is None else base_env
     cleaned: dict[str, str] = {}
     for key, value in source.items():
         upper = key.upper()

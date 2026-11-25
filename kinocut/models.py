@@ -62,7 +62,7 @@ class VideoInfo(BaseModel):
     rotation: int = 0
     sample_aspect_ratio: str | None = None
     pix_fmt: str | None = None
-    avg_frame_rate: str | None = None
+    avg_frame_rate: str | None = Field(default=None, exclude=True)
 
     @property
     def resolution(self) -> str:

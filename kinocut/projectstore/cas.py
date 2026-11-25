@@ -158,7 +158,13 @@ def _device_has_trusted_ctime(dev: int, path: Path | None = None) -> bool:
 
 def _cacheable_identity(info: os.stat_result, path: Path | None = None) -> tuple[int, ...] | None:
     """Return a cache key only when the backing filesystem reliably advances ctime on rewrites."""
-    if info.st_ino == 0 or info.st_ctime_ns <= 0 or not _device_has_trusted_ctime(info.st_dev, path=path):
+    if info.st_ino == 0 or info.st_ctime_ns <= 0:
+        return None
+    try:
+        trusted = _device_has_trusted_ctime(info.st_dev, path=path)
+    except TypeError:
+        trusted = _device_has_trusted_ctime(info.st_dev)
+    if not trusted:
         return None
     return _identity(info)
 

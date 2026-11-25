@@ -25,6 +25,7 @@ from ..ffmpeg_helpers import (
     _run_command,
     _seconds_to_srt_time,
     _validate_artifact_path,
+    _validate_output_path as _validate_output_path,
 )
 from ..host_probes import whisper_model_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_TRANSCRIBE_DURATION

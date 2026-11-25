@@ -165,7 +165,9 @@ def test_info_is_kinocut_owned_and_never_calls_hyperframes():
     models = data["models"]
     assert models["u2net_human_seg"]["subject"] == "people"
     assert models["birefnet-general"]["subject"] == "products-and-objects"
-    assert models["birefnet-general"]["install"] == 'pip install "kinocut[object-matte]==2.0.1"'
+    from kinocut._install_hints import pip_install_hint
+
+    assert models["birefnet-general"]["install"] == pip_install_hint("object-matte")
     assert "maxFrames" in models["birefnet-general"]["limits"]
     assert "limits" not in data
     assert data["docs"] == "docs/PRODUCT_MATTE.md"

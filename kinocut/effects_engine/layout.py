@@ -28,10 +28,10 @@ _SAFE_COLOR_RE = re.compile(
 )
 
 
-def _validate_color(name: str, value: str) -> str:
+def _validate_grid_background(value: str) -> str:
     if not isinstance(value, str) or not _SAFE_COLOR_RE.fullmatch(value.strip()):
         raise MCPVideoError(
-            f"{name} must be a valid hex or named color, got {rejected_value(value)}",
+            f"background must be a valid hex or named color, got {rejected_value(value)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -81,7 +81,7 @@ def _build_grid_filter_complex(
     background: str = "#141414",
 ) -> str:
     """Build the filter_complex string for a grid layout with gaps, padding, and background fill."""
-    safe_bg = _validate_color("background", background)
+    safe_bg = _validate_grid_background(background)
     filter_parts: list[str] = []
 
     # Scale each input to cell size with consistent background letterboxing
@@ -156,7 +156,7 @@ def layout_grid(
         raise MCPVideoError(
             "gap and padding must be non-negative", error_type="validation_error", code="invalid_parameter"
         )
-    _validate_color("background", background)
+    _validate_grid_background(background)
 
     clips = [_validate_input_path(clip) for clip in clips]
     _validate_output_path(output)

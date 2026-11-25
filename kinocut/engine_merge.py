@@ -214,7 +214,13 @@ def _normalize_needs(infos: list) -> tuple[bool, bool]:
     pix_fmts = {getattr(i, "pix_fmt", None) for i in infos if getattr(i, "pix_fmt", None)}
     has_vfr = any(bool(getattr(i, "is_vfr", False)) for i in infos)
     has_non_square_sar = any(sar != 1 for sar in sars)
-    has_odd_dims = any((i.display_width % 2 != 0 or i.display_height % 2 != 0) for i in infos)
+    has_odd_dims = any(
+        (
+            getattr(i, "display_width", getattr(i, "width", 0)) % 2 != 0
+            or getattr(i, "display_height", getattr(i, "height", 0)) % 2 != 0
+        )
+        for i in infos
+    )
     differs = (
         len({i.display_resolution for i in infos}) > 1
         or len({i.codec for i in infos}) > 1

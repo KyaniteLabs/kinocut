@@ -16,7 +16,7 @@ import tempfile
 from typing import Any
 
 from .errors import MCPVideoError
-from .validation_errors import rejected_value
+from .validation_errors import exception_kind, rejected_value
 
 MAX_SEND_TEXT = 500
 MAX_INLINE_IMAGE_BYTES = 200 * 1024
@@ -520,7 +520,7 @@ def attach_review_card(result: dict[str, Any], review: bool) -> dict[str, Any]:
         return result
     except OSError as exc:
         err = MCPVideoError(
-            f"Could not write review card: {type(exc).__name__}",
+            f"Could not write review card: {exception_kind(exc)}",
             error_type="processing_error",
             code="review_card_io_error",
         )

@@ -154,19 +154,16 @@ def run_worker_sync(args, encoded, pass_fds, timeout, *, stdout_sink=None, stdou
     deadline = time.monotonic() + timeout
     if os.name != "posix" and pass_fds:
         raise mix_error("mix worker descriptor inheritance requires POSIX", "mix_worker_failed")
-    popen_kwargs = {
-        "stdin": subprocess.PIPE,
-        "stdout": subprocess.PIPE,
-        "stderr": subprocess.PIPE,
-        "close_fds": True,
-    }
-    if os.name == "posix":
-        popen_kwargs["pass_fds"] = pass_fds
+    extra_kwargs = {"pass_fds": pass_fds} if os.name == "posix" else {}
     try:
         # Popen has no timeout argument; selector and wait share the deadline.
         process = subprocess.Popen(  # noqa: S603 - fixed module argv and held descriptors
             args,
-            **popen_kwargs,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            close_fds=True,
+            **extra_kwargs,
         )
     except OSError as exc:
         raise mix_error("mix worker could not start", "mix_worker_failed") from exc

@@ -201,6 +201,7 @@ def ai_stem_separation(
     stems = stems or ["vocals", "drums", "bass", "other"]
 
     # Validate output directory
+    _validate_output_path(output_dir)
     resolved_dir = validate_artifact_location(output_dir, "Output directory")
     if os.path.lexists(resolved_dir) and not os.path.isdir(resolved_dir):
         raise MCPVideoError(

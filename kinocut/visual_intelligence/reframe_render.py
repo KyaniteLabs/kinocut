@@ -120,8 +120,12 @@ def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, ta
     source_info = probe(source)
     start_time = _source_start_time(source)
     # Normalize SAR to square display pixels and pad to even dimensions before cropping.
-    eff_w = _even_ceil(source_info.display_width or plan.source.width)
-    eff_h = _even_ceil(source_info.display_height or plan.source.height)
+    eff_w = _even_ceil(
+        (getattr(source_info, "display_width", None) if source_info is not None else None) or plan.source.width
+    )
+    eff_h = _even_ceil(
+        (getattr(source_info, "display_height", None) if source_info is not None else None) or plan.source.height
+    )
     first = variant.crop_track[0]
     width = _even_floor(round(first.crop_box.width * eff_w), eff_w)
     height = _even_floor(round(first.crop_box.height * eff_h), eff_h)
