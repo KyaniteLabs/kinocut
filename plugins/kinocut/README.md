@@ -7,7 +7,7 @@ server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
 Plugin bundle **2.2.0** pins the separately versioned Kinocut runtime
 **2.2.0** (208 MCP tools / 178 CLI; 18-tool default registration). The legacy
-`mcp-video` compatibility package **1.6.22** installs that same runtime.
+`mcp-video` compatibility package **1.6.24** installs that same runtime.
 Catalog entries use the bundle version; launchers use the runtime version.
 
 The Hermes catalog listing is a separate pin: `scripts/repin_marketplaces.sh`

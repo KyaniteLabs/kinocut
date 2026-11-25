@@ -14,7 +14,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-PINNED_RUNTIME = "2.0.1"
+PINNED_RUNTIME = "2.2.0"
 
 
 def test_opencode_plugin_config_and_helper() -> None:
@@ -75,7 +75,7 @@ def test_opencode_plugin_config_and_helper() -> None:
 
 
 def test_vscode_and_codex_example_configs() -> None:
-    """VS Code MCP JSON and Codex TOML examples parse cleanly and pin 2.0.1."""
+    """VS Code MCP JSON and Codex TOML examples parse cleanly and pin the published runtime."""
     vscode = json.loads((ROOT / "examples" / "vscode_mcp.json").read_text(encoding="utf-8"))
     server = vscode["servers"]["kinocut"]
     assert server == {

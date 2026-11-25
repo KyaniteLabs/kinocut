@@ -1,5 +1,5 @@
 # Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
-# kinocut — guardrailed video editing MCP server (PyPI: kinocut 2.0.1)
+# kinocut — guardrailed video editing MCP server (PyPI: kinocut 2.2.0)
 startCommand:
   type: stdio
   configSchema:

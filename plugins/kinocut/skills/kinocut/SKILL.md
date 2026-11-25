@@ -161,7 +161,7 @@ directors never write pixels.
 The optional object-matte extra is available in published 2.2.0. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
-2. The optional extra belongs in the server's uvx arguments, pinned to the same version as `mcp.json`: replace its `kinocut==2.0.1` argument with `kinocut[object-matte]==2.2.0`. Installing the extra in a separate Python environment does not affect the uvx server. Have the operator configure this extra before using `model="birefnet-general"`.
+2. The optional extra belongs in the server's uvx arguments, pinned to the same version as `mcp.json`: replace its `kinocut==2.2.0` argument with `kinocut[object-matte]==2.2.0`. Installing the extra in a separate Python environment does not affect the uvx server. Have the operator configure this extra before using `model="birefnet-general"`.
 3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
 4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
 

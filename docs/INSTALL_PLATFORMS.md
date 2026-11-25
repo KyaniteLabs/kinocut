@@ -14,7 +14,7 @@ To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:
 
 ## VS Code & GitHub Copilot
 
-- **One-click install:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.0.1%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install Kinocut in VS Code</a>
+- **One-click install:** <a href="vscode:mcp/install?%7B%22name%22%3A%22kinocut%22%2C%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22kinocut%3D%3D2.2.0%22%2C%22kino%22%2C%22--mcp%22%5D%7D">Install Kinocut in VS Code</a>
 - **Workspace config:** copy [examples/vscode_mcp.json](../examples/vscode_mcp.json) to `.vscode/mcp.json`:
 
 ```json
@@ -31,7 +31,7 @@ To expose a named profile or every tool by name, add `"KINOCUT_TOOLS": "profile:
 
 ## Cursor
 
-- **One-click install:** <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjAuMSIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install Kinocut in Cursor</a>
+- **One-click install:** <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=kinocut&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJraW5vY3V0PT0yLjIuMCIsImtpbm8iLCItLW1jcCJdfQ%3D%3D">Install Kinocut in Cursor</a>
 - **Manual config (`.cursor/mcp.json` or `~/.cursor/mcp.json`):**
 
 ```json

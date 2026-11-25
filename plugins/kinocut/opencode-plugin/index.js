@@ -4,7 +4,7 @@ const path = require("node:path");
 const baseConfig = require("./opencode.json");
 
 const PLUGIN_NAME = "kinocut";
-const RUNTIME_VERSION = "2.0.1";
+const RUNTIME_VERSION = "2.2.0";
 const SKILLS_DIR = path.resolve(__dirname, "..", "skills");
 
 /**
