@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kinocut Companion</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="brand">
+        <img src="icons/icon-48.png" alt="" width="24" height="24" class="brand-icon" />
+        <div>
+          <h1 class="brand-title">Kinocut Companion</h1>
+          <p class="brand-sub" id="host-meta">Connecting to local host…</p>
+        </div>
+      </div>
+      <div class="pills" aria-label="Host readiness">
+        <span class="pill" id="pill-host" data-state="neutral">Host</span>
+        <span class="pill" id="pill-ffmpeg" data-state="neutral">FFmpeg</span>
+        <span class="pill" id="pill-offline" data-state="neutral">Local</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="banner banner-setup" id="setup-banner" hidden aria-live="polite">
+        <p class="banner-title">Local Native Messaging host not connected</p>
+        <p class="banner-body">Register this extension ID once in your terminal, then click Reconnect:</p>
+        <code class="setup-cmd" id="setup-cmd"></code>
+        <div class="row-actions">
+          <button type="button" class="btn btn-secondary" id="btn-copy-setup">Copy command</button>
+          <button type="button" class="btn btn-primary" id="btn-reconnect">Reconnect</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="source-heading">
+        <div class="panel-header">
+          <h2 id="source-heading" class="panel-title">Media source</h2>
+          <button type="button" class="btn btn-ghost" id="btn-refresh-downloads">Refresh downloads</button>
+        </div>
+
+        <label class="field-label" for="download-select">Recent local media downloads</label>
+        <select id="download-select" class="input">
+          <option value="">Select a downloaded clip…</option>
+        </select>
+
+        <label class="field-label" for="input-path">Local file path</label>
+        <input
+          id="input-path"
+          class="input mono"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="/path/to/clip.mp4"
+        />
+      </section>
+
+      <section class="panel" aria-labelledby="actions-heading">
+        <div class="panel-header">
+          <h2 id="actions-heading" class="panel-title">Quick actions</h2>
+          <label class="toggle-inline" for="dark-grade-toggle">
+            <input type="checkbox" id="dark-grade-toggle" />
+            <span>dark-grade</span>
+          </label>
+        </div>
+
+        <label class="field-label" for="profile-select">Quality profile</label>
+        <select id="profile-select" class="input">
+          <option value="default">default</option>
+          <option value="dark-grade">dark-grade</option>
+          <option value="ui-capture-dark">ui-capture-dark</option>
+          <option value="ui-capture-light">ui-capture-light</option>
+        </select>
+
+        <div class="action-grid">
+          <button type="button" class="btn btn-secondary" id="btn-inspect">Inspect</button>
+          <button type="button" class="btn btn-secondary" id="btn-quality">Quality Check</button>
+          <button type="button" class="btn btn-secondary" id="btn-review-card">Review Card</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="direct-heading">
+        <div class="panel-header">
+          <h2 id="direct-heading" class="panel-title">Spoken direction</h2>
+          <span class="hint-tag">Plan first · confirm to render</span>
+        </div>
+
+        <label class="field-label" for="direction-input">Direction</label>
+        <textarea
+          id="direction-input"
+          class="input textarea"
+          rows="2"
+          placeholder="e.g. cut to 10 seconds and normalize audio"
+        ></textarea>
+
+        <div class="row-actions">
+          <button type="button" class="btn btn-primary" id="btn-direct-plan">Preview Plan</button>
+          <button type="button" class="btn btn-ghost" id="btn-doctor">Doctor</button>
+        </div>
+
+        <div class="plan-box" id="plan-box" hidden>
+          <div class="panel-header">
+            <h3 class="sub-title">Planned edit (read-only preview)</h3>
+            <code class="digest" id="plan-id-badge"></code>
+          </div>
+          <p class="plan-question" id="plan-question" hidden></p>
+          <ul class="list" id="plan-steps"></ul>
+          <ul class="list list-muted" id="plan-assumptions"></ul>
+
+          <label class="checkbox-row" for="overwrite-toggle">
+            <input type="checkbox" id="overwrite-toggle" />
+            <span>Allow overwriting an existing output file</span>
+          </label>
+
+          <div class="row-actions">
+            <button type="button" class="btn btn-confirm" id="btn-direct-apply">Confirm &amp; Render</button>
+            <button type="button" class="btn btn-ghost" id="btn-cancel-plan">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel result-panel" aria-labelledby="result-heading" aria-live="polite">
+        <div class="panel-header">
+          <h2 id="result-heading" class="panel-title">Status &amp; output</h2>
+          <button type="button" class="btn btn-ghost" id="btn-copy-path" disabled>Copy Path</button>
+        </div>
+        <p class="status-line" id="status-line">Ready.</p>
+        <div class="result-body" id="result-body"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>100% local stdio · zero web access</span>
+      <span id="copy-feedback" aria-live="polite"></span>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

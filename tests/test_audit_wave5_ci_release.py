@@ -62,8 +62,10 @@ def test_status_now_docs_testing_and_ci_dockerfile_hygiene() -> None:
     now_text = (ROOT / "docs" / "status" / "NOW.md").read_text(encoding="utf-8")
     first_nonempty = [line.strip() for line in now_text.splitlines() if line.strip()]
     assert first_nonempty[0] == "# Kinocut now"
+    import kinocut
+
     assert first_nonempty[1].startswith("**Published:** 2.0.1")
-    assert first_nonempty[2].startswith("**Development candidate:** 2.1.0")
+    assert first_nonempty[2].startswith(f"**Development candidate:** {kinocut.__version__}")
     assert "Runtime 1.16.5 is published" not in now_text
     assert "the18" not in now_text
     assert "passed8,297" not in now_text
