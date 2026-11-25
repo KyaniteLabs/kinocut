@@ -19,7 +19,8 @@ result = describe_operation('video_ai_remove_silence')
 assert result['success']
 assert 'kinocut.server_tools_hyperframes' not in set(sys.modules) - before
 """
-    subprocess.run([sys.executable, "-c", program], check=True, timeout=30)
+    proc = subprocess.run([sys.executable, "-c", program], check=True, timeout=30)
+    assert proc.returncode == 0
 
 
 def test_pcm_frames_uses_compact_storage():
