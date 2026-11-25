@@ -88,9 +88,7 @@ def _fetch_issues() -> dict[int, dict[str, Any]] | None:
         except json.JSONDecodeError:
             return None
     return {
-        int(record["number"]): record
-        for record in records
-        if "number" in record and record.get("pull_request") is None
+        int(record["number"]): record for record in records if "number" in record and record.get("pull_request") is None
     }
 
 
@@ -104,15 +102,13 @@ def _post_release_gate(issues: dict[int, dict[str, Any]] | None) -> Gate:
         state = "UNKNOWN"
         why = "Forgejo status could not be read."
     else:
-        numbers = tuple(
-            sorted(
-                number
-                for number, issue in issues.items()
-                if "blocked:post-release" in _labels(issue)
-            )
-        )
+        numbers = tuple(sorted(number for number, issue in issues.items() if "blocked:post-release" in _labels(issue)))
         state = "BLOCKED" if numbers else "REVIEW"
-        why = f"{len(numbers)} open issues retain blocked:post-release." if numbers else "No live post-release labels found."
+        why = (
+            f"{len(numbers)} open issues retain blocked:post-release."
+            if numbers
+            else "No live post-release labels found."
+        )
     return Gate(
         name="Post-release backlog",
         state=state,

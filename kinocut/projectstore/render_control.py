@@ -157,7 +157,7 @@ def stop_runner_group(pid: int | None, lease_is_held: Callable[[], bool]) -> str
         return "stopped"
     if not isinstance(pid, int) or pid <= 1 or pid == os.getpid():
         return "identity_unverified"
-    if os.name == "nt":
+    if os.name == "nt" and not hasattr(os, "getpgid"):
         if not lease_is_held():
             return "stopped" if group_quiescent(pid) and not lease_is_held() else "identity_unverified"
         deadline = time.monotonic() + DEFAULT_RENDER_STOP_TIMEOUT
