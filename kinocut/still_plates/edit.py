@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .._install_hints import pip_install_hint
 from ..validation_errors import reason
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
@@ -65,7 +66,7 @@ def _require_edit_backend() -> None:
             code="edit_backend_unavailable",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Install free still edit path: pip install "kinocut[image]==2.0.1"',
+                "description": f"Install free still edit path: {pip_install_hint('image')}",
             },
         ) from exc
 

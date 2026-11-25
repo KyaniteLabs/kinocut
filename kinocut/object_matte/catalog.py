@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .._install_hints import pip_install_hint
 from ..defaults import (
     DEFAULT_OBJECT_MATTE_TIMEOUT,
     DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL,
@@ -50,7 +51,7 @@ def background_catalog() -> dict[str, Any]:
                 "id": REMOVE_BACKGROUND_OBJECT_MODEL,
                 "subject": "products-and-objects",
                 "backend": REMOVE_BACKGROUND_OBJECT_BACKEND,
-                "install": 'pip install "kinocut[object-matte]==2.0.1"',
+                "install": pip_install_hint("object-matte"),
                 "summary": ("Products, packaging, and other non-person objects on a table, sweep, or turntable."),
                 "limits": {
                     "maxFrames": MAX_OBJECT_MATTE_FRAMES,
