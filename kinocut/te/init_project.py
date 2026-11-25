@@ -3,15 +3,31 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
-from ..ffmpeg_helpers import _validate_output_path
+from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_output_path
 
 
 def _render_cutfile_yaml(slug: str) -> str:
     """Serialize the starter cutfile without requiring optional PyYAML."""
     return f"name: {json.dumps(slug)}\nversion: 1\nsources: []\nops: []\n"
+
+
+def _write_scaffold_file(target: Path, content: str) -> None:
+    """Create a scaffold file if absent, refusing symlinks (including dangling ones)."""
+    if os.path.islink(target):
+        raise MCPVideoError(
+            "Project scaffold path resolves through a symlink",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    if os.path.lexists(target):
+        return
+    with _atomic_artifact(str(target)) as staged, _open_staged_writer(staged) as stream:
+        stream.write(content.encode("utf-8"))
 
 
 def init_project(
@@ -30,18 +46,22 @@ def init_project(
     out = root / "out"
     receipts = root / "receipts"
     for d in (media, out, receipts):
+        if os.path.islink(d):
+            raise MCPVideoError(
+                "Project scaffold directory resolves through a symlink",
+                error_type="validation_error",
+                code="unsafe_path",
+            )
         d.mkdir(exist_ok=True)
     readme = root / "README.md"
-    if not readme.exists():
-        readme.write_text(
-            f"# {slug}\n\nKinocut project scaffold.\n\n- `media/` inputs\n- `out/` renders\n- `receipts/` job receipts\n",
-            encoding="utf-8",
-        )
+    _write_scaffold_file(
+        readme,
+        f"# {slug}\n\nKinocut project scaffold.\n\n- `media/` inputs\n- `out/` renders\n- `receipts/` job receipts\n",
+    )
     cutfile_path = None
     if with_cutfile:
         cf = root / "cutfile.yaml"
-        if not cf.exists():
-            cf.write_text(_render_cutfile_yaml(slug), encoding="utf-8")
+        _write_scaffold_file(cf, _render_cutfile_yaml(slug))
         cutfile_path = str(cf)
     return {
         "artifact_kind": "project_init",

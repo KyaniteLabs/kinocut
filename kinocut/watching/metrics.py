@@ -265,6 +265,7 @@ def _integrated_lufs(path: str) -> float | None:
         return None
     try:
         data = json.loads(m.group(0))
-        return float(data.get("input_i"))
+        value = float(data.get("input_i"))
+        return value if math.isfinite(value) else None
     except (json.JSONDecodeError, TypeError, ValueError):
         return None

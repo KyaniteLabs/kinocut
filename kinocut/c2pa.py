@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import secrets
 import shutil
 import subprocess
 from enum import StrEnum
@@ -11,8 +13,10 @@ from typing import Any
 
 from .defaults import DEFAULT_C2PA_TIMEOUT
 from .errors import C2PASigningError, C2PAToolNotFoundError, C2PAVerificationError, MCPVideoError
-from .validation_errors import exception_kind
 from .ffmpeg_helpers import _atomic_output, _validate_artifact_input_path, _validate_input_path
+from .offline import is_offline_mode
+from .process_tree import sanitized_subprocess_env
+from .validation_errors import exception_kind
 
 
 class SigningStatus(StrEnum):
@@ -25,13 +29,31 @@ _UNTRUSTED_SIGNING_CREDENTIAL_STATUS = "signingCredential.untrusted"
 _UNTRUSTED_SIGNING_CREDENTIAL_WARNING = "signing_credential_untrusted"
 
 
+def _enforce_c2pa_offline_policy() -> None:
+    if is_offline_mode():
+        raise MCPVideoError(
+            "C2PA signing is disabled in offline mode because c2patool may contact remote timestamp or revocation services.",
+            error_type="validation_error",
+            code="offline_mode",
+        )
+
+
+def preflight_c2pa(manifest_path: str) -> tuple[str, str]:
+    """Validate offline policy, manifest path, and c2patool availability before rendering."""
+    _enforce_c2pa_offline_policy()
+    manifest = _validate_manifest_path(manifest_path)
+    tool = _resolve_c2patool()
+    return manifest, tool
+
+
 def sign_export_with_c2pa(
     asset_path: str,
     *,
     manifest_path: str,
     signer_path: str | None = None,
+    output_path: str | None = None,
 ) -> dict[str, Any]:
-    """Add and verify a C2PA manifest on an already-rendered final export.
+    """Add and verify a C2PA manifest on an already-rendered export.
 
     The c2patool executable is resolved from the KINOCUT_C2PATOOL or
     MCP_VIDEO_C2PATOOL environment variable (falling back to PATH) and is
@@ -39,20 +61,37 @@ def sign_export_with_c2pa(
     injection via the public tool surface. ``signer_path`` is an internal,
     operator-configured option and must not originate from untrusted input.
     """
+    _enforce_c2pa_offline_policy()
     # Signing deliberately replaces this final export after verification. Do
     # not register a new read-only input; existing input aliases stay guarded.
     asset = _validate_input_path(asset_path, record_operation=False)
     manifest = _validate_manifest_path(manifest_path)
     tool = _resolve_c2patool()
+    target = asset if output_path is None else output_path
 
-    with _atomic_output(asset) as signed_tmp:
-        cmd = [tool, asset, "--manifest", manifest, "--output", signed_tmp, "--force"]
+    target_dir = os.path.dirname(os.path.realpath(target))
+    c2pa_out = os.path.join(
+        target_dir,
+        f".kinocut_tmp_c2pa_{secrets.token_hex(12)}{os.path.splitext(target)[1] or '.mp4'}",
+    )
+    try:
+        cmd = [tool, asset, "--manifest", manifest, "--output", c2pa_out, "--force"]
         if signer_path:
             cmd.extend(["--signer-path", signer_path])
         _run_c2patool(cmd, "sign")
-        if not os.path.isfile(signed_tmp) or os.path.getsize(signed_tmp) == 0:
+        if not os.path.isfile(c2pa_out) or os.path.getsize(c2pa_out) == 0:
             raise C2PASigningError("c2patool completed without producing the signed output")
-        verification = _verify_signed_asset(tool, signed_tmp)
+        verification = _verify_signed_asset(tool, c2pa_out)
+        with (
+            _atomic_output(target) as signed_tmp,
+            open(c2pa_out, "rb") as src_f,
+            open(signed_tmp, "wb") as dst_f,
+        ):
+            shutil.copyfileobj(src_f, dst_f)
+    finally:
+        if os.path.lexists(c2pa_out):
+            with contextlib.suppress(OSError):
+                os.unlink(c2pa_out)
     return {
         "status": SigningStatus.SIGNED,
         "verified": True,
@@ -100,6 +139,7 @@ def _run_c2patool(
             text=True,
             encoding="utf-8",
             errors="replace",
+            env=sanitized_subprocess_env(),
             timeout=DEFAULT_C2PA_TIMEOUT,
         )
     except subprocess.TimeoutExpired as exc:

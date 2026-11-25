@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import os
+import shutil
+import tempfile
 
-from .ffmpeg_helpers import _validate_input_path
 from .engine_probe import probe
-from .paths import _auto_output_dir
-from .ffmpeg_helpers import _run_ffmpeg, _sanitize_ffmpeg_number
 from .errors import MCPVideoError
+from .ffmpeg_helpers import (
+    _atomic_output,
+    _open_staged_writer,
+    _run_ffmpeg,
+    _sanitize_ffmpeg_number,
+    _validate_input_path,
+    _validate_output_path,
+)
 from .models import ImageSequenceResult
+from .paths import _auto_output_dir
+from .publication import validate_artifact_location
 from .validation_errors import rejected_value
 
 
@@ -47,28 +56,43 @@ def export_frames(
     probe(input_path)
 
     out_dir = output_dir or _auto_output_dir(input_path, "frames")
-    os.makedirs(out_dir, exist_ok=True)
+    resolved_dir = validate_artifact_location(out_dir, "Output directory")
+    if os.path.lexists(resolved_dir) and not os.path.isdir(resolved_dir):
+        raise MCPVideoError(
+            "Output directory target is not a directory",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
 
     ext = format if format.startswith(".") else f".{format}"
-    pattern = os.path.join(out_dir, f"frame_%04d{ext}")
+    frame_paths: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="kinocut-frames-") as stage_dir:
+        pattern = os.path.join(stage_dir, f"frame_%04d{ext}")
+        _run_ffmpeg(
+            [
+                "-i",
+                input_path,
+                "-vf",
+                f"fps={fps}",
+                "-q:v",
+                "2",
+                "-y",
+                pattern,
+            ]
+        )
 
-    _run_ffmpeg(
-        [
-            "-i",
-            input_path,
-            "-vf",
-            f"fps={fps}",
-            "-q:v",
-            "2",
-            "-y",
-            pattern,
-        ]
-    )
+        staged_names = sorted(f for f in os.listdir(stage_dir) if f.startswith("frame_") and f.endswith(ext))
+        destinations = [os.path.join(out_dir, name) for name in staged_names]
+        # Validate every destination up front so default overwrite=False never
+        # partially writes frames before failing on a pre-existing file.
+        for dest in destinations:
+            _validate_output_path(dest)
 
-    # Collect generated frame paths
-    frame_paths = sorted(
-        [os.path.join(out_dir, f) for f in os.listdir(out_dir) if f.startswith("frame_") and f.endswith(ext)]
-    )
+        for name, dest in zip(staged_names, destinations, strict=True):
+            src = os.path.join(stage_dir, name)
+            with _atomic_output(dest) as staged, open(src, "rb") as reader, _open_staged_writer(staged) as writer:
+                shutil.copyfileobj(reader, writer)
+            frame_paths.append(dest)
 
     return ImageSequenceResult(
         frame_paths=frame_paths,

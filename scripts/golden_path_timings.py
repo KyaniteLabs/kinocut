@@ -155,9 +155,7 @@ def _markdown_table(steps: list[StepStats], *, mode: str, fixture: str, meta: di
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Time Kinocut golden-path baseline steps (WP-F scaffolding)."
-    )
+    parser = argparse.ArgumentParser(description="Time Kinocut golden-path baseline steps (WP-F scaffolding).")
     parser.add_argument(
         "--mode",
         choices=("cheap", "full"),

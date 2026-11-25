@@ -222,7 +222,16 @@ class ChecksMixin:
         # fps alone cannot catch that, so measure real inter-frame motion. This
         # is advisory (warning) — a deliberately calm shot is valid output.
         motion = self._measure_temporal_motion(video_path)
-        if motion is not None and motion["static_fraction"] >= self.MOTION_STATIC_FRACTION_MAX:
+        if motion is None:
+            self.issues.append(
+                DesignIssue(
+                    category="motion",
+                    severity="info",
+                    message="Temporal motion analysis unavailable — skipped slideshow motion check.",
+                    fix_available=False,
+                )
+            )
+        elif motion["static_fraction"] >= self.MOTION_STATIC_FRACTION_MAX:
             self.issues.append(
                 DesignIssue(
                     category="motion",

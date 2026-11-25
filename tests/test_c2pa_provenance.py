@@ -682,6 +682,41 @@ def test_cli_export_json_can_sign_with_fake_c2patool(sample_video, tmp_path):
     assert output.is_file()
 
 
+def test_c2pa_signing_handles_atomic_inode_replacement_with_overwrite_false(monkeypatch, tmp_path):
+    """Real c2patool --force unlinks/replaces --output with a new inode; overwrite=False must still publish cleanly."""
+    from mcp_video.c2pa import sign_export_with_c2pa
+    from mcp_video.publication._operation import output_operation
+
+    script = tmp_path / "fake_c2pa_replace_inode.py"
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, os, sys\n"
+        "args = sys.argv[1:]\n"
+        "if '--output' in args:\n"
+        "    out = args[args.index('--output') + 1]\n"
+        "    tmp = out + '.new'\n"
+        "    with open(tmp, 'wb') as f:\n"
+        "        f.write(b'mp4 bytes\\nC2PA-SIGNED-NEW-INODE')\n"
+        "    os.replace(tmp, out)\n"
+        "else:\n"
+        "    print(json.dumps({'active_manifest': 'urn:uuid:1', 'validation_state': 'Valid', 'validation_status': []}))\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    _use_fake_c2patool(monkeypatch, script)
+    manifest = _manifest(tmp_path)
+    src = tmp_path / "unsigned.mp4"
+    src.write_bytes(b"mp4 bytes")
+    dst = tmp_path / "signed_final.mp4"
+
+    with output_operation(overwrite=False):
+        result = sign_export_with_c2pa(str(src), manifest_path=str(manifest), output_path=str(dst))
+
+    assert result["status"] == "signed"
+    assert result["verified"] is True
+    assert dst.read_bytes() == b"mp4 bytes\nC2PA-SIGNED-NEW-INODE"
+
+
 @pytest.mark.slow
 def test_real_c2patool_signs_when_tool_and_manifest_are_available(sample_video, tmp_path):
     from mcp_video.engine_export import export_video

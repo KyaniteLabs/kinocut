@@ -7,6 +7,7 @@ import json
 import logging
 from ...errors import ProcessingError
 from ...ffmpeg_helpers import _run_command, _validate_input_path
+from ..models import DesignIssue
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,11 @@ class AnalysisMixin:
         not fabricate a passing result).
         """
         video_path = _validate_input_path(video_path)
+        cache = getattr(self, "_temporal_motion_cache", None)
+        key_fn = getattr(self, "_source_identity_key", None)
+        key = key_fn(video_path) if callable(key_fn) else None
+        if cache is not None and key is not None and key in cache:
+            return dict(cache[key])
         floor = getattr(self, "MOTION_STATIC_FRAME_FLOOR", 0.35)
         cmd = [
             "ffmpeg",
@@ -75,12 +81,15 @@ class AnalysisMixin:
         n = len(values)
         median = values[n // 2] if n % 2 else (values[n // 2 - 1] + values[n // 2]) / 2
         static = sum(1 for v in values if v < floor)
-        return {
+        stats = {
             "static_fraction": static / n,
             "mean": sum(values) / n,
             "median": median,
             "frames": n,
         }
+        if cache is not None and key is not None and key_fn(video_path) == key:
+            cache[key] = dict(stats)
+        return dict(stats)
 
     def _analyze_composition(self, video_path: str) -> float | None:
         """Analyze composition quality (0-1)."""
@@ -93,8 +102,13 @@ class AnalysisMixin:
         return None
 
     def _detect_scene_changes(self, video_path: str) -> list[dict]:
-        """Detect scene change timestamps."""
+        """Detect scene change timestamps (cached per source identity on this guardrail)."""
         video_path = _validate_input_path(video_path)
+        cache = getattr(self, "_scene_changes_cache", None)
+        key_fn = getattr(self, "_source_identity_key", None)
+        key = key_fn(video_path) if callable(key_fn) else None
+        if cache is not None and key is not None and key in cache:
+            return [dict(scene) for scene in cache[key]]
         cmd = ["ffmpeg", "-i", video_path, "-vf", "select='gt(scene,0.3)',showinfo", "-f", "null", "-"]
         result = _run_command(cmd)
 
@@ -107,7 +121,9 @@ class AnalysisMixin:
                 except Exception as exc:
                     logger.debug("Scene timestamp parsing failed: %s", exc)
                     pass
-        return scenes
+        if cache is not None and key is not None and key_fn(video_path) == key:
+            cache[key] = [dict(scene) for scene in scenes]
+        return [dict(scene) for scene in scenes]
 
     def _analyze_brand_colors(self, video_path: str) -> float | None:
         """Analyze brand color usage (0-1)."""
@@ -146,13 +162,14 @@ class AnalysisMixin:
         return None
 
     def _calculate_audio_score(self, video_path: str) -> float:
-        """Calculate audio quality score."""
+        """Calculate audio quality score, surfacing unavailable audio explicitly."""
         video_path = _validate_input_path(video_path)
         cmd = ["ffmpeg", "-i", video_path, "-vn", "-af", "loudnorm=print_format=json", "-f", "null", "-"]
         try:
             result = _run_command(cmd)
         except ProcessingError as exc:
             logger.warning("Audio score measurement unavailable for %s: %s", video_path, exc)
+            self._record_audio_unavailable()
             return 50
 
         try:
@@ -163,10 +180,32 @@ class AnalysisMixin:
             input_lufs = float(loudness_data.get("input_i", -70))
 
             distance = abs(input_lufs - (-16))
-            return max(0, 100 - distance * 5)
+            score = max(0, 100 - distance * 5)
+            metrics = getattr(self, "metrics", None)
+            if isinstance(metrics, dict):
+                metrics["audio"] = {"available": True, "input_lufs": input_lufs, "score": score}
+            return score
         except Exception as exc:
             logger.debug("Audio score calculation failed: %s", exc)
+            self._record_audio_unavailable()
             return 50
+
+    def _record_audio_unavailable(self) -> None:
+        metrics = getattr(self, "metrics", None)
+        if isinstance(metrics, dict):
+            metrics["audio"] = {"available": False, "score": 50}
+        issues = getattr(self, "issues", None)
+        if isinstance(issues, list) and not any(
+            i.category == "audio" and "Audio loudness analysis unavailable" in i.message for i in issues
+        ):
+            issues.append(
+                DesignIssue(
+                    category="audio",
+                    severity="info",
+                    message="Audio loudness analysis unavailable — used neutral fallback score.",
+                    fix_available=False,
+                )
+            )
 
 
 # ============== PUBLIC API ==============

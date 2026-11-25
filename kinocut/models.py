@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fractions import Fraction
+import math
 from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, Field, model_validator
@@ -52,10 +54,15 @@ class VideoInfo(BaseModel):
     codec: str
     audio_codec: str | None = None
     audio_sample_rate: int | None = None
+    audio_channels: int | None = None
+    audio_stream_count: int = 0
     bitrate: int | None = None
     size_bytes: int | None = None
     format: str | None = None
     rotation: int = 0
+    sample_aspect_ratio: str | None = None
+    pix_fmt: str | None = None
+    avg_frame_rate: str | None = Field(default=None, exclude=True)
 
     @property
     def resolution(self) -> str:
@@ -67,14 +74,49 @@ class VideoInfo(BaseModel):
         return self.rotation % 360
 
     @property
+    def sar_ratio(self) -> Fraction:
+        """Sample aspect ratio as a positive Fraction (defaults to 1/1 when unspecified)."""
+        raw = self.sample_aspect_ratio
+        if not raw or raw in ("N/A", "unknown", "0:1", "0/1", "0:0", "0/0"):
+            return Fraction(1, 1)
+        try:
+            ratio = Fraction(str(raw).replace(":", "/"))
+            return ratio if ratio > 0 else Fraction(1, 1)
+        except (ValueError, ZeroDivisionError):
+            return Fraction(1, 1)
+
+    @property
+    def is_vfr(self) -> bool:
+        """Return True when avg_frame_rate materially differs from r_frame_rate/fps."""
+        if not self.avg_frame_rate or self.fps <= 0:
+            return False
+        try:
+            avg = float(Fraction(str(self.avg_frame_rate)))
+        except (ValueError, ZeroDivisionError):
+            return False
+        if not math.isfinite(avg) or avg <= 0:
+            return False
+        return abs(avg - self.fps) > max(0.5, self.fps * 0.02)
+
+    @property
     def display_width(self) -> int:
-        """Width accounting for rotation (e.g. 90° rotates dimensions)."""
-        return self.height if self.normalized_rotation in (90, 270) else self.width
+        """Width accounting for rotation and sample aspect ratio (SAR)."""
+        if self.normalized_rotation in (90, 270):
+            return self.height
+        sar = self.sar_ratio
+        if sar != 1 and self.width > 0:
+            return max(1, round(self.width * sar))
+        return self.width
 
     @property
     def display_height(self) -> int:
-        """Height accounting for rotation (e.g. 90° rotates dimensions)."""
-        return self.width if self.normalized_rotation in (90, 270) else self.height
+        """Height accounting for rotation and sample aspect ratio (SAR)."""
+        if self.normalized_rotation in (90, 270):
+            sar = self.sar_ratio
+            if sar != 1 and self.width > 0:
+                return max(1, round(self.width * sar))
+            return self.width
+        return self.height
 
     @property
     def display_resolution(self) -> str:

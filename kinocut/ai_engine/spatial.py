@@ -16,7 +16,9 @@ from pathlib import Path
 
 from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import (
+    _atomic_output,
     _get_video_duration,
+    _open_staged_writer,
     _run_command,
     _run_ffprobe_json,
     _validate_input_path,
@@ -112,8 +114,6 @@ def audio_spatial(
         )
 
     _validate_output_path(output)
-    output_path = Path(output)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # All methods currently fall back to simple spatial processing
     # HRTF and VBAP require specialized filters not yet implemented
@@ -292,32 +292,36 @@ def _concatenate_spatial_segments(
     tmpdir_path: Path,
     output: str,
 ) -> None:
-    """Concatenate rendered spatial segments into the final output video."""
+    """Concatenate rendered spatial segments into the final output video atomically."""
     if len(segment_files) == 1:
-        # Single segment - just copy
-        shutil.copy2(str(segment_files[0]), output)
+        with (
+            _atomic_output(output) as staged,
+            open(segment_files[0], "rb") as reader,
+            _open_staged_writer(staged) as writer,
+        ):
+            shutil.copyfileobj(reader, writer)
         return
 
     # Multiple segments - use concat demuxer
     concat_list = tmpdir_path / "concat_list.txt"
-    with open(concat_list, "w") as f:
+    with open(concat_list, "w", encoding="utf-8") as f:
         for seg_file in segment_files:
             # Escape single quotes in path
             escaped_path = str(seg_file).replace("'", "'\\''")
             f.write(f"file '{escaped_path}'\n")
 
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        str(concat_list),
-        "-c",
-        "copy",
-        output,
-    ]
-
-    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    with _atomic_output(output) as staged:
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_list),
+            "-c",
+            "copy",
+            staged,
+        ]
+        _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)

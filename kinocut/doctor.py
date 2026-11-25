@@ -144,14 +144,27 @@ PACKAGE_CHECKS = (
 )
 
 
-def _parse_ffmpeg_version(version_line: str | None) -> int | None:
-    """Extract major version number from 'ffmpeg version X.Y...' string."""
+def _parse_ffmpeg_version(version_line: str | None, tool_name: str = "ffmpeg") -> int | None:
+    """Extract major version number from '<tool> version [n]X.Y...' string."""
     if not version_line:
         return None
-    m = re.search(r"ffmpeg version (\d+)", version_line, re.IGNORECASE)
+    m = re.search(rf"\b{re.escape(tool_name)}\s+version\s+(?:n(?=\d))?(\d+)(?:\.\d+)*\b", version_line, re.IGNORECASE)
     if m:
         return int(m.group(1))
     return None
+
+
+def _is_recognized_ffmpeg_snapshot(version_line: str | None, tool_name: str) -> bool:
+    """Return True for legitimate non-release FFmpeg/ffprobe git snapshot banners."""
+    if not version_line:
+        return False
+    return bool(
+        re.search(
+            rf"\b{re.escape(tool_name)}\s+version\s+(?:N-\d+|git-[0-9a-f]+|\d{{4}}-\d{{2}}-\d{{2}}-git)\b",
+            version_line,
+            re.IGNORECASE,
+        )
+    )
 
 
 def _parse_python_version(version_line: str | None) -> tuple[int, int] | None:
@@ -182,30 +195,46 @@ def _check_command(definition: dict[str, Any], probes: HostProbes) -> dict[str, 
             "reason": "the doctor does not run a package manager; its presence is read from PATH, not executed",
         }
     path = probes.which(definition["command"][0])
-    version = probes.command_version(definition["command"], path) if path else None
+    raw_version = probes.command_version(definition["command"], path) if path else None
+    version = raw_version.strip() if isinstance(raw_version, str) and raw_version.strip() else None
     ok = path is not None and version is not None
     extra: dict[str, Any] = {}
 
-    # FFmpeg version enforcement
-    if definition["name"] == "ffmpeg" and ok:
-        major = _parse_ffmpeg_version(version)
+    if path is not None and version is None and definition["required"]:
+        extra["reason"] = "empty_version_output"
+
+    # FFmpeg / ffprobe version enforcement — fail closed on unrecognized banners.
+    if definition["name"] in {"ffmpeg", "ffprobe"} and ok:
+        tool_name = definition["name"]
+        major = _parse_ffmpeg_version(version, tool_name=tool_name)
         if major is not None:
             extra["major_version"] = major
             if major < MIN_FFMPEG_VERSION_HARD:
                 ok = False
+                extra["reason"] = "unsupported_version"
                 extra["install_hint"] = (
-                    f"FFmpeg {major}.x is too old. Kinocut requires FFmpeg {MIN_FFMPEG_VERSION}+. "
+                    f"{tool_name} {major}.x is too old. Kinocut requires FFmpeg {MIN_FFMPEG_VERSION}+. "
                     "Update: brew upgrade ffmpeg, apt upgrade ffmpeg, or download from https://ffmpeg.org"
                 )
             elif major < MIN_FFMPEG_VERSION:
                 extra["warning"] = (
-                    f"FFmpeg {major}.x works but {MIN_FFMPEG_VERSION}+ is recommended for full feature support."
+                    f"{tool_name} {major}.x works but {MIN_FFMPEG_VERSION}+ is recommended for full feature support."
                 )
+        elif not _is_recognized_ffmpeg_snapshot(version, tool_name):
+            ok = False
+            extra["reason"] = "unrecognized_version"
+            extra["install_hint"] = (
+                f"Could not verify {tool_name} version from banner output. {definition['install_hint']}"
+            )
 
     if definition["name"] == "python" and ok:
         python_version = _parse_python_version(version)
-        if python_version is not None and python_version < MIN_PYTHON_VERSION:
+        if python_version is None:
             ok = False
+            extra["reason"] = "unrecognized_version"
+        elif python_version < MIN_PYTHON_VERSION:
+            ok = False
+            extra["reason"] = "unsupported_version"
 
     if definition["name"] == "node" and ok and (hyperframes_path := probes.which("hyperframes")):
         extra.update(report_resolved_hyperframes(hyperframes_path, probes=probes))

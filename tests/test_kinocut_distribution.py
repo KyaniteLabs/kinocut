@@ -19,11 +19,11 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "2.0.1"
+KINOCUT_VERSION = "2.1.0"
 # Marketplace bundles consume the published registry release independently of
 # this checkout's product version; reconciliation must preserve canonical code.
 PLUGIN_RUNTIME_VERSION = "2.0.1"
-SHIM_VERSION = "1.6.22"
+SHIM_VERSION = "1.6.23"
 
 
 def _toml(path: Path) -> dict:
@@ -404,7 +404,8 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "needs: [publish, publish-npm, publish-npm-recovery]" in workflow
     assert "needs.publish-npm.result == 'success'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
-    assert "build-mcpb.py" not in workflow
+    # The release build validates the MCPB bundle before anything is published.
+    assert "scripts/build-mcpb.py --output-dir mcpb-dist" in workflow
 
 
 def test_npm_publish_uses_local_tarball_and_has_oidc_recovery_dispatch() -> None:
@@ -462,7 +463,11 @@ def test_integration_smoke_adds_nonpublishing_exact_head_onboarding_job() -> Non
     assert "pull_request:" in workflow
     job = _workflow_job(workflow, "clean-wheel-onboarding")
     assert "needs: changes" in job
-    assert "github.event_name != 'push'" in job.split("if:", 1)[1].split("\n", 1)[0]
+    condition = job.split("if:", 1)[1].split("\n", 1)[0]
+    # A master push runs unless its tree was already tested on its pull request.
+    assert "github.event_name == 'push'" in condition
+    assert "needs.changes.outputs.tested != 'true'" in condition
+    assert "needs.changes.outputs.relevant == 'true'" in condition
     assert "runs-on: ubuntu-24.04" in job
     assert "timeout-minutes: 30" in job
     assert '$2 == "subtitles" && $3 == "V->V"' in job

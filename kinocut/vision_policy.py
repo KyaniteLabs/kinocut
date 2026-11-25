@@ -22,6 +22,10 @@ def vision_provider_allowed(endpoint_kind: str | None = None, *, fixed_origin: b
             and mode == "remote"
             and not any(os.environ.get(name, "").strip() for name in ("KINOCUT_VISION_BASE_URL", "LFM3_VL_URL"))
         )
+    # Offline mode is a host policy, not a routing hint: only a loopback
+    # endpoint may be used, whatever KINOCUT_VISION_MODE permits.
+    if is_offline_mode() and endpoint_kind != "local":
+        return False
     return mode == "remote" or endpoint_kind == "local"
 
 
@@ -32,6 +36,13 @@ def require_vision_provider(endpoint_kind: str | None = None, *, fixed_origin: b
             "https://api.anthropic.com",
             feature="Cloud vision QC",
             local_alternative="Configure a loopback OpenAI-compatible vision server.",
+        )
+    if not fixed_origin and is_offline_mode() and endpoint_kind != "local":
+        raise MCPVideoError(
+            "Vision provider cannot use a non-loopback endpoint in offline mode. "
+            "Configure a loopback OpenAI-compatible vision server.",
+            error_type="offline_error",
+            code="offline_network_blocked",
         )
     if not vision_provider_allowed(endpoint_kind, fixed_origin=fixed_origin):
         raise MCPVideoError(

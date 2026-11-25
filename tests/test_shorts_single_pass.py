@@ -58,7 +58,7 @@ def _assert_media(output, mode, captioned):
         assert (plane[5] < 5) == (mode == "pad")
         rows = [row for row in range(height) if max(plane[row * width : (row + 1) * width]) > 210]
         if captioned and index >= 4:
-            low, high = (1760, 1919) if mode == "crop" else (980, 1263)
+            low, high = (1760, 1919)
             assert rows and low <= min(rows) <= max(rows) <= high
         else:
             assert not rows
@@ -73,7 +73,7 @@ def _assert_receipt(result, output, mode, captioned):
     public = copy.deepcopy(result)
     assert public.pop("output_path") == str(output)
     steps = public["receipt"]["steps"]
-    middle = ["vertical_template", "captions"] if mode == "crop" else ["captions", "vertical_template"]
+    middle = ["vertical_template", "captions"]
     assert [s["stage"] for s in steps] == ["trim", "merge", *middle, "export"]
     for step in steps:
         if step["stage"] in {"vertical_template", "export"}:
@@ -119,9 +119,8 @@ def test_shorts_matrix(source, tmp_path, monkeypatch, mode, captioned):
         assert profile == "vertical"
         assert burn_ass is not None
         ass = Path(burn_ass).read_text(encoding="utf-8")
-        width, height = (1080, 1920) if mode == "crop" else (640, 360)
-        assert f"PlayResX: {width}\nPlayResY: {height}\n" in ass
-        assert f"subtitles='{burn_ass}'" in encodes[0][encodes[0].index("-vf") + 1]
+        assert "PlayResX: 1080\nPlayResY: 1920\n" in ass
+        assert f"subtitles='{burn_ass}'" in encodes[-1][encodes[-1].index("-vf") + 1]
         qa_sources.append(Path(burn_ass))
         return advisory(media, captions, profile=profile, burn_ass=burn_ass)
 

@@ -14,6 +14,7 @@ def compile_goal_to_cutfile(
     *,
     source: str = "media/hero.mp4",
     name: str | None = None,
+    subtitle_source: str | None = None,
 ) -> dict[str, Any]:
     """Turn a goal string into a schema-valid cutfile dict.
 
@@ -25,6 +26,7 @@ def compile_goal_to_cutfile(
     lower = text.lower()
     duration = _infer_duration(lower)
     aspect = _infer_aspect(lower)
+    sources: list[dict[str, Any]] = [{"id": "hero", "path": source}]
     ops: list[dict[str, Any]] = []
     if duration is not None:
         ops.append({"op": "trim", "start": 0, "duration": duration})
@@ -34,21 +36,36 @@ def compile_goal_to_cutfile(
         if aspect == "1:1":
             width, height = 1080, 1080
         ops.append({"op": "resize", "width": width, "height": height})
-    if any(k in lower for k in ("caption", "subtitle", "srt")):
-        ops.append({"op": "add_text", "text": "CAPTIONS", "position": "bottom-center"})
+    wants_captions = any(k in lower for k in ("caption", "subtitle", "srt"))
+    warnings: list[str] = []
+    requires_transcription = False
+    if wants_captions:
+        if subtitle_source and subtitle_source.strip():
+            sources.append({"id": "subtitles", "path": subtitle_source.strip()})
+            video_ref = f"step_{len(ops)}" if ops else "hero"
+            ops.append({"op": "burn_in", "srcs": [video_ref, "subtitles"]})
+        else:
+            requires_transcription = True
+            warnings.append(
+                "Captions requested without a subtitle_source; transcribe with video_ai_transcribe "
+                "and attach a burn_in op (or use video_direct) instead of placeholder text."
+            )
     if not ops:
         ops.append({"op": "trim", "start": 0, "duration": duration or 15})
     cf = validate_cutfile(
         {
             "name": name or _slug(text),
             "version": 1,
-            "sources": [{"id": "hero", "path": source}],
+            "sources": sources,
             "ops": ops,
         }
     )
     payload = cf.to_dict()
     payload["goal"] = text
     payload["next_action"] = "review_then_cutfile_render"
+    if requires_transcription:
+        payload["requires_transcription"] = True
+        payload["warnings"] = warnings
     return payload
 
 

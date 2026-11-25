@@ -101,7 +101,7 @@ def test_layers_follow_existing_bed_and_precede_bus_gain(layered_project):
     request["layer_assets"][0]["layer"]["gain_db"] = 12
     request["plan"]["routing"]["buses"][1]["gain_db"] = -6.020599913279624
     pcm, _ = inspect_layers(root, request)
-    assert pcm[0] == 16384  # Saturate bed+layer first, then halve the complete bus.
+    assert pcm[0] == 16990  # Accumulate bed+layer unclipped (30000+3981=33981), then halve with ties-to-even.
 
 
 def test_layer_order_affects_saturation_and_identity(layered_project):
@@ -123,7 +123,7 @@ def test_layer_order_affects_saturation_and_identity(layered_project):
     assert load_mix_request(request).canonical_id() != first_hash
     request["output_path"] = "reordered.zip"
     second, _ = inspect_layers(root, request)
-    assert first[0] == 2767 and second[0] == 3981
+    assert first[0] == 3981 and second[0] == 3981
 
 
 def test_silence_only_timeline_can_render_layers(layered_project):

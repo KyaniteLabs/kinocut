@@ -17,7 +17,9 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from ..defaults import DEFAULT_HYPERFRAMES_TELEMETRY, DEFAULT_HYPERFRAMES_VERSION_TIMEOUT
+from ..doctor_offline import is_package_manager_prefix
 from ..errors import HyperframesNotFoundError, HyperframesRenderError, MCPVideoError
+from ..offline import is_offline_mode
 from ..validation import HYPERFRAMES_PRIVATE_PREVIEW_VERSIONS
 from .validation import _validate_project
 
@@ -48,16 +50,23 @@ class HyperframesRunner(Protocol):
 def terminate_process_group(proc: subprocess.Popen[str]) -> None:
     if proc.poll() is not None:
         return
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
+    use_killpg = os.name == "posix" and hasattr(os, "killpg") and hasattr(os, "getpgid")
+    if use_killpg:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError, OSError):
+            proc.terminate()
+    else:
         proc.terminate()
     try:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
+        if use_killpg:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                proc.kill()
+        else:
             proc.kill()
         proc.wait(timeout=3)
 
@@ -89,6 +98,7 @@ class _SubprocessRunner:
         )
 
     def start_preview(self, command: list[str], *, cwd: Path, env: dict[str, str]) -> PreviewChild:
+        _reject_offline_package_manager(command)
         return _SubprocessPreview(
             subprocess.Popen(  # noqa: S603
                 command,
@@ -97,7 +107,7 @@ class _SubprocessRunner:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 text=True,
-                start_new_session=True,
+                start_new_session=os.name == "posix",
                 env=env,
             )
         )
@@ -161,8 +171,43 @@ _HYPERFRAMES_PROVIDER_CREDENTIALS = frozenset(
         "HEYGEN_API_KEY",
         "HYPERFRAMES_API_KEY",
         "ELEVENLABS_API_KEY",
+        "KINOCUT_VISION_API_KEY",
+        "HF_TOKEN",
+        "HUGGING_FACE_HUB_TOKEN",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "GITLAB_TOKEN",
+        "NPM_TOKEN",
+        "PYPI_TOKEN",
+        "TWINE_PASSWORD",
+        "NODE_OPTIONS",
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "NO_PROXY",
+        "AZURE_OPENAI_API_KEY",
+        "COHERE_API_KEY",
+        "MISTRAL_API_KEY",
+        "GROQ_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "REPLICATE_API_TOKEN",
     }
 )
+_HYPERFRAMES_BLOCKED_ENV_UPPER = frozenset(name.upper() for name in _HYPERFRAMES_PROVIDER_CREDENTIALS)
+
+
+def _reject_offline_package_manager(command: list[str]) -> None:
+    """Block package-manager resolvers (npx/npm/pnpm/yarn/bunx) when offline mode is enabled."""
+    if is_offline_mode() and is_package_manager_prefix(command):
+        raise MCPVideoError(
+            "Hyperframes cannot run through a package manager (npx/npm/pnpm/yarn/bunx) in offline mode. "
+            "Install a local pinned hyperframes binary instead.",
+            error_type="offline_error",
+            code="offline_network_blocked",
+        )
 
 
 def _find_local_hyperframes_binary(cwd: str | Path | None) -> Path | None:
@@ -267,7 +312,7 @@ def _hyperframes_environment(*, telemetry_allowed: bool | None = None) -> dict[s
     if telemetry_allowed is None:
         telemetry_allowed = _hyperframes_telemetry_allowed()
     environment = {
-        **{key: value for key, value in os.environ.items() if key not in _HYPERFRAMES_PROVIDER_CREDENTIALS},
+        **{key: value for key, value in os.environ.items() if key.upper() not in _HYPERFRAMES_BLOCKED_ENV_UPPER},
         "HYPERFRAMES_SKIP_SKILLS": "1",
         "HYPERFRAMES_NO_UPDATE_CHECK": "1",
     }
@@ -308,7 +353,9 @@ def _run_hyperframes(
     timeout: int = 600,
 ) -> subprocess.CompletedProcess[str]:
     """Run a Hyperframes command and return the CompletedProcess."""
-    cmd = [*_hyperframes_command_prefix(cwd=cwd), *args]
+    prefix = _hyperframes_command_prefix(cwd=cwd)
+    _reject_offline_package_manager(prefix)
+    cmd = [*prefix, *args]
     try:
         return current_runner().run(cmd, cwd=Path(cwd), timeout=timeout, env=_hyperframes_environment())
     except subprocess.TimeoutExpired:

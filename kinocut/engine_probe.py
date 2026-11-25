@@ -76,13 +76,81 @@ def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool, alia
         _probe_cache[cache_id] = _ProbeCacheEntry(info.model_copy(deep=True), has_video, aliases)
 
 
+def _parse_frame_rate(raw_rate: Any) -> float:
+    try:
+        if "/" in raw_rate:
+            num, den = raw_rate.split("/")
+            den_val = float(den)
+            fps = float(num) / den_val if den_val != 0 else float(DEFAULT_FPS)
+        else:
+            fps = float(raw_rate) if float(raw_rate) != 0 else float(DEFAULT_FPS)
+    except (ValueError, TypeError, OverflowError, ZeroDivisionError):
+        fps = float(DEFAULT_FPS)
+    if not math.isfinite(fps) or fps <= 0:
+        # ffprobe reports r_frame_rate as "0/1" for some attached-pic and
+        # audio-derived video streams; 0 fps poisons all downstream frame math.
+        return float(DEFAULT_FPS)
+    return fps
+
+
+def _parse_audio_stream_meta(data: dict) -> tuple[str | None, int | None, int | None, int]:
+    audio_s = _get_audio_stream(data)
+    audio_codec = audio_s.get("codec_name") if audio_s else None
+    audio_sr = int(audio_s.get("sample_rate", 0)) if audio_s else None
+    audio_channels: int | None = None
+    if audio_s:
+        try:
+            ch_val = int(audio_s.get("channels", 0))
+            audio_channels = ch_val if ch_val > 0 else None
+        except (ValueError, TypeError):
+            audio_channels = None
+    audio_stream_count = sum(1 for s in data.get("streams", []) if s.get("codec_type") == "audio")
+    return audio_codec, audio_sr, audio_channels, audio_stream_count
+
+
+def _parse_stream_geometry(vs: dict) -> tuple[int, int, str | None, str | None, int]:
+    try:
+        width = int(vs.get("width", 0))
+        height = int(vs.get("height", 0))
+    except (ValueError, TypeError):
+        width = height = 0
+    raw_sar = vs.get("sample_aspect_ratio")
+    sample_aspect_ratio = (
+        str(raw_sar)
+        if isinstance(raw_sar, str)
+        and raw_sar.strip()
+        and raw_sar.strip() not in ("N/A", "unknown", "0:1", "0/1", "0:0", "0/0")
+        else None
+    )
+    raw_pix_fmt = vs.get("pix_fmt")
+    pix_fmt = str(raw_pix_fmt) if isinstance(raw_pix_fmt, str) and raw_pix_fmt.strip() else None
+    rotation = 0
+    for side in vs.get("side_data_list", []):
+        rot = side.get("rotation")
+        if rot is not None:
+            with contextlib.suppress(ValueError, TypeError):
+                rotation = int(rot)
+            break
+    return width, height, sample_aspect_ratio, pix_fmt, rotation
+
+
+def _parse_format_bounds(fmt: dict) -> tuple[int | None, int | None, str | None]:
+    try:
+        bitrate_raw = fmt.get("bit_rate", 0)
+        bitrate = int(bitrate_raw) if bitrate_raw and 0 < int(bitrate_raw) <= 1_000_000_000 else None
+        size_raw = fmt.get("size", 0)
+        size_bytes = int(size_raw) if size_raw and 0 < int(size_raw) <= MAX_FILE_SIZE_MB * 1024 * 1024 else None
+    except (ValueError, TypeError):
+        bitrate = size_bytes = None
+    return bitrate, size_bytes, fmt.get("format_name")
+
+
 def _build_video_info(path: str, data: dict) -> VideoInfo:
     """Construct a VideoInfo from raw ffprobe JSON data."""
     vs = _get_video_stream(data)
     if vs is None:
         raise InputFileError(path, "No video stream found")
 
-    # Duration: prefer container duration, then fall back to the video stream.
     duration = _parse_probe_duration(data.get("format", {}).get("duration"))
     if duration is None:
         duration = _parse_probe_duration(vs.get("duration")) or 0.0
@@ -93,54 +161,10 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
             code="duration_too_long",
         )
 
-    # Resolution
-    try:
-        width = int(vs.get("width", 0))
-        height = int(vs.get("height", 0))
-    except (ValueError, TypeError):
-        width = height = 0
-
-    # FPS — r_frame_rate is "num/den"
-    rfr = vs.get("r_frame_rate", str(DEFAULT_FPS))
-    try:
-        if "/" in rfr:
-            num, den = rfr.split("/")
-            den_val = float(den)
-            fps = float(num) / den_val if den_val != 0 else float(DEFAULT_FPS)
-        else:
-            fps = float(rfr) if float(rfr) != 0 else float(DEFAULT_FPS)
-    except (ValueError, TypeError, OverflowError, ZeroDivisionError):
-        fps = float(DEFAULT_FPS)
-    if not math.isfinite(fps) or fps <= 0:
-        # ffprobe reports r_frame_rate as "0/1" for some attached-pic and
-        # audio-derived video streams; 0 fps poisons all downstream frame math.
-        fps = float(DEFAULT_FPS)
-
-    # Codecs
-    codec = vs.get("codec_name", "unknown")
-    audio_s = _get_audio_stream(data)
-    audio_codec = audio_s.get("codec_name") if audio_s else None
-    audio_sr = int(audio_s.get("sample_rate", 0)) if audio_s else None
-
-    # Rotation from side_data_list
-    rotation = 0
-    for side in vs.get("side_data_list", []):
-        rot = side.get("rotation")
-        if rot is not None:
-            with contextlib.suppress(ValueError, TypeError):
-                rotation = int(rot)
-            break
-
-    # Bitrate / size
-    fmt = data.get("format", {})
-    try:
-        bitrate_raw = fmt.get("bit_rate", 0)
-        bitrate = int(bitrate_raw) if bitrate_raw and 0 < int(bitrate_raw) <= 1_000_000_000 else None
-        size_raw = fmt.get("size", 0)
-        size_bytes = int(size_raw) if size_raw and 0 < int(size_raw) <= MAX_FILE_SIZE_MB * 1024 * 1024 else None
-    except (ValueError, TypeError):
-        bitrate = size_bytes = None
-    fmt_name = fmt.get("format_name")
+    width, height, sample_aspect_ratio, pix_fmt, rotation = _parse_stream_geometry(vs)
+    fps = _parse_frame_rate(vs.get("r_frame_rate", str(DEFAULT_FPS)))
+    audio_codec, audio_sr, audio_channels, audio_stream_count = _parse_audio_stream_meta(data)
+    bitrate, size_bytes, fmt_name = _parse_format_bounds(data.get("format", {}))
 
     return VideoInfo(
         path=path,
@@ -148,13 +172,18 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
         width=width,
         height=height,
         fps=fps,
-        codec=codec,
+        codec=vs.get("codec_name", "unknown"),
         audio_codec=audio_codec,
         audio_sample_rate=audio_sr,
+        audio_channels=audio_channels,
+        audio_stream_count=audio_stream_count,
         bitrate=bitrate,
         size_bytes=size_bytes,
         format=fmt_name,
         rotation=rotation,
+        sample_aspect_ratio=sample_aspect_ratio,
+        pix_fmt=pix_fmt,
+        avg_frame_rate=_raw_rational_rate(vs.get("avg_frame_rate")),
     )
 
 
@@ -247,7 +276,7 @@ def probe_exact(path: str) -> ExactVideoInfo:
         raise InputFileError(path, "Not a valid video file, or decoding it for an exact probe failed") from exc
     info = _build_video_info(path, data)
     video_stream = _get_video_stream(data) or {}
-    return ExactVideoInfo(**info.model_dump(), **_exact_stream_fields(video_stream))
+    return ExactVideoInfo(**{**info.model_dump(), **_exact_stream_fields(video_stream)})
 
 
 def probe_audio_input(path: str) -> VideoInfo:
@@ -301,6 +330,12 @@ def _build_audio_input_info(path: str, data: dict) -> VideoInfo:
             audio_sr = int(audio_s.get("sample_rate", 0)) or None
         except (ValueError, TypeError):
             audio_sr = None
+        try:
+            ch_val = int(audio_s.get("channels", 0))
+            audio_channels = ch_val if ch_val > 0 else None
+        except (ValueError, TypeError):
+            audio_channels = None
+        audio_stream_count = sum(1 for s in data.get("streams", []) if s.get("codec_type") == "audio")
 
         info = VideoInfo(
             path=path,
@@ -311,6 +346,8 @@ def _build_audio_input_info(path: str, data: dict) -> VideoInfo:
             codec="none",
             audio_codec=audio_s.get("codec_name"),
             audio_sample_rate=audio_sr,
+            audio_channels=audio_channels,
+            audio_stream_count=audio_stream_count,
             format=fmt.get("format_name"),
         )
 

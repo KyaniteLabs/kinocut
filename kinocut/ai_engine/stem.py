@@ -10,15 +10,27 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+from .._install_hints import pip_install_hint
 from ..errors import InputFileError, MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import _get_video_duration, _run_command, _validate_input_path, _validate_output_path
+from ..ffmpeg_helpers import (
+    _atomic_output,
+    _get_video_duration,
+    _open_staged_writer,
+    _run_command,
+    _validate_input_path,
+    _validate_output_path,
+)
 from ..limits import DEFAULT_AI_TIMEOUT, DEFAULT_FFMPEG_TIMEOUT, MAX_AUDIO_DURATION
 from ..offline import is_offline_mode
+from ..process_tree import sanitized_subprocess_env
+from ..publication import validate_artifact_location
 from ..validation import VALID_DEMUCS_MODELS
 from ..validation_errors import rejected_value
 
@@ -71,44 +83,65 @@ def _run_demucs_separation(
     model: str,
     stems: list[str],
 ) -> dict[str, str]:
-    """Run Demucs separation and collect output stem file paths."""
+    """Run Demucs separation in a private staging dir and publish stems atomically."""
     audio_name = Path(audio_path).stem
+    final_model_dir = output_path / model / audio_name
+    destinations = {stem: final_model_dir / f"{stem}.wav" for stem in stems}
+    # Pre-validate every stem target so default overwrite=False refuses before running Demucs.
+    for dest in destinations.values():
+        _validate_output_path(str(dest))
 
-    demucs_args = [
-        "--out",
-        str(output_path),
-        "--name",
-        model,
-        audio_path,
-    ]
+    with tempfile.TemporaryDirectory(prefix="kinocut-stems-") as stage_dir:
+        demucs_args = [
+            "--out",
+            stage_dir,
+            "--name",
+            model,
+            audio_path,
+        ]
+        demucs_cmd = [sys.executable, "-m", "demucs.separate", *demucs_args]
+        try:
+            result = subprocess.run(  # noqa: S603
+                demucs_cmd,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                env=sanitized_subprocess_env(),
+                timeout=DEFAULT_AI_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            raise ProcessingError(
+                " ".join(demucs_cmd), -1, "", reason=f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
+            ) from None
+        if result.returncode != 0:
+            raise ProcessingError(" ".join(demucs_cmd), result.returncode, result.stderr)
 
-    demucs_cmd = [sys.executable, "-m", "demucs.separate", *demucs_args]
-    try:
-        result = subprocess.run(  # noqa: S603
-            demucs_cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_AI_TIMEOUT
-        )
-    except subprocess.TimeoutExpired:
-        raise ProcessingError(
-            " ".join(demucs_cmd), -1, "", reason=f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
-        ) from None
-    if result.returncode != 0:
-        raise ProcessingError(" ".join(demucs_cmd), result.returncode, result.stderr)
+        staged_model_dir = Path(stage_dir) / model / audio_name
+        staged_files: dict[str, Path] = {}
+        for stem in stems:
+            stem_file = staged_model_dir / f"{stem}.wav"
+            if stem_file.is_file():
+                staged_files[stem] = stem_file
+        missing = [stem for stem in stems if stem not in staged_files]
+        if missing:
+            # A partial dict read as success left downstream mixes pointing at files that do not exist.
+            raise ProcessingError(
+                " ".join(demucs_cmd),
+                result.returncode,
+                result.stderr,
+                reason="Demucs finished without writing every requested stem file",
+            )
 
-    model_output_dir = output_path / model / audio_name
-    result_paths: dict[str, str] = {}
-    for stem in stems:
-        stem_file = model_output_dir / f"{stem}.wav"
-        if stem_file.exists():
-            result_paths[stem] = str(stem_file)
-    missing = [stem for stem in stems if stem not in result_paths]
-    if missing:
-        # A partial dict read as success left downstream mixes pointing at files that do not exist.
-        raise ProcessingError(
-            " ".join(demucs_cmd),
-            result.returncode,
-            result.stderr,
-            reason="Demucs finished without writing every requested stem file",
-        )
+        result_paths: dict[str, str] = {}
+        for stem in stems:
+            dest = destinations[stem]
+            with (
+                _atomic_output(str(dest)) as atomic_stage,
+                open(staged_files[stem], "rb") as reader,
+                _open_staged_writer(atomic_stage) as writer,
+            ):
+                shutil.copyfileobj(reader, writer)
+            result_paths[stem] = str(dest)
 
     return result_paths
 
@@ -147,13 +180,14 @@ def ai_stem_separation(
     try:
         importlib.import_module("demucs.separate")
     except ImportError:
+        hint = pip_install_hint("stems")
         raise MCPVideoError(
-            'Demucs not installed. Install with: pip install "kinocut[stems]==2.0.1"',
+            f"Demucs not installed. Install with: {hint}",
             error_type="dependency_error",
             code="missing_demucs",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[stems]==2.0.1" to enable stem separation',
+                "description": f"Run: {hint} to enable stem separation",
             },
         ) from None
 
@@ -166,10 +200,16 @@ def ai_stem_separation(
     # Default stems if not provided
     stems = stems or ["vocals", "drums", "bass", "other"]
 
-    # Create output directory
+    # Validate output directory
     _validate_output_path(output_dir)
+    resolved_dir = validate_artifact_location(output_dir, "Output directory")
+    if os.path.lexists(resolved_dir) and not os.path.isdir(resolved_dir):
+        raise MCPVideoError(
+            "Output directory target is not a directory",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
     output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
 
     # Step 1: Extract audio from video to temp WAV file
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:

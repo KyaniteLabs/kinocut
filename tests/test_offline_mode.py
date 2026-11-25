@@ -203,7 +203,8 @@ def test_whisper_single_and_longform_only_load_paths(tmp_path, monkeypatch):
         with pytest.raises(MCPVideoError) as caught:
             call()
         assert caught.value.code == "offline_model_missing"
-        assert str(model_path) in str(caught.value)
+        assert caught.value.expected_file == model_path
+        assert str(model_path) not in str(caught.value)
     assert not loaded
     model_path.parent.mkdir()
     model_path.touch()
@@ -226,7 +227,8 @@ def test_lfm3_audio_runs_from_local_snapshot(tmp_path, monkeypatch):
     with pytest.raises(MCPVideoError) as missing:
         transcribe.ai_transcribe(str(media))
     assert missing.value.code == "offline_model_missing"
-    assert str(tmp_path / "model.safetensors") in str(missing.value)
+    assert missing.value.expected_file == tmp_path / "model.safetensors"
+    assert str(tmp_path / "model.safetensors") not in str(missing.value)
     for path in lfm3_audio.snapshot_files(tmp_path):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
@@ -275,7 +277,8 @@ def test_missing_upscale_matte_and_nima_report_local_files(tmp_path, monkeypatch
         with pytest.raises(MCPVideoError) as caught:
             call()
         assert caught.value.code == "offline_model_missing"
-        assert str(path) in str(caught.value)
+        assert caught.value.expected_file == path
+        assert str(path) not in str(caught.value)
 
 
 def test_font_resolver_never_fetches_when_missing(monkeypatch):

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import shutil
 import subprocess
 from collections.abc import Sequence
@@ -43,10 +44,70 @@ logger = logging.getLogger(__name__)
 _FFMPEG_BINARY = "ffmpeg"
 _SOX_BINARY = "sox"
 
+_ENV_OVERRIDES = {
+    "ffmpeg": "KINOCUT_FFMPEG_EXECUTABLE",
+    "ffprobe": "KINOCUT_FFPROBE_EXECUTABLE",
+}
+
+
+def resolve_configured_binary(name: str) -> str | None:
+    """Return an explicitly configured executable override, or ``None`` if unset.
+
+    Returns ``""`` when the env var is set to an invalid/non-executable path.
+    """
+    env_name = _ENV_OVERRIDES.get(name)
+    if not env_name:
+        return None
+    configured = os.environ.get(env_name, "").strip()
+    if not configured:
+        return None
+    expected = f"{name}.exe" if os.name == "nt" else name
+    if (
+        os.path.basename(configured).lower() == expected
+        and os.path.isfile(configured)
+        and os.access(configured, os.X_OK)
+    ):
+        return configured
+    return ""
+
+
+def insert_protocol_whitelist(args: Sequence[str], *, whitelist: str = "file,pipe") -> list[str]:
+    """Ensure ``-protocol_whitelist`` precedes every ``-i`` input flag."""
+    result: list[str] = []
+    has_whitelist_before_next_input = False
+    i = 0
+    arg_list = list(args)
+    while i < len(arg_list):
+        arg = arg_list[i]
+        if arg == "-protocol_whitelist":
+            has_whitelist_before_next_input = True
+            result.append(arg)
+            if i + 1 < len(arg_list):
+                result.append(arg_list[i + 1])
+                i += 2
+                continue
+        elif arg == "-i":
+            if not has_whitelist_before_next_input:
+                result.extend(["-protocol_whitelist", whitelist])
+            has_whitelist_before_next_input = False
+            result.append(arg)
+        else:
+            result.append(arg)
+        i += 1
+    return result
+
 
 def resolve_binary(name: str) -> str:
     """Return the configured binary name, or raise if it is absent."""
 
+    override = resolve_configured_binary(name)
+    if override is not None:
+        if override:
+            return override
+        raise post_error(
+            f"configured audio binary '{name}' is not executable",
+            POST_DEPENDENCY_MISSING,
+        )
     path = shutil.which(name)
     if path is None:
         raise post_error(
@@ -132,7 +193,8 @@ def run_ffmpeg(args: Sequence[str], *, timeout: float | None = None) -> None:
     timeout = DEFAULT_POST_TIMEOUT_SECONDS if timeout is None else timeout
     timeout = min(timeout, MAX_POST_TIMEOUT_SECONDS)
     binary = resolve_binary(_FFMPEG_BINARY)
-    cmd = [binary, "-hide_banner", "-nostdin", "-loglevel", "error", "-y", *args]
+    safe_args = insert_protocol_whitelist(args)
+    cmd = [binary, "-hide_banner", "-nostdin", "-loglevel", "error", "-y", *safe_args]
     try:
         proc = subprocess.run(  # noqa: S603 - command list built from validated components
             cmd,
@@ -198,7 +260,9 @@ __all__ = [
     "bounded_int",
     "bounded_option",
     "ffmpeg_filter_number",
+    "insert_protocol_whitelist",
     "resolve_binary",
+    "resolve_configured_binary",
     "run_ffmpeg",
     "run_sox",
 ]

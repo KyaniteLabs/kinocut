@@ -5,10 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .._install_hints import pip_install_hint
 from ..errors import BackendUnavailableError, MCPVideoError
 from ..validation_errors import exception_kind, rejected_value
 
-_INSTALL = 'pip install "kinocut[object-matte]==2.0.1"'
+_INSTALL = pip_install_hint("object-matte")
 _DOCS = "docs/PRODUCT_MATTE.md"
 
 

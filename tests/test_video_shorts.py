@@ -66,8 +66,8 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 
     assert result["success"] is True
     assert result["output_path"].endswith("final.mp4")
-    assert result["size_bytes"] == len(b"vertical")
-    assert [call[0] for call in calls] == ["trim", "trim", "merge", "caption-file", "caption", "vertical"]
+    assert result["size_bytes"] == len(b"captioned")
+    assert [call[0] for call in calls] == ["trim", "trim", "merge", "caption-file", "vertical", "caption"]
     assert result["receipt"]["receipt_kind"] == "video_shorts"
     assert len(result["receipt"]["steps"]) == 5
     assert result["external_posting"] is False

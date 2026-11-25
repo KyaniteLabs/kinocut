@@ -257,7 +257,12 @@ def test_audition_review_is_offline_and_blind(tmp_path, audition_inputs):
     )
     payloads = re.findall(r'<script class="track" type="application/octet-stream">(.*?)</script>', page)
     files = [(folder / f"mix-{index:03}.wav").read_bytes() for index in (1, 2)]
-    assert [base64.b64decode(payload) for payload in payloads] == files
+    assert len(payloads) == 2
+    for payload, wav_bytes in zip(payloads, files, strict=True):
+        assert payload.startswith("data:audio/mp4;base64,")
+        decoded = base64.b64decode(payload.removeprefix("data:audio/mp4;base64,"))
+        assert decoded[4:8] == b"ftyp"
+        assert len(decoded) < len(wav_bytes)
     assert json.loads((folder / "receipt.json").read_text()) == receipt
 
 
@@ -369,7 +374,10 @@ class AudioContext {
   currentTime = 1;
   async resume() {}
   async decodeAudioData(bytes) {
-    assert.equal(Buffer.from(bytes).toString('ascii', 0, 4), 'RIFF');
+    const buf = Buffer.from(bytes);
+    const isWav = buf.toString('ascii', 0, 4) === 'RIFF';
+    const isMp4 = buf.toString('ascii', 4, 8) === 'ftyp';
+    assert.ok(isWav || isMp4, 'expected WAV or MP4/M4A container header');
     return {duration: 1};
   }
   createGain() {

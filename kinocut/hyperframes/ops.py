@@ -11,7 +11,10 @@ from typing import Any
 
 from ..defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from ..errors import HyperframesNotFoundError, HyperframesRenderError, HyperframesProjectError, MCPVideoError
-from ..ffmpeg_helpers import _atomic_output, _validate_output_path
+from ..ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_output_path
+from ..offline import is_offline_mode
+from ..request_log import redact_text
+from ..validation_errors import reason
 from ..object_matte.catalog import (
     _assert_hf_remove_background_flags,
     _normalize_mask_interval,
@@ -47,6 +50,15 @@ from .validation import (
     validate_render_options,
     validate_tts_options,
 )
+
+
+def _require_online(operation: str) -> None:
+    if is_offline_mode():
+        raise MCPVideoError(
+            f"Hyperframes {operation} requires network access and is blocked in offline mode (KINOCUT_OFFLINE=1)",
+            error_type="validation_error",
+            code="offline_network_blocked",
+        )
 
 
 def _csv(values: list[float] | list[str] | None) -> str | None:
@@ -199,8 +211,12 @@ def still(
     actual_output = snap.frame_paths[0]
     if destination and Path(destination) != Path(actual_output).absolute():
         try:
-            with _atomic_output(destination) as temporary:
-                shutil.copyfile(actual_output, temporary)
+            with (
+                _atomic_output(destination) as temporary,
+                open(actual_output, "rb") as src_fh,
+                _open_staged_writer(temporary) as dst_fh,
+            ):
+                shutil.copyfileobj(src_fh, dst_fh)
         except OSError as exc:
             raise HyperframesRenderError("snapshot", 1, "", reason="Could not copy requested still image") from exc
         actual_output = destination
@@ -292,6 +308,7 @@ def info(project_path: str) -> HyperframesJsonResult:
 
 def catalog(item_type: str | None = None, tag: str | None = None) -> HyperframesJsonResult:
     """Browse Hyperframes catalog blocks/components."""
+    _require_online("catalog")
     result, _cwd = _hyperframes_op("catalog", item_type=item_type, tag=tag)
     return _json_result("catalog", result)
 
@@ -304,6 +321,15 @@ def capture(
     timeout_ms: int | None = None,
 ) -> HyperframesJsonResult:
     """Capture a website as editable Hyperframes components."""
+    _require_online("capture")
+    from ..ai_engine.download import _is_safe_url
+
+    if not _is_safe_url(url):
+        raise MCPVideoError(
+            "Capture URL blocked by SSRF policy",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
     result, _cwd = _hyperframes_op(
         "capture",
         url=url,
@@ -341,6 +367,7 @@ def tts(
     list_voices: bool = False,
 ) -> HyperframesJsonResult:
     """Generate speech audio from text using Hyperframes local TTS."""
+    _require_online("tts")
     validate_tts_options(text_or_file, speed, list_voices)
     result, _cwd = _hyperframes_op(
         "tts",
@@ -399,6 +426,7 @@ def remove_background(
             equipment_overlay=equipment_overlay,
             fail_if_equipment_on_subject=fail_if_equipment_on_subject,
         )
+    _require_online("remove-background")
     _assert_hf_remove_background_flags(
         mask_interval=interval,
         equipment_overlay=equipment_overlay,
@@ -513,6 +541,7 @@ def add_block(
     no_clipboard: bool = False,
 ) -> HyperframesBlockResult:
     """Install a block from the Hyperframes catalog."""
+    _require_online("add")
     result, project = _hyperframes_op(
         "add",
         project_path=project_path,
@@ -578,9 +607,9 @@ def validate(
                     for finding in lint_data.get("warnings", []):
                         warnings.append(f"lint: {finding}")
                 except json.JSONDecodeError:
-                    issues.append(f"lint failed: {result.stderr[:200]}")
+                    issues.append(f"lint failed: {redact_text(result.stderr[:200])}")
         except Exception as e:
-            warnings.append(f"Could not run hyperframes lint: {e}")
+            issues.append(f"Could not run hyperframes lint: {redact_text(reason(e))}")
 
     valid = len(issues) == 0
 

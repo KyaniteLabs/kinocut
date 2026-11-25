@@ -288,7 +288,9 @@ def video_layout_grid(
             code="invalid_parameter",
         )
     from .effects_engine import layout_grid as _grid
+    from .effects_engine.layout import _validate_grid_background
 
+    _validate_grid_background(background)
     return _result(_grid(clips, layout, output_path, gap, padding, background))
 
 

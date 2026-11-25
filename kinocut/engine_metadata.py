@@ -6,10 +6,15 @@ import os
 
 from .engine_probe import probe
 from .engine_runtime_utils import _build_edit_result, _movflags_args, _timed_operation
-from .paths import _auto_output
-from .ffmpeg_helpers import _run_ffmpeg
 from .errors import MCPVideoError
-from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _run_ffprobe_json
+from .paths import _auto_output
+from .ffmpeg_helpers import (
+    _atomic_output,
+    _run_ffmpeg,
+    _run_ffprobe_json,
+    _validate_input_path,
+    _validate_output_path,
+)
 from .models import EditResult, MetadataResult
 from .validation_errors import rejected_value
 
@@ -92,13 +97,13 @@ def write_metadata(
         )
     _validate_output_path(output)
 
-    args = ["-i", input_path]
+    base_args = ["-i", input_path]
     for key, value in metadata.items():
-        args.extend(["-metadata", f"{key}={value}"])
-    args.extend(["-c:v", "copy", "-c:a", "copy", *_movflags_args(output), output])
+        base_args.extend(["-metadata", f"{key}={value}"])
+    base_args.extend(["-c:v", "copy", "-c:a", "copy", *_movflags_args(output)])
 
-    with _timed_operation() as timing:
-        _run_ffmpeg(args)
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+        _run_ffmpeg([*base_args, staged])
 
     return _build_edit_result(
         output,

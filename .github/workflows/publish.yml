@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to recover (e.g. v2.1.0); must exist and its tree must match pyproject.toml'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -179,6 +184,13 @@ jobs:
         run: |
           mkdir -p npm-dist
           npm pack ./npm --pack-destination npm-dist
+      # The MCPB bundle and the Hermes Desktop plugin ship from this same
+      # release tree; validate both before anything is published.
+      - name: Build and validate MCPB bundle
+        run: .venv/bin/python scripts/build-mcpb.py --output-dir mcpb-dist
+      - name: Test Hermes Desktop plugin
+        timeout-minutes: 2
+        run: node --test plugins/kinocut/desktop/plugin.test.mjs
       - name: Check built artifact contents
         run: .venv/bin/python .github/scripts/check-built-artifacts.py release-dist
       - name: Validate distribution metadata
@@ -245,12 +257,17 @@ jobs:
         with:
           name: npm-dist
           path: npm-dist/
+      - name: Upload MCPB artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: mcpb-dist
+          path: mcpb-dist/
 
   publish:
     name: Publish to PyPI
     needs: build
     if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: pypi
     permissions:
       contents: read
@@ -270,7 +287,7 @@ jobs:
     name: Publish to npm
     needs: publish
     if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: npm
     permissions:
       contents: read
@@ -300,7 +317,8 @@ jobs:
   publish-npm-recovery:
     name: Recover npm publication
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     environment: npm
     permissions:
       contents: read
@@ -309,6 +327,38 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ inputs.release_tag }}
+      # Recovery may only publish a tagged release tree. An arbitrary branch
+      # ref would publish npm (and then MCP Registry metadata) from untagged
+      # work, so the ref must be an existing vX.Y.Z tag whose tree carries the
+      # same version in pyproject.toml and npm/package.json.
+      - name: Verify the dispatched ref is the release tag
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release_tag must be a full release tag (vX.Y.Z), got '$tag'."
+            exit 1
+          fi
+          if ! git rev-parse -q --verify "refs/tags/${tag}^{commit}" >/dev/null; then
+            echo "::error::tag $tag does not exist in this repository."
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-parse "refs/tags/${tag}^{commit}")" ]]; then
+            echo "::error::checked out $(git rev-parse HEAD) is not tag $tag."
+            exit 1
+          fi
+          version="${tag#v}"
+          pyproject_version="$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")"
+          npm_version="$(node -p "require('./npm/package.json').version")"
+          if [[ "$pyproject_version" != "$version" || "$npm_version" != "$version" ]]; then
+            echo "::error::tag $tag tree carries pyproject $pyproject_version / npm $npm_version, not $version."
+            exit 1
+          fi
+          echo "Recovery target verified: $tag (pyproject $pyproject_version, npm $npm_version)."
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24'
@@ -346,7 +396,7 @@ jobs:
           )
         )
       }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
@@ -354,7 +404,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          # On a dispatch recovery this is the release tag publish-npm-recovery verified.
+          ref: ${{ github.event.release.tag_name || inputs.release_tag }}
       - name: Install mcp-publisher
         env:
           MCP_PUBLISHER_VERSION: v1.7.9

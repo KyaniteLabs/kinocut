@@ -234,7 +234,10 @@ def _validate_silence_output(output: str, expected_duration: float) -> None:
     try:
         info = _run_ffprobe_json(output)
     except ProcessingError as exc:
-        raise _processing_failure("staged output could not be probed", reason(exc)) from None
+        raise _processing_failure(
+            f"staged output could not be probed ({reason(exc)})",
+            returncode=exc.returncode if isinstance(exc.returncode, int) else 1,
+        ) from None
 
     format_info = info.get("format")
     streams = info.get("streams")
@@ -268,7 +271,10 @@ def _validate_silence_output(output: str, expected_duration: float) -> None:
             timeout=DEFAULT_FFMPEG_TIMEOUT,
         )
     except ProcessingError as exc:
-        raise _processing_failure("staged output failed full media decode", reason(exc)) from None
+        raise _processing_failure(
+            f"staged output failed full media decode ({reason(exc)})",
+            returncode=exc.returncode if isinstance(exc.returncode, int) else 1,
+        ) from None
 
 
 def ai_remove_silence(

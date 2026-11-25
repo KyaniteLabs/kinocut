@@ -125,11 +125,31 @@ class WindowsJob:
                 if entry.owner_pid == pid:
                     matches.append(entry.thread_id)
                 ready = self.kernel.Thread32Next(snapshot, ctypes.byref(entry))
-            if len(matches) != 1:
+            if not matches:
                 raise _ownership_error()
-            self._resume_thread(matches[0])
+            if len(matches) == 1:
+                self._resume_thread(matches[0])
+                return
+            # AV/EDR tools may inject an extra thread into a CREATE_SUSPENDED child.
+            # Resume any suspended thread (previous suspend count == 1) and fail closed
+            # if none could be verified as the suspended primary thread.
+            resumed = 0
+            for thread_id in matches:
+                if self._try_resume_suspended_thread(thread_id):
+                    resumed += 1
+            if resumed == 0:
+                raise _ownership_error()
         finally:
             self.kernel.CloseHandle(snapshot)
+
+    def _try_resume_suspended_thread(self, thread_id) -> bool:
+        thread = self.kernel.OpenThread(2, False, thread_id)  # THREAD_SUSPEND_RESUME
+        if not thread:
+            return False
+        try:
+            return self.kernel.ResumeThread(thread) == 1
+        finally:
+            self.kernel.CloseHandle(thread)
 
     def _resume_thread(self, thread_id):
         thread = self.kernel.OpenThread(2, False, thread_id)  # THREAD_SUSPEND_RESUME

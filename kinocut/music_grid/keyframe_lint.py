@@ -48,14 +48,30 @@ def _gsap(text):
         if not match:
             raise ValueError("Unsupported GSAP tween; supply resolved timeline events")
         props = {}
-        for entry in match[2].split(","):
-            prop = re.fullmatch(rf"\s*(duration|delay|x|y|opacity|scale|rotation)\s*:\s*({_NUMBER})\s*", entry)
-            if not prop or prop[1] in props:
+        raw_entries = [part.strip() for part in match[2].split(",")]
+        if raw_entries and raw_entries[-1] == "":
+            raw_entries.pop()
+        if not raw_entries:
+            raise ValueError("Expected literal supported GSAP properties")
+        for entry in raw_entries:
+            num_prop = re.fullmatch(rf"(duration|delay|x|y|opacity|scale|rotation)\s*:\s*({_NUMBER})", entry)
+            ease_prop = re.fullmatch(r"""ease\s*:\s*(?:"[^"']*"|'[^"']*')""", entry)
+            if num_prop:
+                if num_prop[1] in props:
+                    raise ValueError("Expected literal supported GSAP properties")
+                props[num_prop[1]] = num_prop[2]
+            elif ease_prop:
+                if "ease" in props:
+                    raise ValueError("Expected literal supported GSAP properties")
+                props["ease"] = entry
+            else:
                 raise ValueError("Expected literal supported GSAP properties")
-            props[prop[1]] = prop[2]
-        yield from _event_points(
-            dict(name=match[1].strip(" \"'"), start=props.get("delay", 0), duration=props.get("duration", ""))
-        )
+        if "duration" not in props:
+            raise ValueError("Expected literal duration in GSAP tween")
+        dur = _seconds(props["duration"])
+        if dur < 0:
+            raise ValueError("GSAP duration must be non-negative")
+        yield from _event_points(dict(name=match[1].strip(" \"'"), start=props.get("delay", 0), duration=dur))
 
 
 def _strip_css_comments(text: str) -> str:
@@ -75,13 +91,22 @@ def _css_blocks(blocks):
             raise ValueError("Unsupported CSS timing; supply resolved timeline events")
         for block in re.finditer(r"@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}", text):
             selectors = re.findall(r"([^{}]+)\{[^{}]*\}", block[2])
-            if any(
-                not re.fullmatch(rf"\s*(?:from|to|{_NUMBER}\s*%)\s*", selector)
-                for selector in ",".join(selectors).split(",")
-            ):
-                raise ValueError("Unsupported keyframe selector")
-            stops = re.findall(rf"({_NUMBER})\s*%", ",".join(selectors))
-            keyframes[block[1]] = [Fraction(stop) / 100 for stop in stops]
+            parsed_stops: list[Fraction] = []
+            for raw_sel in ",".join(selectors).split(","):
+                sel = raw_sel.strip()
+                if sel == "from":
+                    parsed_stops.append(Fraction(0))
+                elif sel == "to":
+                    parsed_stops.append(Fraction(1))
+                else:
+                    pct_match = re.fullmatch(rf"({_NUMBER})\s*%", sel)
+                    if not pct_match:
+                        raise ValueError("Unsupported keyframe selector")
+                    pct = Fraction(pct_match[1])
+                    if pct < 0 or pct > 100:
+                        raise ValueError("Keyframe percentage must be between 0% and 100%")
+                    parsed_stops.append(pct / 100)
+            keyframes[block[1]] = parsed_stops
         body = re.sub(r"@keyframes\s+[\w-]+\s*\{((?:[^{}]|\{[^{}]*\})*)\}", "", text)
         if re.sub(rule_pattern, "", body).strip():
             raise ValueError("Unsupported stylesheet structure")
@@ -98,11 +123,15 @@ def _css_blocks(blocks):
                 continue
             start = _seconds(props.get("animation-delay", 0))
             duration = _seconds(props["animation-duration"])
+            if duration < 0:
+                raise ValueError("CSS animation-duration must be non-negative")
             name = props.get("animation-name", rule[1].strip())
             if "animation-name" in props:
                 if not re.fullmatch(r"[\w-]+", name):
                     raise ValueError("Unresolved CSS animation name")
-                if name != "none" and name not in keyframes:
+                if name == "none":
+                    continue
+                if name not in keyframes:
                     raise ValueError(f"Unresolved CSS @keyframes: {name}")
             yield from _event_points(dict(name=name, start=start, duration=duration))
             for stop in keyframes.get(name, []):
@@ -137,7 +166,8 @@ class _Composition(HTMLParser):
             self._buffer = []
         if "data-start" in values or "data-duration" in values:
             event = {key[5:]: value for key, value in attrs if key.startswith("data-")}
-            self.points.extend(_event_points(dict(event, name=values.get("id", tag))))
+            event_name = values.get("id") or event.get("name") or tag
+            self.points.extend(_event_points(dict(event, name=event_name)))
         if "style" in values:
             self.css_blocks.append("inline {" + (values["style"] or "") + "}")
 

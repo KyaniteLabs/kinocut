@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import warnings as _warnings
 from collections.abc import Callable
+from fractions import Fraction
 
 from .defaults import (
     DEFAULT_AUDIO_CHANNELS,
@@ -17,7 +18,7 @@ from .defaults import (
     DEFAULT_SAMPLE_RATE,
 )
 from .engine_probe import get_duration, probe
-from .engine_runtime_utils import _build_edit_result, _movflags_args, _timed_operation
+from .engine_runtime_utils import _build_edit_result, _movflags_args, _quality_args, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _open_staged_writer, _run_ffmpeg
 from .ffmpeg_helpers import _run_ffmpeg_with_progress
@@ -57,6 +58,14 @@ def _stage(on_progress: Progress | None, done: float, span: float, total: float)
     return report
 
 
+_MP4_COPY_VIDEO_CODECS = frozenset({"h264", "hevc", "mpeg4"})
+
+
+def _even_dim(value: int) -> int:
+    """Round up to a positive even dimension for yuv420p/libx264."""
+    return max(2, value + (value % 2))
+
+
 def _normalize_clips(
     clips: list[str],
     infos: list,
@@ -67,22 +76,26 @@ def _normalize_clips(
     done: float = 0.0,
     total: float = 0.0,
 ) -> list[str]:
-    """Normalize clips to common resolution, codec, fps, and audio rate.
+    """Normalize clips to common resolution, codec, fps, SAR, rotation, and audio rate.
 
+    Relies uniformly on FFmpeg autorotate (never double-rotates via manual transpose).
     Returns list of normalized clip paths inside *tmpdir*.
     """
+    target_w = _even_dim(target_w)
+    target_h = _even_dim(target_h)
     working: list[str] = []
     for i, clip in enumerate(clips):
         norm_path = os.path.join(tmpdir, f"clip_{i:04d}.mp4")
         info = infos[i]
+        # FFmpeg autorotates display-matrix clips (+90, -90, 180, 270) on decode;
+        # normalize SAR to square pixels first, then aspect-fit into even target bounds.
         vf_parts = [
+            "scale=trunc(iw*sar/2)*2:trunc(ih/2)*2",
+            "setsar=1",
             f"scale={target_w}:{target_h}:force_original_aspect_ratio=decrease",
             f"pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2",
+            "setsar=1",
         ]
-        if info.rotation == 90:
-            vf_parts.insert(0, "transpose=2")
-        elif info.rotation == 270:
-            vf_parts.insert(0, "transpose=1")
         seconds = info.duration if on_progress is not None else 0.0
         audio_filter = None
         if getattr(info, "audio_codec", None) is not None:
@@ -98,6 +111,8 @@ def _normalize_clips(
                 crf=DEFAULT_CRF,
                 preset=DEFAULT_PRESET,
                 extra=[
+                    "-pix_fmt",
+                    "yuv420p",
                     "-r",
                     str(DEFAULT_FPS),
                     "-ar",
@@ -193,12 +208,31 @@ def _normalize_needs(infos: list) -> tuple[bool, bool]:
     # Mixed audio presence breaks both the concat demuxer and the xfade audio
     # graph (it would reference an [i:a] pad that does not exist).
     mixed_audio = any(audio_flags) and not all(audio_flags)
+    rotations = {getattr(i, "normalized_rotation", (getattr(i, "rotation", 0) or 0) % 360) for i in infos}
+    sars = {getattr(i, "sar_ratio", Fraction(1, 1)) for i in infos}
+    audio_channels = {getattr(i, "audio_channels", None) for i in infos if getattr(i, "audio_channels", None)}
+    pix_fmts = {getattr(i, "pix_fmt", None) for i in infos if getattr(i, "pix_fmt", None)}
+    has_vfr = any(bool(getattr(i, "is_vfr", False)) for i in infos)
+    has_non_square_sar = any(sar != 1 for sar in sars)
+    has_odd_dims = any(
+        (
+            getattr(i, "display_width", getattr(i, "width", 0)) % 2 != 0
+            or getattr(i, "display_height", getattr(i, "height", 0)) % 2 != 0
+        )
+        for i in infos
+    )
     differs = (
         len({i.display_resolution for i in infos}) > 1
         or len({i.codec for i in infos}) > 1
         or len({round(i.fps, 2) for i in infos}) > 1
         or len({i.audio_codec for i in infos if i.audio_codec}) > 1
         or len({i.audio_sample_rate for i in infos if i.audio_sample_rate}) > 1
+        or len(rotations) > 1
+        or has_non_square_sar
+        or len(audio_channels) > 1
+        or len(pix_fmts) > 1
+        or has_vfr
+        or has_odd_dims
     )
     return differs or mixed_audio, mixed_audio
 
@@ -261,8 +295,8 @@ def merge(
     # --- End guardrails ---
 
     needs_normalize, mixed_audio = _normalize_needs(infos)
-    target_w = max(i.display_width for i in infos)
-    target_h = max(i.display_height for i in infos)
+    target_w = _even_dim(max(i.display_width for i in infos))
+    target_h = _even_dim(max(i.display_height for i in infos))
 
     with _timed_operation() as timing:
         tmpdir = tempfile.mkdtemp(prefix="mcp_video_")
@@ -315,6 +349,20 @@ def _add_silent_audio(clips: list[str], infos: list, tmpdir: str) -> list[str]:
             working.append(clip)
             continue
         silent_path = os.path.join(tmpdir, f"silent_{idx:04d}.mp4")
+        can_copy_video = (getattr(info, "codec", "") or "").lower() in _MP4_COPY_VIDEO_CODECS
+        video_args = (
+            ["-c:v", "copy"]
+            if can_copy_video
+            else [
+                "-vf",
+                r"pad=iw+mod(iw\,2):ih+mod(ih\,2)",
+                "-c:v",
+                "libx264",
+                *_quality_args(),
+                "-pix_fmt",
+                "yuv420p",
+            ]
+        )
         _run_ffmpeg(
             [
                 "-i",
@@ -328,8 +376,7 @@ def _add_silent_audio(clips: list[str], infos: list, tmpdir: str) -> list[str]:
                 "0:v:0",
                 "-map",
                 "1:a:0",
-                "-c:v",
-                "copy",
+                *video_args,
                 "-c:a",
                 "aac",
                 silent_path,
@@ -357,11 +404,20 @@ def _compute_xfade_offsets(clips: list[str], pairs: int, transition_duration: fl
 
 
 def _build_xfade_video_filter(
-    n: int, pairs: int, transition_types: list[str], offsets: list[float], transition_duration: float
+    n: int,
+    pairs: int,
+    transition_types: list[str],
+    offsets: list[float],
+    transition_duration: float,
+    *,
+    fps: float = DEFAULT_FPS,
 ) -> str:
     """Build the xfade video filter chain string with per-pair transition types."""
-    labels: list[str] = [f"{i}:v" for i in range(n)]
-    filter_parts: list[str] = []
+    # Normalize PTS origin, timebase, and constant frame rate on every input so
+    # xfade never fails on differing stream timebases (e.g. 1/30 vs 1/90000).
+    safe_fps = _escape_ffmpeg_filter_value(f"{fps:g}")
+    filter_parts: list[str] = [f"[{i}:v]setpts=PTS-STARTPTS,settb=AVTB,fps={safe_fps}[xv{i}]" for i in range(n)]
+    labels: list[str] = [f"xv{i}" for i in range(n)]
     for i in range(pairs):
         in1 = labels[i]
         in2 = labels[i + 1]
@@ -477,10 +533,12 @@ def _merge_with_transitions(
         transition_types = transition_types + [last] * (pairs - len(transition_types))
 
     offsets = _compute_xfade_offsets(clips, pairs, transition_duration)
-    filter_str = _build_xfade_video_filter(n, pairs, transition_types, offsets, transition_duration)
+    clip_infos = [probe(c) for c in clips]
+    target_fps = clip_infos[0].fps if clip_infos and clip_infos[0].fps > 0 else float(DEFAULT_FPS)
+    filter_str = _build_xfade_video_filter(n, pairs, transition_types, offsets, transition_duration, fps=target_fps)
 
     # Audio: only include if clips have audio streams
-    has_audio = any(probe(c).audio_codec is not None for c in clips)
+    has_audio = any(info.audio_codec is not None for info in clip_infos)
     if has_audio:
         audio_filter = _build_acrossfade_audio_filter(n, pairs, transition_duration)
         filter_complex = f"{filter_str};{audio_filter}"

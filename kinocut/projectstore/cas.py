@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sys
 from threading import Lock
 from pathlib import Path
 from typing import cast
@@ -16,7 +17,11 @@ from kinocut.projectstore.cas_lifecycle import cleanup_backups, restore_blob, un
 from kinocut.projectstore.ingest import _best_effort_unlink, _hash_copy_to_temp
 
 _CHUNK = 1 << 20
-_TRUSTED_LINUX_FSTYPES = frozenset({b"ext2", b"ext3", b"ext4", b"xfs", b"btrfs", b"tmpfs", b"zfs"})
+_TRUSTED_LINUX_FSTYPES = frozenset(
+    {b"ext2", b"ext3", b"ext4", b"xfs", b"btrfs", b"tmpfs", b"zfs", b"overlay", b"overlayfs"}
+)
+_TRUSTED_DARWIN_FSTYPES = frozenset({b"apfs", b"hfs"})
+_TRUSTED_WINDOWS_FSTYPES = frozenset({"NTFS", "REFS"})
 _VERIFIED: dict[tuple[int, ...], str] = {}
 _CACHE_LOCK = Lock()
 
@@ -25,11 +30,105 @@ def _identity(info: os.stat_result) -> tuple[int, ...]:
     return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
 
 
-def _device_has_trusted_ctime(dev: int) -> bool:
-    """Return True only when the device is confirmed as a local POSIX filesystem with reliable ctime."""
+def _unescape_mount_path(raw: bytes) -> str:
+    text = raw.decode("utf-8", errors="surrogateescape")
+    for octal, char in (("\\040", " "), ("\\011", "\t"), ("\\012", "\n"), ("\\134", "\\")):
+        text = text.replace(octal, char)
+    return text
+
+
+def _darwin_has_trusted_ctime(path: Path | None) -> bool:
+    """Confirm APFS/HFS+ on macOS via libc statfs while rejecting network/FAT/FUSE mounts."""
+    if path is None:
+        return False
+    try:
+        import ctypes
+        import ctypes.util
+
+        libc_path = ctypes.util.find_library("c")
+        if not libc_path:
+            return False
+        libc = ctypes.CDLL(libc_path)
+
+        # Darwin 64-bit struct statfs: f_fstypename is char[16] at offset 64 (or 88 on 64-bit inode ABI).
+        class _DarwinStatfs64(ctypes.Structure):
+            _fields_ = [
+                ("f_bsize", ctypes.c_uint32),
+                ("f_iosize", ctypes.c_int32),
+                ("f_blocks", ctypes.c_uint64),
+                ("f_bfree", ctypes.c_uint64),
+                ("f_bavail", ctypes.c_uint64),
+                ("f_files", ctypes.c_uint64),
+                ("f_ffree", ctypes.c_uint64),
+                ("f_fsid", ctypes.c_int32 * 2),
+                ("f_owner", ctypes.c_uint32),
+                ("f_type", ctypes.c_uint32),
+                ("f_flags", ctypes.c_uint32),
+                ("f_fssubtype", ctypes.c_uint32),
+                ("f_fstypename", ctypes.c_char * 16),
+                ("f_mntonname", ctypes.c_char * 1024),
+                ("f_mntfromname", ctypes.c_char * 1024),
+                ("f_flags_ext", ctypes.c_uint32),
+                ("f_reserved", ctypes.c_uint32 * 7),
+            ]
+
+        buf = _DarwinStatfs64()
+        fn = getattr(libc, "statfs$INODE64", None) or libc.statfs
+        fn.argtypes = [ctypes.c_char_p, ctypes.POINTER(_DarwinStatfs64)]
+        fn.restype = ctypes.c_int
+        if fn(os.fsencode(os.path.realpath(path)), ctypes.byref(buf)) != 0:
+            return False
+        fstype = bytes(buf.f_fstypename).split(b"\x00", 1)[0].lower()
+        return fstype in _TRUSTED_DARWIN_FSTYPES
+    except Exception:
+        return False
+
+
+def _windows_has_trusted_ctime(path: Path | None) -> bool:
+    """Confirm local NTFS/ReFS on Windows while rejecting UNC shares and FAT/exFAT volumes."""
+    if path is None:
+        return False
+    try:
+        resolved = os.path.realpath(path)
+        if resolved.startswith("\\\\"):
+            return False
+        drive, _ = os.path.splitdrive(resolved)
+        if not drive:
+            return False
+        root = drive + "\\"
+        import ctypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        fs_buf = ctypes.create_unicode_buffer(64)
+        ok = kernel32.GetVolumeInformationW(
+            ctypes.c_wchar_p(root),
+            None,
+            0,
+            None,
+            None,
+            None,
+            fs_buf,
+            len(fs_buf),
+        )
+        if not ok:
+            return False
+        return fs_buf.value.upper() in _TRUSTED_WINDOWS_FSTYPES
+    except Exception:
+        return False
+
+
+def _device_has_trusted_ctime(dev: int, path: Path | None = None) -> bool:
+    """Return True only when the device/mount is confirmed as a local filesystem with reliable ctime."""
+    if os.name == "nt":
+        return _windows_has_trusted_ctime(path)
+    if sys.platform == "darwin":
+        return _darwin_has_trusted_ctime(path)
     if os.name != "posix" or not hasattr(os, "major") or not hasattr(os, "minor"):
         return False
     dev_id = f"{os.major(dev)}:{os.minor(dev)}".encode("ascii")
+    resolved_path = os.path.realpath(path) if path is not None else None
+    best_mount_len = -1
+    best_mount_fstype: bytes | None = None
     try:
         with open("/proc/self/mountinfo", "rb") as handle:
             for line in handle:
@@ -38,16 +137,34 @@ def _device_has_trusted_ctime(dev: int) -> bool:
                     continue
                 head = parts[0].split()
                 tail = parts[1].split()
-                if len(head) >= 3 and head[2] == dev_id and tail:
+                if len(head) < 5 or not tail:
+                    continue
+                if head[2] == dev_id:
                     return tail[0] in _TRUSTED_LINUX_FSTYPES
+                if resolved_path is not None:
+                    mount_point = _unescape_mount_path(head[4])
+                    prefix = mount_point if mount_point == "/" else mount_point.rstrip("/")
+                    if (
+                        resolved_path == prefix or resolved_path.startswith("/" if prefix == "/" else prefix + "/")
+                    ) and len(prefix) > best_mount_len:
+                        best_mount_len = len(prefix)
+                        best_mount_fstype = tail[0]
     except OSError:
         return False
+    if best_mount_fstype is not None:
+        return best_mount_fstype in _TRUSTED_LINUX_FSTYPES
     return False
 
 
-def _cacheable_identity(info: os.stat_result) -> tuple[int, ...] | None:
+def _cacheable_identity(info: os.stat_result, path: Path | None = None) -> tuple[int, ...] | None:
     """Return a cache key only when the backing filesystem reliably advances ctime on rewrites."""
-    if info.st_ino == 0 or info.st_ctime_ns <= 0 or not _device_has_trusted_ctime(info.st_dev):
+    if info.st_ino == 0 or info.st_ctime_ns <= 0:
+        return None
+    try:
+        trusted = _device_has_trusted_ctime(info.st_dev, path=path)
+    except TypeError:
+        trusted = _device_has_trusted_ctime(info.st_dev)
+    if not trusted:
         return None
     return _identity(info)
 
@@ -93,6 +210,7 @@ def ingest_blob(project: store.Project, source_path: str | Path, *, media_type: 
             )
             try:
                 with store._mapped_os_errors():
+                    target.parent.mkdir(parents=True, exist_ok=True)
                     os.replace(temporary, target)
                     store._fsync_dir(target.parent)
                 return cast(CASManifestRecord, store.append_record_locked(project, record))
@@ -130,7 +248,7 @@ def _blob_matches(target: Path, manifest: CASManifestRecord, *, verify_content: 
             if before.st_size != manifest.byte_size:
                 return False
             key = _identity(before)
-            cache_key = _cacheable_identity(before)
+            cache_key = _cacheable_identity(before, path=target)
             if not verify_content and cache_key is not None:
                 with _CACHE_LOCK:
                     if cache_key in _VERIFIED:

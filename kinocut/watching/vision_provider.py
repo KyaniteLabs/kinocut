@@ -141,15 +141,29 @@ def assess_keyframes(model: str, samples: list[dict]) -> SemanticVisionAssessmen
         raise MCPVideoError("Vision request exceeds its byte ceiling", error_type="validation_error")
     if local:
         text = chat_completion(
-            completions_url(local["base_url"]), payload, feature="Vision QC", local_alternative=VISION_LOCAL_HINT
+            completions_url(local["base_url"]),
+            payload,
+            feature="Vision QC",
+            local_alternative=VISION_LOCAL_HINT,
+            key=os.environ.get("KINOCUT_VISION_API_KEY") or None,
         )
     else:
         text = _cloud_assessment_text(raw)
-    assessment = SemanticVisionAssessment.model_validate_json(strip_think_blocks(text))
+    assessment = SemanticVisionAssessment.model_validate_json(_assessment_json(text))
     timestamps = {sample["time"] for sample in samples}
     if any(finding.time not in timestamps for finding in assessment.findings):
         raise MCPVideoError("Vision response refers to an unsampled timestamp", error_type="processing_error")
     return assessment
+
+
+_FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL | re.IGNORECASE)
+
+
+def _assessment_json(text: str) -> str:
+    """The provider's JSON, tolerating the markdown fence small local models add."""
+    cleaned = strip_think_blocks(text)
+    fenced = _FENCED_JSON_RE.search(cleaned)
+    return fenced.group(1) if fenced else cleaned
 
 
 def _cloud_assessment_text(raw: bytes) -> str:

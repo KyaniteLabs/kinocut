@@ -233,13 +233,13 @@ def _resolve_plan_path(plan_path_or_dir: str) -> str:
         raise _plan_error(
             "The saved shorts plan lookup was not exact.",
             code=code,
-            cause=f"Found {len(candidates)} matching plans under {plan_path_or_dir!r}.",
+            cause=own_reason(f"Found {len(candidates)} matching plans in the requested directory."),
             recovery="Pass an exact plan path or a directory containing one plan.",
         )
     raise _plan_error(
         "The saved shorts plan could not be found.",
         code="shorts_plan_not_found",
-        cause=f"{plan_path_or_dir!r} is not a plan file or directory.",
+        cause=own_reason("The requested path is not an existing plan file or directory."),
         recovery="Pass an exact plan path or a directory containing one plan.",
     )
 
@@ -268,7 +268,7 @@ def _safe_output_dir(plan: ShortsPlan) -> str:
         raise _plan_error(
             "The plan output path is unsafe.",
             code="unsafe_path",
-            cause=str(requested),
+            cause=own_reason("The output directory resolves through a symlink or outside project_dir."),
             recovery="Choose a real directory inside project_dir.",
         )
     return resolved

@@ -72,7 +72,24 @@ def _track_samples(
             width=crop_width,
             height=crop_height,
         )
-        regions = frame_regions.get(subject.timestamp_seconds, ())
+        regions = frame_regions.get(primary_sample.timestamp_seconds)
+        if regions is None:
+            regions = frame_regions.get(subject.timestamp_seconds)
+        if regions is None and analysis.safe_regions:
+            nearest_region = min(
+                analysis.safe_regions,
+                key=lambda item: (
+                    abs(item.timestamp_seconds - primary_sample.timestamp_seconds),
+                    item.timestamp_seconds,
+                ),
+            )
+            regions = (
+                nearest_region.regions
+                if abs(nearest_region.timestamp_seconds - primary_sample.timestamp_seconds) <= 1e-6
+                else ()
+            )
+        elif regions is None:
+            regions = ()
         region_coverage = min((_coverage(region.box, crop) for region in regions), default=1.0)
         samples.append(
             CropTrackSample(

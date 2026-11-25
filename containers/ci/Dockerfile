@@ -21,5 +21,5 @@ RUN apt-get update \
     && git --version
 
 LABEL org.opencontainers.image.title="Kinocut Forgejo CI runner"
-LABEL org.opencontainers.image.description="Pinned Python 3.13 and Node 22 runner image with FFmpeg and git preinstalled"
+LABEL org.opencontainers.image.description="Pinned Python 3.14 and Node 24 runner image with FFmpeg and git preinstalled"
 LABEL org.opencontainers.image.source="https://git.kyanitelabs.tech/KyaniteLabs/kinocut"

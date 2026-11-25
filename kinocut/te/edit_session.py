@@ -8,6 +8,7 @@ import math
 import os
 import threading
 import time
+import weakref
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -21,10 +22,20 @@ from kinocut.ffmpeg_helpers import (
     _validate_artifact_path,
 )
 from kinocut.projectstore import _filelock
-from kinocut.publication import output_operation
+from kinocut.publication import durable_receipt_ownership, output_operation
+
+
+class _SessionLock:
+    """Weakly-referenceable wrapper around threading.Lock to bound _SESSION_LOCKS."""
+
+    __slots__ = ("__weakref__", "lock")
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+
 
 _LOCKS_GUARD = threading.Lock()
-_SESSION_LOCKS: dict[str, threading.Lock] = {}
+_SESSION_LOCKS: weakref.WeakValueDictionary[str, _SessionLock] = weakref.WeakValueDictionary()
 
 
 @contextlib.contextmanager
@@ -32,8 +43,11 @@ def _session_lock(path: Path) -> Iterator[None]:
     """Serialize session read-modify-write across threads and processes."""
     key = str(path.resolve())
     with _LOCKS_GUARD:
-        lock = _SESSION_LOCKS.setdefault(key, threading.Lock())
-    with lock:
+        holder = _SESSION_LOCKS.get(key)
+        if holder is None:
+            holder = _SessionLock()
+            _SESSION_LOCKS[key] = holder
+    with holder.lock:
         lock_path = path.parent / ".session.lock"
         flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
         lock_fd = os.open(lock_path, flags, 0o600)
@@ -47,11 +61,22 @@ def _session_lock(path: Path) -> Iterator[None]:
             os.close(lock_fd)
 
 
-def _write_json(path: Path, state: dict[str, Any], *, recorded: bool = False) -> None:
-    target = _validate_artifact_path(str(path), allow_recorded=recorded)
-    payload = (json.dumps(state, indent=2, allow_nan=False) + "\n").encode("utf-8")
-    with _atomic_artifact(target, allow_recorded=recorded) as staged, _open_staged_writer(staged) as stream:
-        stream.write(payload)
+def _has_ownership_witness(path: Path) -> bool:
+    ownership_dir = path.parent / f".{path.name}.ownership"
+    return ownership_dir.is_dir() and not ownership_dir.is_symlink()
+
+
+def _write_json(path: Path, state: dict[str, Any], *, recorded: bool = False, durable: bool = False) -> None:
+    if durable:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    ctx: contextlib.AbstractContextManager[Any] = (
+        durable_receipt_ownership(path) if durable else contextlib.nullcontext()
+    )
+    with ctx:
+        target = _validate_artifact_path(str(path), allow_recorded=recorded)
+        payload = (json.dumps(state, indent=2, allow_nan=False) + "\n").encode("utf-8")
+        with _atomic_artifact(target, allow_recorded=recorded) as staged, _open_staged_writer(staged) as stream:
+            stream.write(payload)
 
 
 def _load_open_session(path: Path) -> dict[str, Any]:
@@ -80,7 +105,7 @@ def session_open(path: str, goal: str) -> dict[str, Any]:
         "current_score": None,
     }
     p = root / "session.json"
-    _write_json(p, state)
+    _write_json(p, state, durable=True)
     return {**state, "path": str(p.resolve())}
 
 
@@ -125,8 +150,9 @@ def session_step(
             if not math.isfinite(improvement):
                 raise MCPVideoError("Improvement must be finite", error_type="validation_error", code="invalid_score")
         state["improvement"] = improvement
+        use_durable = _has_ownership_witness(p)
         with output_operation(overwrite=True):
-            _write_json(p, state, recorded=True)
+            _write_json(p, state, recorded=True, durable=use_durable)
     return {**state, "path": str(p.resolve()), "measured_improvement": improvement}
 
 
@@ -146,8 +172,10 @@ def session_close(session_path: str, *, write_receipt: bool = True) -> dict[str,
     _load_open_session(p)
     with _session_lock(p):
         state = _load_open_session(p)
-        with output_operation(overwrite=True):
-            _validate_artifact_path(str(p), allow_recorded=True)
+        use_durable = _has_ownership_witness(p)
+        if not use_durable:
+            with output_operation(overwrite=True):
+                _validate_artifact_path(str(p), allow_recorded=True)
         state["closed_at"] = time.time()
         baseline = state.get("baseline_score")
         current = state.get("current_score")
@@ -157,10 +185,14 @@ def session_close(session_path: str, *, write_receipt: bool = True) -> dict[str,
         state["improvement"] = improvement
         state["measured_improvement"] = improvement
         receipt_path = None
+        receipt: dict[str, Any] | None = None
         if write_receipt:
             receipts = p.parent / "receipts"
             _validate_artifact_location(str(receipts), "Receipts directory")
             receipt_path = receipts / "edit-session.receipt.json"
+            _validate_artifact_location(str(receipt_path), "Receipt path")
+            if os.path.lexists(receipt_path) and not _has_ownership_witness(receipt_path):
+                _validate_artifact_path(str(receipt_path), allow_recorded=False)
             receipt = {
                 "artifact_kind": "edit_session_receipt",
                 "session_path": str(p.resolve()),
@@ -171,9 +203,12 @@ def session_close(session_path: str, *, write_receipt: bool = True) -> dict[str,
                 "measured_improvement": improvement,
                 "closed_at": state["closed_at"],
             }
-            _write_json(receipt_path, receipt)
+        # Persist the closed session state BEFORE writing the close receipt so a
+        # session write failure never leaves an orphaned receipt on disk.
         with output_operation(overwrite=True):
-            _write_json(p, state, recorded=True)
+            _write_json(p, state, recorded=True, durable=use_durable)
+        if write_receipt and receipt_path is not None and receipt is not None:
+            _write_json(receipt_path, receipt, durable=True)
     return {
         **state,
         "path": str(p.resolve()),

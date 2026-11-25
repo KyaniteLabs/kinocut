@@ -8,14 +8,31 @@ const DEFAULT_PROBE_TIMEOUT_MS = 5000;
 const DEFAULT_KILL_GRACE_MS = 500;
 const DEFAULT_MAX_OUTPUT_BYTES = 4096;
 const PROBE_PROGRAM = [
-  "import json, sys",
+  "import importlib.util, json, sys",
   "from importlib.metadata import PackageNotFoundError, version",
   "try:",
   "    installed = version('kinocut')",
   "except PackageNotFoundError:",
   "    installed = None",
-  "print(json.dumps({'python': list(sys.version_info[:3]), 'kinocut': installed}))",
+  "importable = False",
+  "if installed is not None:",
+  "    try:",
+  "        spec = importlib.util.find_spec('kinocut')",
+  "        main_spec = importlib.util.find_spec('kinocut.__main__') if spec is not None else None",
+  "        if main_spec is not None:",
+  "            import kinocut  # noqa: F401",
+  "            importable = True",
+  "    except Exception:",
+  "        importable = False",
+  "print(json.dumps({'python': list(sys.version_info[:3]), 'kinocut': installed, 'importable': importable}))",
 ].join("\n");
+
+// Single environment policy shared across preflight probing and server launch:
+// preserve the caller's user-site configuration (e.g. PYTHONUSERBASE and any
+// explicit PYTHONNOUSERSITE) rather than disabling user-site only during probe.
+function buildPythonEnv(baseEnv = process.env) {
+  return { ...baseEnv };
+}
 
 function loadRequiredVersion() {
   const manifestPath = join(__dirname, "..", "manifest.json");
@@ -104,6 +121,7 @@ function classifyProbe(stdout, requiredVersion) {
   }
   if (payload.kinocut === null) return { ok: false, reason: "kinocut_missing" };
   if (payload.kinocut !== requiredVersion) return { ok: false, reason: "wrong_kinocut_version" };
+  if (payload.importable === false) return { ok: false, reason: "kinocut_not_importable" };
   return { ok: true };
 }
 
@@ -111,11 +129,12 @@ function probePython(command, requiredVersion, options = {}) {
   const timeoutMs = options.timeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS;
   const killGraceMs = options.killGraceMs ?? DEFAULT_KILL_GRACE_MS;
   const maxOutputBytes = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+  const env = options.env ? buildPythonEnv(options.env) : buildPythonEnv(process.env);
   const args = command === "py" ? ["-3", "-c", PROBE_PROGRAM] : ["-c", PROBE_PROGRAM];
   return new Promise((resolve) => {
     const child = spawn(command, args, {
       detached: process.platform !== "win32",
-      env: { ...process.env, PYTHONNOUSERSITE: "1" },
+      env,
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -162,6 +181,7 @@ function probeFailureMessage(reason, requiredVersion) {
     python_not_startable: "Configured Python could not be started.",
     python_too_old: "Configured Python is too old; Python 3.11+ is required.",
     kinocut_missing: `Configured Python does not have kinocut==${requiredVersion} installed.`,
+    kinocut_not_importable: `Configured Python found kinocut==${requiredVersion} metadata, but the kinocut package could not be imported.`,
     wrong_kinocut_version: `Configured Python has a different Kinocut version; install kinocut==${requiredVersion}.`,
     invalid_probe_output: "Python returned an invalid preflight response.",
     probe_failed: "Python preflight command failed.",
@@ -219,7 +239,7 @@ function recordSupervisedLauncherChild(child) {
 
 async function main() {
   const requiredVersion = loadRequiredVersion();
-  const env = { ...process.env };
+  const env = buildPythonEnv(process.env);
   try {
     configureFfmpeg(env);
   } catch (error) {
@@ -228,7 +248,7 @@ async function main() {
   }
   let lastReason = "python_not_startable";
   for (const command of pythonCandidates()) {
-    const result = await probePython(command, requiredVersion);
+    const result = await probePython(command, requiredVersion, { env });
     if (!result.ok) {
       lastReason = result.reason;
       continue;

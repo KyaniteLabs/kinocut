@@ -8,6 +8,7 @@ from enum import StrEnum
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
+from .._install_hints import pip_install_hint
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_artifact_location, _validate_input_path
 from ..hashing import file_sha256 as file_sha256
@@ -36,13 +37,14 @@ def require_still_deps() -> None:
     except ImportError:
         missing.append("numpy")
     if missing:
+        hint = pip_install_hint("image")
         raise MCPVideoError(
-            'Still/plate tools require image extras (pillow, numpy). Install with: pip install "kinocut[image]==2.0.1"',
+            f"Still/plate tools require image extras (pillow, numpy). Install with: {hint}",
             error_type="dependency_error",
             code="missing_still_plate_deps",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[image]==2.0.1"',
+                "description": f"Run: {hint}",
             },
         )
 

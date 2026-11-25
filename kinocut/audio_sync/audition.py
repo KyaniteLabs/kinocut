@@ -8,6 +8,7 @@ import json
 import math
 import re
 import stat
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -41,7 +42,13 @@ def _measure_audio(source: str, stream: int = 0) -> _AudioLevels:
     try:
         log = _run_ffmpeg([*measure, "-af", f"{_STATS},loudnorm=print_format=json", "-f", "null", "-"]).stderr
     except ProcessingError:
-        log = _run_ffmpeg([*measure, "-af", _STATS, "-f", "null", "-"]).stderr
+        try:
+            log = _run_ffmpeg([*measure, "-af", _STATS, "-f", "null", "-"]).stderr
+        except ProcessingError:
+            raise MCPVideoError(
+                "Audition mix input does not contain a readable audio stream",
+                code="invalid_audition_audio",
+            ) from None
     peak = _PEAK.search(log)
     if peak is None:
         raise MCPVideoError("Could not measure audition audio sample peak", code="audio_measurement_failed")
@@ -155,16 +162,32 @@ def _volume(entry: dict) -> str:
     return f"volume={entry['applied_gain_db']:.12g}dB:precision=double"
 
 
-def _mux(video: Path, entries: list[dict], stage: str) -> list[tuple[str, int]]:
+_MP4_COMPATIBLE_VIDEO_CODECS = frozenset({"h264", "hevc", "mpeg4", "av1"})
+
+
+def _mux(
+    video: Path,
+    entries: list[dict],
+    stage: str,
+    *,
+    picture_stream: int = 0,
+    video_codec: str = "",
+    output_suffix: str = ".mkv",
+) -> list[tuple[str, int]]:
     args = ["-nostdin", "-v", "error", "-i", str(video)]
     for entry in entries:
         args.extend(["-i", entry["source"]])
+    copy_video = output_suffix != ".mp4" or (video_codec.lower() in _MP4_COMPATIBLE_VIDEO_CODECS)
+    video_encode_args = (
+        ["-c:v", "copy"]
+        if copy_video
+        else ["-vf", r"pad=iw+mod(iw\,2):ih+mod(ih\,2)", "-c:v", "libx264", "-pix_fmt", "yuv420p"]
+    )
     args.extend(
         [
             "-map",
-            "0:v:0",
-            "-c:v",
-            "copy",
+            f"0:{picture_stream}",
+            *video_encode_args,
             "-c:a",
             "aac",
             "-b:a",
@@ -250,7 +273,8 @@ enable.addEventListener('click', async () => {
     context ??= new AudioContext();
     await context.resume();
     buffers ??= await Promise.all(tracks.map(track => {
-      const bytes = Uint8Array.from(atob(track.textContent), character => character.charCodeAt(0));
+      const payload = track.textContent.replace(/^data:[^;]+;base64,/, '');
+      const bytes = Uint8Array.from(atob(payload), character => character.charCodeAt(0));
       return context.decodeAudioData(bytes.buffer);
     }));
     gains ??= buffers.map(() => {
@@ -291,6 +315,45 @@ requestAnimationFrame(tick);
 """
 
 
+def _write_encoded_track(page, track: Path) -> None:
+    """Embed compact AAC/M4A inline when FFmpeg is available; fall back to WAV."""
+    source = track
+    mime = "audio/wav"
+    with tempfile.TemporaryDirectory(prefix="kinocut-audition-") as tmpdir:
+        compact = Path(tmpdir) / "track.m4a"
+        try:
+            _run_ffmpeg(
+                [
+                    "-nostdin",
+                    "-v",
+                    "error",
+                    "-i",
+                    str(track),
+                    "-vn",
+                    "-map_metadata",
+                    "-1",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                    "-movflags",
+                    "+faststart",
+                    str(compact),
+                ]
+            )
+            if compact.is_file() and compact.stat().st_size > 0:
+                source = compact
+                mime = "audio/mp4"
+        except (MCPVideoError, OSError):
+            source = track
+            mime = "audio/wav"
+        page.write(f'<script class="track" type="application/octet-stream">data:{mime};base64,')
+        with source.open("rb") as audio:
+            while chunk := audio.read(3 * 16384):
+                page.write(base64.b64encode(chunk).decode("ascii"))
+        page.write("</script>\n")
+
+
 def _write_page(path: Path, picture: str, entries: list[dict], tracks: list[Path], loop: list) -> None:
     with path.open("w", encoding="utf-8") as page:
         page.write("""<!doctype html><html lang="en"><meta charset="utf-8">
@@ -310,11 +373,7 @@ label,button{margin-inline-end:1rem} select,button{font:inherit}
         )
         page.write(f'<script id="loop-range" type="application/json">{json.dumps(loop)}</script>\n')
         for track in tracks:
-            page.write('<script class="track" type="application/octet-stream">')
-            with track.open("rb") as audio:
-                while chunk := audio.read(3 * 16384):
-                    page.write(base64.b64encode(chunk).decode("ascii"))
-            page.write("</script>\n")
+            _write_encoded_track(page, track)
         page.write(f"<script>{_PLAYER}</script></html>\n")
 
 
@@ -327,7 +386,7 @@ def _is_still_image_format(probe: dict) -> bool:
     return not tokens or any(tok in _IMAGE_FORMATS or tok.endswith("_pipe") for tok in tokens)
 
 
-def _picture_stream(video: Path) -> int:
+def _picture_stream_info(video: Path) -> tuple[int, str]:
     try:
         if not stat.S_ISREG(video.lstat().st_mode):
             raise MCPVideoError("Picture must be a non-symlink regular file", code="invalid_picture")
@@ -347,8 +406,12 @@ def _picture_stream(video: Path) -> int:
             and stream.get("width", 0) > 0
             and stream.get("height", 0) > 0
         ):
-            return stream["index"]
+            return stream["index"], str(stream.get("codec_name") or "")
     raise MCPVideoError("Picture must contain a video stream", code="invalid_picture")
+
+
+def _picture_stream(video: Path) -> int:
+    return _picture_stream_info(video)[0]
 
 
 def _render_wavs(entries: list[dict], tracks: list[Path]) -> list[tuple[str, int]]:
@@ -438,7 +501,7 @@ def build_ab_audition(
         or _nonnegative(loop_start_s, "loop_start_s") >= _nonnegative(loop_end_s, "loop_end_s")
     ):
         raise MCPVideoError("Supply an increasing loop start and end in seconds", code="invalid_parameter")
-    picture_stream = _picture_stream(video) if mode == "review_page" else None
+    picture_stream, video_codec = _picture_stream_info(video)
     record_operation_input(str(video))
     entries, sources = _mix_receipts(mixes, blind=blind)
     receipt = {
@@ -458,9 +521,22 @@ def build_ab_audition(
         "loop_end_s": loop_end_s,
     }
     explicit = target_lufs is not None
-    if picture_stream is None:
+    if mode == "multi_audio":
         with atomic_output(str(output)) as stage:
-            _render_matched(lambda: _mux(video, entries, stage), entries, sources, receipt, explicit=explicit)
+            _render_matched(
+                lambda: _mux(
+                    video,
+                    entries,
+                    stage,
+                    picture_stream=picture_stream,
+                    video_codec=video_codec,
+                    output_suffix=output.suffix.lower(),
+                ),
+                entries,
+                sources,
+                receipt,
+                explicit=explicit,
+            )
     else:
         _review(video, picture_stream, entries, sources, output, receipt, loop, explicit=explicit)
     return receipt

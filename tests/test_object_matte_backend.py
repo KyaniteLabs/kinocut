@@ -237,8 +237,10 @@ def test_info_still_does_not_download(monkeypatch):
         "mcp_video.object_matte.weights._download_weights",
         lambda path: (_ for _ in ()).throw(AssertionError("info must not download")),
     )
+    from kinocut._install_hints import pip_install_hint
+
     result = remove_background(info=True)
-    assert result.data["models"]["birefnet-general"]["install"] == 'pip install "kinocut[object-matte]==2.0.1"'
+    assert result.data["models"]["birefnet-general"]["install"] == pip_install_hint("object-matte")
 
 
 def test_assert_alpha_output_rejects_mp4() -> None:

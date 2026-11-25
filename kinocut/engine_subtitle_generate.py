@@ -50,11 +50,17 @@ def generate_subtitles(
         )
     warnings = [str(code) for code in clamped.warnings]
 
-    srt_file = _write_srt(entries, input_path, output_path)
-    if burn:
+    srt_dir, srt_file = _resolve_srt_destination(input_path, output_path)
+    video_out = os.path.join(srt_dir, "subtitled.mp4") if burn else None
+    if video_out is not None:
+        # Validate the burned video target BEFORE writing subtitles.srt so an
+        # output_exists/unsafe_path rejection never leaves an orphaned .srt file.
+        _validate_output_path(video_out)
+
+    srt_file = _write_srt(entries, srt_dir, srt_file)
+    if burn and video_out is not None:
         from .engine_subtitles import burn_subtitles
 
-        video_out = os.path.join(os.path.dirname(srt_file), "subtitled.mp4")
         result, _ = burn_subtitles(input_path, srt_file, output_path=video_out, format_hint="srt")
         return SubtitleResult(
             srt_path=srt_file,
@@ -115,7 +121,7 @@ def _validate_entries(entries: list[Mapping]) -> None:
             )
 
 
-def _write_srt(entries: list[Mapping], input_path: str, output_path: str | None) -> str:
+def _resolve_srt_destination(input_path: str, output_path: str | None) -> tuple[str, str]:
     if output_path:
         if os.path.isdir(output_path) or output_path.endswith(os.sep):
             srt_dir = output_path
@@ -123,13 +129,15 @@ def _write_srt(entries: list[Mapping], input_path: str, output_path: str | None)
         else:
             srt_dir = os.path.dirname(output_path) or "."
             srt_file = output_path
-        os.makedirs(srt_dir, exist_ok=True)
     else:
         srt_dir = _auto_output_dir(input_path, "subtitles")
-        os.makedirs(srt_dir, exist_ok=True)
         srt_file = os.path.join(srt_dir, "subtitles.srt")
+    return srt_dir, srt_file
 
-    with _atomic_artifact(srt_file) as staged, _open_staged_writer(staged) as stream:
+
+def _write_srt(entries: list[Mapping], srt_dir: str, srt_file: str) -> str:
+    os.makedirs(srt_dir, exist_ok=True)
+    with _atomic_artifact(srt_file, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
         stream.write(_build_srt_content(entries).encode("utf-8"))
     return srt_file
 

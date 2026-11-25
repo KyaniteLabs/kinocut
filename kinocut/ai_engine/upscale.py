@@ -15,6 +15,7 @@ import ssl
 import tempfile
 from pathlib import Path
 
+from .._install_hints import pip_install_hint
 from ..audio_bed_validation import reject_output_alias
 from ..data_dirs import cache_home
 from ..errors import InputFileError, MCPVideoError, ProcessingError
@@ -421,7 +422,7 @@ def ai_upscale(
             except ImportError:
                 raise MCPVideoError(
                     "AI upscaling requires either realesrgan or opencv-contrib-python (cv2). "
-                    'Install with: pip install "kinocut[upscale]==2.0.1" (Python 3.11/3.12)',
+                    f"Install with: {pip_install_hint('upscale')} (Python 3.11/3.12)",
                     error_type="dependency_error",
                     code="missing_upscale_dep",
                 ) from None

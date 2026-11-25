@@ -10,9 +10,9 @@ Plugin bundle **2.0.1** pins the separately versioned Kinocut runtime
 `mcp-video` compatibility package **1.6.22** installs that same runtime.
 Catalog entries use the bundle version; launchers use the runtime version.
 
-The Hermes catalog listing is a separate pin: it still launches
-`kinocut==1.16.4` through uvx (203 MCP tools / 177 CLI). Do not quote the 205-tool
-published surface as the Hermes pin.
+The Hermes catalog listing is a separate pin: `scripts/repin_marketplaces.sh`
+updates it to launch `kinocut==2.0.1` through uvx (206 MCP tools / 177 CLI).
+Check the live catalog entry before quoting its currently served version.
 
 Local FFmpeg editing and color grading need no account or API key. Network use
 depends on the features you choose:

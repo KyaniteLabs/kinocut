@@ -7,8 +7,16 @@ from collections.abc import Callable
 import os
 from typing import Any
 
+from kinocut.contracts.review import ProposalStatus
+from kinocut.errors import MCPVideoError
 from kinocut.te.sphere_director import ENV_DIRECTOR, DirectorFn, apply_director, detect_sphere_director
-from kinocut.te.sphere_plan import decide_sphere_plan, propose_sphere_plan, validate_sphere_plan
+from kinocut.te.sphere_plan import (
+    decide_sphere_plan,
+    propose_sphere_plan,
+    require_approved,
+    sphere_plan_digest,
+    validate_sphere_plan,
+)
 from kinocut.te.sphere_render import render_sphere_plan
 from kinocut.te.sphere_storyboard import storyboard_sphere_plan
 
@@ -110,11 +118,23 @@ def approve_and_render(
     allow_fail: bool = False,
     work_dir: str | None = None,
 ) -> dict[str, Any]:
-    decided = decide_sphere_plan(plan, decision, layout=layout)
-    if decided.get("status") != "approved":
+    validated_in = validate_sphere_plan(plan)
+    if "approval" in validated_in:
+        prior_approval = validated_in.get("approval")
+        if not isinstance(prior_approval, dict) or prior_approval.get("plan_sha256") != sphere_plan_digest(
+            validated_in
+        ):
+            raise MCPVideoError(
+                "360 assembly plan approval digest is invalid or tampered; re-propose or clear stale approval.",
+                error_type="validation_error",
+                code="human_apply_required",
+            )
+    decided = decide_sphere_plan(validated_in, decision, layout=layout)
+    if decided.get("status") != ProposalStatus.APPROVED:
         return decided
-    receipt = render_sphere_plan(decided, output_path, work_dir=work_dir, allow_fail=allow_fail)
-    return {**decided, "sphere_render": receipt}
+    verified = require_approved(decided)
+    receipt = render_sphere_plan(verified, output_path, work_dir=work_dir, allow_fail=allow_fail)
+    return {**verified, "sphere_render": receipt}
 
 
 __all__ = [

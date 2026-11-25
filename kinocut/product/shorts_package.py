@@ -64,12 +64,22 @@ def _renders_for(plan: ShortsPlan, candidate_id: str) -> tuple[RenderRecord, ...
     return tuple(record for record in plan.renders if record.candidate_id == candidate_id)
 
 
-def _gate_package_media(path: str) -> dict[str, Any]:
+def _gate_package_media(
+    path: str,
+    *,
+    profile: str | None = None,
+    profile_reason: str | None = None,
+) -> dict[str, Any]:
     """Gate the exact copied render that will be published."""
     from ..defaults import DEFAULT_QUALITY_GATE_SCORE
     from ..quality_guardrails import assert_quality
 
-    return assert_quality(path, min_score=DEFAULT_QUALITY_GATE_SCORE)
+    return assert_quality(
+        path,
+        min_score=DEFAULT_QUALITY_GATE_SCORE,
+        profile=profile,
+        profile_reason=profile_reason,
+    )
 
 
 def _require_renders_of_the_approved_cut(
@@ -82,7 +92,7 @@ def _require_renders_of_the_approved_cut(
         raise _package_error(
             "Platform renders do not match the approved cut.",
             code="shorts_package_render_stale",
-            cause=f"render digests for {', '.join(stale)} predate the current approved revision.",
+            cause=own_reason(f"render digests for {', '.join(stale)} predate the current approved revision."),
             recovery="Re-run render_approved_candidate(...) for the approved cut, then package again.",
         )
 
@@ -94,6 +104,8 @@ def _package_platform(
     base: Path,
     stage: Path,
     review_decision_ref: str,
+    profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Assemble and gate one private platform package."""
     root = base / record.platform
@@ -113,7 +125,11 @@ def _package_platform(
     )
     manifest_path = Path(result.manifest_path)
     video = next(asset.relative_path for asset in result.manifest.assets if asset.role == "vertical_video")
-    gate = _gate_package_media(str(Path(result.package_root, video)))
+    gate_path = str(Path(result.package_root, video))
+    if profile is not None or profile_reason is not None:
+        gate = _gate_package_media(gate_path, profile=profile, profile_reason=profile_reason)
+    else:
+        gate = _gate_package_media(gate_path)
     if "video" in gate:
         gate = {**gate, "video": str(root / video)}
     return {
@@ -133,6 +149,8 @@ def package_approved_candidate(
     package_root: str | None = None,
     overwrite: bool = False,
     allow_fail: bool = False,
+    profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Package every platform draft after QC. Legacy ``allow_fail`` cannot bypass QC."""
     plan = load_shorts_plan(plan_path_or_dir)
@@ -142,7 +160,7 @@ def package_approved_candidate(
         raise _package_error(
             "No platform renders exist for this approved candidate.",
             code="shorts_package_render_required",
-            cause=f"candidate {candidate.candidate_id!r} has no RenderRecord entries.",
+            cause=own_reason("the approved candidate has no RenderRecord entries."),
             recovery="Call render_approved_candidate(...) first, then package.",
         )
 
@@ -156,12 +174,20 @@ def package_approved_candidate(
         raise _package_error(
             "Package root escapes plan.output_dir.",
             code="unsafe_path",
-            cause=f"{requested!r} is outside {plan.output_dir!r}.",
+            cause=own_reason("the requested package_root resolves outside plan.output_dir."),
             recovery="Pass a dedicated package_root under the plan output directory.",
         )
     with anchored_tree(base, overwrite=overwrite) as stage:
         emitted = [
-            _package_platform(record, candidate=candidate, base=base, stage=stage, review_decision_ref=plan.job_id)
+            _package_platform(
+                record,
+                candidate=candidate,
+                base=base,
+                stage=stage,
+                review_decision_ref=plan.job_id,
+                profile=profile,
+                profile_reason=profile_reason,
+            )
             for record in records
         ]
     manifests = dict.fromkeys((*plan.package_manifests, *(item["manifest_path"] for item in emitted)))

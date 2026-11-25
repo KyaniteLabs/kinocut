@@ -12,6 +12,9 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 
 // --- reducer:begin (pure; no SDK use; keep self-contained) ---
 const MAX_RECENT = 10
+const MAX_ACTIVE = 50
+const STALL_GAP_MS = 10_000
+const STALE_ACTIVE_MS = 5 * 60 * 1000
 
 // Inspection tools appear in Activity; tests/test_desktop_plugin_lookups.py checks this list.
 export const LOOKUP_TOOLS = new Set([
@@ -58,28 +61,180 @@ export function clampPercent(value) {
   return Math.min(100, Math.max(0, Math.round(n)))
 }
 
+export function formatDuration(ms) {
+  if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0) return ''
+  const roundedMs = Math.round(ms)
+  if (roundedMs < 1000) return `${roundedMs} ms`
+  const tenths = Math.round(ms / 100)
+  if (tenths < 600) return `${(tenths / 10).toFixed(1)} s`
+  const totalSeconds = Math.round(ms / 1000)
+  const mins = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  return `${mins} m ${secs} s`
+}
+
+const FAILED_STATUSES = new Set(['failed', 'error', 'cancelled', 'canceled'])
+const QUEUED_STATUSES = new Set(['queued', 'pending'])
+const SUBMITTED_STATUSES = new Set(['submitted'])
+const RUNNING_STATUSES = new Set(['running', 'in_progress', 'started'])
+const DONE_STATUSES = new Set(['done', 'completed', 'succeeded', 'finished', 'ok'])
+
+function normalizeLifecycleStatus(value) {
+  if (typeof value !== 'string') return null
+  const s = value.trim().toLowerCase()
+  if (FAILED_STATUSES.has(s)) return 'failed'
+  if (QUEUED_STATUSES.has(s)) return 'queued'
+  if (SUBMITTED_STATUSES.has(s)) return 'submitted'
+  if (RUNNING_STATUSES.has(s)) return 'running'
+  if (DONE_STATUSES.has(s)) return 'done'
+  return null
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function extractArtifacts(obj) {
+  if (!obj || typeof obj !== 'object') {
+    return {
+      jobId: null,
+      outputPath: null,
+      reviewCardPath: null,
+      previewDirective: null,
+      playsInline: null,
+      artifactSha256: null,
+      clips: []
+    }
+  }
+  const jobObj = obj.job && typeof obj.job === 'object' ? obj.job : null
+  const reviewCard = obj.review_card && typeof obj.review_card === 'object' ? obj.review_card : null
+  const jobId = nonEmptyString(obj.job_id) || nonEmptyString(jobObj?.job_id) || nonEmptyString(obj.jobId)
+  const outputPath =
+    nonEmptyString(obj.output_path) ||
+    nonEmptyString(obj.output) ||
+    nonEmptyString(obj.video_path) ||
+    nonEmptyString(obj.file)
+  const reviewCardPath =
+    nonEmptyString(reviewCard?.output_path) ||
+    (obj.operation === 'review_card' ? nonEmptyString(obj.output_path) : null)
+  const previewDirective = nonEmptyString(obj.preview_directive)
+  const playsInline = typeof obj.plays_inline === 'boolean' ? obj.plays_inline : null
+  const artifactSha256 =
+    nonEmptyString(obj.input_sha256) ||
+    nonEmptyString(reviewCard?.input_sha256) ||
+    nonEmptyString(obj.artifact_sha256) ||
+    nonEmptyString(obj.approval_digest) ||
+    nonEmptyString(obj.sha256)
+  const clips = Array.isArray(obj.clips) ? obj.clips : []
+  return { jobId, outputPath, reviewCardPath, previewDirective, playsInline, artifactSha256, clips }
+}
+
+function mergeArtifacts(a, b) {
+  return {
+    jobId: b.jobId || a.jobId,
+    outputPath: b.outputPath || a.outputPath,
+    reviewCardPath: b.reviewCardPath || a.reviewCardPath,
+    previewDirective: b.previewDirective || a.previewDirective,
+    playsInline: b.playsInline !== null ? b.playsInline : a.playsInline,
+    artifactSha256: b.artifactSha256 || a.artifactSha256,
+    clips: b.clips.length > 0 ? b.clips : a.clips
+  }
+}
+
+function hasConcreteResultEvidence(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
+  if (obj.success === true || obj.ok === true) return true
+  if (
+    nonEmptyString(obj.output_path) ||
+    nonEmptyString(obj.output) ||
+    nonEmptyString(obj.preview_directive) ||
+    Number.isFinite(obj.size_bytes) ||
+    Number.isFinite(obj.size_mb)
+  ) {
+    return true
+  }
+  if (Array.isArray(obj.clips) && obj.clips.length > 0) return true
+  return false
+}
+
 // Hermes hands MCP results to tool.complete as text: `{ result: "<JSON>" }`, sometimes
-// nested once more. Unwrap up to three layers of JSON strings or `result` fields.
+// nested once more, or as MCP `{ structuredContent, content: [{ type: 'text', text }] }`.
+// Unwrap up to four layers of JSON strings, `result`, `structuredContent`, or text content.
 function inspectResult(value) {
   let result = value
   let failed = false
   let message = ''
-  for (let depth = 0; depth <= 3; depth++) {
-    if (typeof result === 'string' && depth < 3) {
-      try {
-        result = JSON.parse(result)
-        continue
-      } catch {
-        break
+  let summary = ''
+  let lifecycle = null
+  let explicitSuccess = false
+  let lastObject = null
+  let artifacts = extractArtifacts(null)
+
+  for (let depth = 0; depth <= 4; depth++) {
+    if (typeof result === 'string' && depth < 4) {
+      const trimmed = result.trim()
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          result = JSON.parse(trimmed)
+          continue
+        } catch {
+          break
+        }
       }
+      break
     }
     if (!result || typeof result !== 'object') break
-    failed ||= failureOf(result)
+    lastObject = result
+    artifacts = mergeArtifacts(artifacts, extractArtifacts(result))
+    const statusCandidate =
+      normalizeLifecycleStatus(result.status) ||
+      normalizeLifecycleStatus(result.job_status) ||
+      normalizeLifecycleStatus(result.job?.status)
+    if (statusCandidate) {
+      if (statusCandidate === 'failed') failed = true
+      lifecycle = statusCandidate
+    }
+    if (failureOf(result)) failed = true
+    if (result.success === true || result.ok === true) explicitSuccess = true
+    if (typeof result.summary === 'string' && result.summary.trim()) summary = result.summary.trim()
     message = errorText(result.error) || errorText(result) || message
-    if (depth === 3 || !('result' in result) || (!failed && 'success' in result)) break
-    result = result.result
+
+    if (depth === 4) break
+    if (result.structuredContent && typeof result.structuredContent === 'object') {
+      result = result.structuredContent
+      continue
+    }
+    if ('result' in result && result.result !== undefined && (failed || !('success' in result) || typeof result.result === 'object' || typeof result.result === 'string')) {
+      if (!('success' in result) || failed) {
+        result = result.result
+        continue
+      }
+    }
+    if (Array.isArray(result.content)) {
+      const textBlock = result.content.find(c => c && typeof c.text === 'string' && c.text.trim())
+      if (textBlock) {
+        const trimmed = textBlock.text.trim()
+        if (trimmed.startsWith('{')) {
+          try {
+            result = JSON.parse(trimmed)
+            continue
+          } catch {
+            // Leave plain text content intact as diagnostic message.
+          }
+        }
+      }
+    }
+    break
   }
-  return { result, failed, message: typeof result === 'string' ? result || message : message }
+  return {
+    result: lastObject || result,
+    failed,
+    lifecycle,
+    explicitSuccess,
+    artifacts,
+    summary,
+    message: typeof result === 'string' ? result || message : message
+  }
 }
 
 export function unwrapResult(value) {
@@ -88,15 +243,46 @@ export function unwrapResult(value) {
 }
 
 function failureOf(r) {
-  return Boolean(r && (r.error || r.ok === false || r.success === false || r.isError === true || r.is_error === true))
+  if (!r || typeof r !== 'object') return false
+  if (r.error || r.ok === false || r.success === false || r.isError === true || r.is_error === true) return true
+  return normalizeLifecycleStatus(r.status) === 'failed'
 }
 
 // The SDK doc does not name a failure field on tool.complete; accept the plausible ones,
-// on the payload itself and on its (possibly text-wrapped) result.
+// on the payload itself and on its (possibly text-wrapped / structuredContent) result.
 export function isFailedComplete(payload) {
   if (!payload) return false
   if (failureOf(payload)) return true
   return inspectResult(payload.result).failed
+}
+
+function classifyComplete(payload, details) {
+  if (failureOf(payload) || details.failed) return 'failed'
+  const payloadLifecycle = normalizeLifecycleStatus(payload.status)
+  if (details.lifecycle === 'queued' || payloadLifecycle === 'queued') return 'queued'
+  if (details.lifecycle === 'submitted' || payloadLifecycle === 'submitted') return 'submitted'
+  if (details.lifecycle === 'running' || payloadLifecycle === 'running') return 'running'
+  // A durable job submission with a job_id and no completed output is never finished yet.
+  if (
+    details.artifacts.jobId &&
+    details.lifecycle !== 'done' &&
+    payloadLifecycle !== 'done' &&
+    !details.artifacts.outputPath &&
+    details.artifacts.clips.length === 0
+  ) {
+    return details.explicitSuccess || payload.ok === true || payload.success === true ? 'submitted' : 'unknown'
+  }
+  if (
+    details.lifecycle === 'done' ||
+    payloadLifecycle === 'done' ||
+    details.explicitSuccess ||
+    payload.ok === true ||
+    payload.success === true ||
+    hasConcreteResultEvidence(details.result)
+  ) {
+    return 'done'
+  }
+  return 'unknown'
 }
 
 function outputSize(result) {
@@ -108,14 +294,20 @@ function outputSize(result) {
   return null
 }
 
-const STALL_GAP_MS = 10_000
-
 export function estimateRemainingMs(previous, percent, now) {
   if (!previous || previous.percent === null || percent === null || percent >= 100) return null
   const elapsed = now - previous.at
   const advanced = percent - previous.percent
   if (elapsed < 250 || advanced < 15) return null
   return Math.round(elapsed * (100 - percent) / advanced)
+}
+
+export function effectiveRemainingMs(entry, now) {
+  if (!entry || entry.remainingMs === null || entry.remainingMs === undefined || entry.stale) return null
+  if (entry.lastAdvanceAt !== null && typeof now === 'number' && now - entry.lastAdvanceAt >= STALL_GAP_MS) {
+    return null
+  }
+  return entry.remainingMs
 }
 
 function errorText(err) {
@@ -143,89 +335,242 @@ function runKey(scope, id) {
   return scope ? `${scope}#${id}` : String(id)
 }
 
+function evictOverflowActive(activeMap, recentList, now) {
+  const entries = Object.values(activeMap)
+  if (entries.length <= MAX_ACTIVE) return { active: activeMap, recent: recentList }
+  const sorted = [...entries].sort(
+    (a, b) => (a.lastUpdatedAt ?? a.startedAt ?? 0) - (b.lastUpdatedAt ?? b.startedAt ?? 0)
+  )
+  const excess = sorted.length - MAX_ACTIVE
+  const active = { ...activeMap }
+  let recent = recentList
+  for (let i = 0; i < excess; i++) {
+    const evicted = sorted[i]
+    delete active[evicted.key]
+    const staleRow = {
+      key: `${evicted.key}@${evicted.historyId}`,
+      runKey: evicted.key,
+      historyId: evicted.historyId,
+      tool_id: evicted.tool_id,
+      name: evicted.name,
+      tool: evicted.tool,
+      kind: runKind(evicted.tool),
+      status: 'stale',
+      durationMs: typeof now === 'number' && now >= evicted.startedAt ? now - evicted.startedAt : null,
+      sizeBytes: null,
+      jobId: null,
+      outputPath: null,
+      reviewCardPath: null,
+      previewDirective: null,
+      playsInline: null,
+      artifactSha256: null,
+      clips: [],
+      message: evicted.message || 'No recent updates; moved out of active list.',
+      finishedAt: now
+    }
+    recent = capPerKind([staleRow, ...recent.filter(r => r.historyId !== evicted.historyId)])
+  }
+  return { active, recent }
+}
+
 // Keys of finished runs, so a late progress frame or a duplicate complete does not
 // resurrect or re-record a run. A start for a finished key does reopen it: providers
 // reuse tool ids (e.g. "call_0" every turn), and Hermes start frames carry no timestamp
 // that could tell a reuse from a replay. The desktop gateway does not replay tool.start.
 const MAX_FINISHED = 200
 
-// event: { type: 'start' | 'progress' | 'complete', payload, scope? (string), now? (ms) }
+// event: { type: 'start' | 'progress' | 'complete' | 'tick' | 'disconnect' | 'dismiss', payload?, scope?, now?, key?, staleAfterMs? }
 export function reduceRenders(state, event) {
   const prev = state || initialRenders()
   const finished = prev.finished || []
   const nextHistoryId = prev.nextHistoryId || 1
-  const payload = (event && event.payload) || {}
-  const id = payload.tool_id
-  const name = payload.name
-  if (!event || !id || !isKinocutTool(name)) return prev
-  const key = runKey(typeof event.scope === 'string' ? event.scope : '', id)
+  if (!event) return prev
+  const scope = typeof event.scope === 'string' ? event.scope : ''
   const now = typeof event.now === 'number' ? event.now : 0
+  const payload = (event && event.payload) || {}
+
+  if (event.type === 'dismiss') {
+    const targetKey = event.key || (payload.tool_id ? runKey(scope, payload.tool_id) : null)
+    if (!targetKey || !Object.hasOwn(prev.active, targetKey)) return prev
+    const active = { ...prev.active }
+    delete active[targetKey]
+    return { ...prev, active }
+  }
+
+  if (event.type === 'tick' || event.type === 'reconcile') {
+    const staleAfterMs = typeof event.staleAfterMs === 'number' ? event.staleAfterMs : STALE_ACTIVE_MS
+    let changed = false
+    const active = {}
+    for (const [k, entry] of Object.entries(prev.active)) {
+      const stalled = entry.lastAdvanceAt !== null && now - entry.lastAdvanceAt >= STALL_GAP_MS
+      const lastSeen = entry.lastUpdatedAt ?? entry.startedAt ?? 0
+      const isStale = entry.stale || (staleAfterMs > 0 && now - lastSeen >= staleAfterMs)
+      const nextRemaining = stalled || isStale ? null : entry.remainingMs
+      const nextStatus = isStale ? 'stale' : entry.status || 'running'
+      if (nextRemaining !== entry.remainingMs || Boolean(isStale) !== Boolean(entry.stale) || nextStatus !== entry.status) {
+        changed = true
+        active[k] = {
+          ...entry,
+          status: nextStatus,
+          stale: Boolean(isStale),
+          remainingMs: nextRemaining,
+          progressSample: stalled || isStale ? null : entry.progressSample
+        }
+      } else {
+        active[k] = entry
+      }
+    }
+    return changed ? { ...prev, active } : prev
+  }
+
+  if (event.type === 'disconnect') {
+    let changed = false
+    const active = {}
+    for (const [k, entry] of Object.entries(prev.active)) {
+      const matchesScope = !scope || entry.scope === scope || k.startsWith(`${scope}#`)
+      if (matchesScope && (!entry.stale || entry.remainingMs !== null)) {
+        changed = true
+        active[k] = {
+          ...entry,
+          status: 'stale',
+          stale: true,
+          remainingMs: null,
+          progressSample: null,
+          message: entry.message || 'Disconnected; final status unknown.'
+        }
+      } else {
+        active[k] = entry
+      }
+    }
+    return changed ? { ...prev, active } : prev
+  }
+
+  const id = payload.tool_id
+  const key = id ? runKey(scope, id) : null
+  const existing = key && Object.hasOwn(prev.active, key) ? prev.active[key] : null
+
+  // Handle a nameless complete without tool_id by marking matching-scope active entries stale
+  // (never silently leaking active rows as live forever, and never falsely marking them failed).
+  if (event.type === 'complete' && !id && !payload.name) {
+    let changed = false
+    const active = {}
+    for (const [k, entry] of Object.entries(prev.active)) {
+      const matchesScope = !scope || entry.scope === scope || k.startsWith(`${scope}#`)
+      if (matchesScope && (!entry.stale || entry.remainingMs !== null)) {
+        changed = true
+        active[k] = {
+          ...entry,
+          status: 'stale',
+          stale: true,
+          remainingMs: null,
+          progressSample: null,
+          message: entry.message || 'Completion frame lacked tool identity; status unknown.'
+        }
+      } else {
+        active[k] = entry
+      }
+    }
+    return changed ? { ...prev, active } : prev
+  }
+
+  if (!id) return prev
+  // Accept progress/complete for an already-tracked active run even if `name` is omitted.
+  const name = typeof payload.name === 'string' && payload.name ? payload.name : existing ? existing.name : ''
+  if (!isKinocutTool(name)) return prev
   const tool = shortToolName(name)
 
   if (event.type === 'start' || event.type === 'progress') {
     if (event.type === 'progress' && finished.includes(key)) return prev
-    const existing = Object.hasOwn(prev.active, key) ? prev.active[key] : null
     const percent = event.type === 'progress' ? clampPercent(payload.percent) : null
     if (percent !== null && existing?.percent != null && percent < existing.percent) return prev
     const historyId = existing ? existing.historyId : nextHistoryId
     let progressSample = existing?.progressSample ?? null
     let lastAdvanceAt = existing?.lastAdvanceAt ?? null
     let remainingMs = existing?.remainingMs ?? null
+    let etaAt = existing?.etaAt ?? null
+    const stalled = lastAdvanceAt !== null && now - lastAdvanceAt >= STALL_GAP_MS
     if (percent !== null) {
       const advanced = existing?.percent == null || percent > existing.percent
-      const stalled = lastAdvanceAt !== null && now - lastAdvanceAt >= STALL_GAP_MS
       if (percent === 100) {
         progressSample = { percent, at: now }
         lastAdvanceAt = now
         remainingMs = null
+        etaAt = null
       } else if (!progressSample || stalled) {
         progressSample = { percent, at: now }
         lastAdvanceAt = now
         remainingMs = null
+        etaAt = null
       } else if (advanced) {
         lastAdvanceAt = now
         const estimate = estimateRemainingMs(progressSample, percent, now)
         if (estimate !== null) {
           progressSample = { percent, at: now }
           remainingMs = estimate
+          etaAt = now
         }
       }
+    } else if (stalled) {
+      // Message-only progress after a stall gap must drop the frozen ETA.
+      progressSample = null
+      remainingMs = null
+      etaAt = null
     }
     const next = {
       key,
+      scope,
       historyId,
       tool_id: id,
       name,
       tool,
+      status: 'running',
+      stale: false,
       startedAt: existing ? existing.startedAt : now,
+      lastUpdatedAt: now,
       percent: percent !== null ? percent : existing ? existing.percent : null,
       progressSample,
       lastAdvanceAt,
       remainingMs,
+      etaAt,
       message: typeof payload.message === 'string' && payload.message ? payload.message : existing ? existing.message : ''
     }
+    const nextActiveRaw = { ...prev.active, [key]: next }
+    const { active, recent } = evictOverflowActive(nextActiveRaw, prev.recent, now)
     return {
-      active: { ...prev.active, [key]: next },
-      recent: prev.recent,
+      active,
+      recent,
       finished: event.type === 'start' ? finished.filter(k => k !== key) : finished,
       nextHistoryId: existing ? nextHistoryId : nextHistoryId + 1
     }
   }
 
   if (event.type === 'complete') {
-    const existing = Object.hasOwn(prev.active, key) ? prev.active[key] : null
     if (!existing && finished.includes(key)) return prev
     const active = { ...prev.active }
     delete active[key]
     const historyId = existing ? existing.historyId : nextHistoryId
     const historyKey = `${key}@${historyId}`
     const details = inspectResult(payload.result)
-    const failed = failureOf(payload) || details.failed
-    const startedAt = existing ? existing.startedAt : now
+    const status = classifyComplete(payload, details)
+    const failed = status === 'failed'
     const durationMs =
       typeof payload.duration_s === 'number' && Number.isFinite(payload.duration_s)
         ? Math.max(0, Math.round(payload.duration_s * 1000))
-        : Math.max(0, now - startedAt)
+        : existing
+          ? Math.max(0, now - existing.startedAt)
+          : null
+    const terminalSummary =
+      (typeof payload.summary === 'string' && payload.summary.trim() ? payload.summary.trim() : '') ||
+      details.summary
+    let message = ''
+    if (failed) {
+      message = errorText(payload.error) || details.message || (existing && existing.message) || ''
+    } else if (status === 'unknown') {
+      message = terminalSummary || (existing && existing.message) || 'Call ended; result unavailable.'
+    } else {
+      message = terminalSummary || (existing && existing.message) || ''
+    }
+    const artifacts = details.artifacts
     const done = {
       key: historyKey,
       runKey: key,
@@ -234,14 +579,17 @@ export function reduceRenders(state, event) {
       name,
       tool,
       kind: runKind(tool),
-      status: failed ? 'failed' : 'done',
+      status,
       durationMs,
-      sizeBytes: failed ? null : outputSize(details.result),
-      message: failed
-        ? errorText(payload.error) || details.message ||
-          (existing && existing.message) ||
-          ''
-        : (existing && existing.message) || (typeof payload.summary === 'string' ? payload.summary : ''),
+      sizeBytes: failed || status === 'unknown' ? null : outputSize(details.result),
+      jobId: artifacts.jobId,
+      outputPath: failed ? null : artifacts.outputPath,
+      reviewCardPath: failed ? null : artifacts.reviewCardPath,
+      previewDirective: failed ? null : artifacts.previewDirective,
+      playsInline: failed ? null : artifacts.playsInline,
+      artifactSha256: failed ? null : artifacts.artifactSha256,
+      clips: failed ? [] : artifacts.clips,
+      message,
       finishedAt: now
     }
     return {
@@ -256,6 +604,7 @@ export function reduceRenders(state, event) {
 // --- reducer:end ---
 
 const FLASH_MS = 5000
+const TICK_INTERVAL_MS = 10_000
 const PANE_ID = 'kinocut-renders'
 
 // The desktop plugin loads as a single module with no relative asset imports.
@@ -285,14 +634,6 @@ const KINOCUT_MARK = 'data:image/png;base64,' + [
   'ZX3tD3Wj5/umQJ/X/8uBfwFp+RkHlyRdAwAAAABJRU5ErkJggg=='
 ].join('')
 
-function formatDuration(ms) {
-  if (!Number.isFinite(ms) || ms < 0) return ''
-  if (ms < 1000) return `${Math.round(ms)} ms`
-  const s = ms / 1000
-  if (s < 60) return `${s.toFixed(1)} s`
-  return `${Math.floor(s / 60)} m ${Math.round(s % 60)} s`
-}
-
 function formatOutputSize(bytes) {
   if (bytes === null) return ''
   if (bytes < 1024) return `${Math.round(bytes)} B`
@@ -303,14 +644,30 @@ function formatOutputSize(bytes) {
 function createStore(ctx) {
   let state = { renders: initialRenders(), flash: null }
   let cancelFlash = null
+  let cancelTick = null
   const listeners = new Set()
   const emit = () => listeners.forEach(fn => fn())
   const clearFlash = () => {
     if (cancelFlash) cancelFlash()
     cancelFlash = null
   }
+  const clearTick = () => {
+    if (cancelTick) cancelTick()
+    cancelTick = null
+  }
+  if (typeof ctx.setInterval === 'function') {
+    cancelTick = ctx.setInterval(() => {
+      if (Object.keys(state.renders.active).length === 0) return
+      const renders = reduceRenders(state.renders, { type: 'tick', now: Date.now() })
+      if (renders !== state.renders) {
+        state = { ...state, renders }
+        emit()
+      }
+    }, TICK_INTERVAL_MS)
+  }
   ctx.onDispose(() => {
     clearFlash()
+    clearTick()
     listeners.clear()
   })
   return {
@@ -319,6 +676,12 @@ function createStore(ctx) {
       listeners.add(fn)
       return () => listeners.delete(fn)
     },
+    dismiss(key) {
+      const renders = reduceRenders(state.renders, { type: 'dismiss', key, now: Date.now() })
+      if (renders === state.renders) return
+      state = { ...state, renders }
+      emit()
+    },
     dispatch(type, payload, scope) {
       const renders = reduceRenders(state.renders, { type, payload, scope, now: Date.now() })
       if (renders === state.renders) return
@@ -326,7 +689,7 @@ function createStore(ctx) {
       if (type === 'complete') {
         const latest = renders.recent[0]
         if (latest) {
-          flash = { tool: latest.tool, failed: latest.status === 'failed' }
+          flash = { tool: latest.tool, status: latest.status, failed: latest.status === 'failed' }
           clearFlash()
           cancelFlash = ctx.setTimeout(() => {
             cancelFlash = null
@@ -363,6 +726,15 @@ const PANE_STYLE = `
 }
 .kinocut-pane .kinocut-failed {
   color: color-mix(in srgb, var(--ui-red, var(--ui-text-primary)) 82%, var(--ui-text-primary));
+}
+.kinocut-pane .kinocut-action {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--ui-stroke-secondary);
+  background: transparent;
+  color: var(--ui-text-secondary);
+  cursor: pointer;
 }
 .kinocut-pane .kinocut-progress {
   --kinocut-progress-track: color-mix(in srgb, var(--ui-accent-secondary, Highlight) 18%, transparent);
@@ -417,9 +789,67 @@ function renderFailureCause(message) {
   }) : message
 }
 
+const STATUS_LABELS = {
+  failed: 'Failed',
+  queued: 'Queued',
+  submitted: 'Submitted',
+  running: 'Running',
+  stale: 'Stale (no recent updates)',
+  unknown: 'Ended (result unavailable)',
+  done: 'Finished'
+}
+
+function pathBasename(p) {
+  if (typeof p !== 'string' || !p) return ''
+  const parts = p.split(/[\\/]/)
+  return parts[parts.length - 1] || p
+}
+
+function copyText(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    navigator.clipboard.writeText(text).catch(() => {})
+    return
+  }
+  if (typeof host.notify === 'function') {
+    host.notify({ kind: 'info', message: text })
+  }
+}
+
 function RecentList({ items, row }) {
-  return items.map(r =>
-    row(
+  return items.map(r => {
+    const statusLabel = STATUS_LABELS[r.status] || 'Ended (result unavailable)'
+    const actionButtons = []
+    if (r.outputPath) {
+      actionButtons.push(
+        jsx('button', {
+          type: 'button',
+          className: 'kinocut-action',
+          onClick: () => copyText(r.outputPath),
+          children: 'Copy path'
+        }, 'copy')
+      )
+      if (typeof host.revealPath === 'function') {
+        actionButtons.push(
+          jsx('button', {
+            type: 'button',
+            className: 'kinocut-action',
+            onClick: () => host.revealPath(r.outputPath),
+            children: 'Reveal'
+          }, 'reveal')
+        )
+      }
+      if (typeof host.openPath === 'function') {
+        actionButtons.push(
+          jsx('button', {
+            type: 'button',
+            className: 'kinocut-action',
+            onClick: () => host.openPath(r.outputPath),
+            children: 'Open'
+          }, 'open')
+        )
+      }
+    }
+    return row(
       r.key || r.tool_id,
       [
         jsxs(
@@ -436,11 +866,15 @@ function RecentList({ items, row }) {
           },
           'h'
         ),
-        jsx(
+        jsxs(
           'div',
           {
-            className: r.status === 'failed' ? 'kinocut-failed text-xs' : 'text-xs text-(--ui-text-secondary)',
-            children: r.status === 'failed' ? 'Failed' : 'Finished'
+            className: r.status === 'failed' ? 'kinocut-failed flex items-center gap-2 text-xs' : 'flex items-center gap-2 text-xs text-(--ui-text-secondary)',
+            children: [
+              jsx('span', { children: statusLabel }, 'lbl'),
+              r.jobId ? jsx('span', { className: 'font-mono', children: r.jobId }, 'job') : null,
+              r.outputPath ? jsx('span', { className: 'truncate font-mono', children: pathBasename(r.outputPath) }, 'out') : null
+            ]
           },
           's'
         ),
@@ -449,16 +883,20 @@ function RecentList({ items, row }) {
               className: 'break-words text-(--ui-text-secondary)',
               children: r.status === 'failed' ? renderFailureCause(r.message) : r.message
             }, 'm')
+          : null,
+        actionButtons.length > 0
+          ? jsx('div', { className: 'flex flex-wrap gap-1 pt-1', children: actionButtons }, 'act')
           : null
       ],
       0
     )
-  )
+  })
 }
 
 function RendersPane({ store }) {
   const { renders } = useStore(store)
   const active = Object.values(renders.active)
+  const now = Date.now()
   const row = (key, children, tabIndex) =>
     jsx(
       'div',
@@ -489,25 +927,38 @@ function RendersPane({ store }) {
           className: 'kinocut-result text-(--ui-text-secondary)',
           children: 'Start a Kinocut edit in chat to see its progress here.'
         }),
-      ...active.map(a =>
-        row(a.key || a.tool_id, [
+      ...active.map(a => {
+        const eta = effectiveRemainingMs(a, now)
+        return row(a.key || a.tool_id, [
           jsxs('div', {
-            className: 'font-semibold',
+            className: 'flex items-center justify-between gap-2 font-semibold',
             children: [
-              `${a.tool} is running`,
-              a.percent === null ? '.' : jsxs('span', {
-                className: 'font-mono',
+              jsxs('span', {
                 children: [
-                  ` at ${a.percent}%`,
-                  a.remainingMs === null ? '.' : `, about ${formatDuration(a.remainingMs)} left.`
+                  a.stale ? `${a.tool} has no recent updates` : `${a.tool} is running`,
+                  a.percent === null || a.stale ? '.' : jsxs('span', {
+                    className: 'font-mono',
+                    children: [
+                      ` at ${a.percent}%`,
+                      eta === null ? '.' : `, about ${formatDuration(eta)} left.`
+                    ]
+                  })
                 ]
-              })
+              }, 't'),
+              a.stale
+                ? jsx('button', {
+                    type: 'button',
+                    className: 'kinocut-action',
+                    onClick: () => store.dismiss(a.key),
+                    children: 'Dismiss'
+                  }, 'd')
+                : null
             ]
           }, 'h'),
-          jsx(ProgressBar, { tool: a.tool, percent: a.percent }, 'p'),
+          jsx(ProgressBar, { tool: a.tool, percent: a.stale ? null : a.percent }, 'p'),
           a.message ? jsx('div', { className: 'break-words text-(--ui-text-secondary)', children: a.message }, 'm') : null
         ], 0)
-      ),
+      }),
       done.length > 0 && heading('Renders'),
       ...RecentList({ items: done, row }),
       lookups.length > 0 && heading('Activity'),
@@ -523,10 +974,13 @@ function StatusItem({ store, onOpen }) {
   let title = 'Kinocut renders'
   if (active.length > 0) {
     const a = active[active.length - 1]
-    label = `Kinocut ${a.tool}${a.percent === null ? '' : ` ${a.percent}%`}`
+    label = a.stale
+      ? `Kinocut ${a.tool} (stale)`
+      : `Kinocut ${a.tool}${a.percent === null ? '' : ` ${a.percent}%`}`
     if (a.message) title = a.message
   } else if (flash) {
-    label = `Kinocut ${flash.failed ? '✗' : '✓'} ${flash.tool}`
+    const symbol = flash.failed ? '✗' : flash.status === 'done' ? '✓' : '•'
+    label = `Kinocut ${symbol} ${flash.tool}`
   }
   if (label === null) return null
   return jsx('button', {

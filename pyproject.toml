@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kinocut"
-version = "2.0.1"
+version = "2.1.0"
 description = "Trusted, guardrailed video editing for AI agents. FFmpeg, Hyperframes, repurposing tools, Python client, CLI, and MCP server."
 readme = "README-PYPI.md"
 license = "Apache-2.0"
@@ -118,6 +118,9 @@ dev = [
     "scikit-learn>=1.3",
     "webcolors>=1.13",
     "ruff>=0.15.11",
+    # Pinned to the version ci.yml's type gate runs, so `pip install -e ".[dev]"`
+    # reproduces that gate locally.
+    "pyright==1.1.408",
 ]
 
 [tool.ruff]
@@ -224,6 +227,9 @@ markers = [
     "network: marks tests that need live network (not in the default suite)",
     "process_timing: asserts tight process deadlines; run serially by scripts/run_full_suite.py",
 ]
+# pytest-asyncio 1.x warns on every run when this is unset; function scope is
+# the behaviour the suite already relies on.
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.pyright]
 # Typed-core rollout: the contract modules every engine depends on are
@@ -264,6 +270,59 @@ include = [
     "kinocut/postrescue.py",
     "kinocut/server_tools_postrescue.py",
     "kinocut/server_tools_rescue.py",
+    # kinocut_sound contract layer: bounded codecs, limits, errors, validation,
+    # timeline/sound-plan models and the public request contracts. The engine
+    # modules (mix/public/qa workers) still carry type holes and stay out.
+    "kinocut_sound/_canonical.py",
+    "kinocut_sound/_errors.py",
+    "kinocut_sound/_validation_errors.py",
+    "kinocut_sound/capability.py",
+    "kinocut_sound/captions.py",
+    "kinocut_sound/consent.py",
+    "kinocut_sound/defaults.py",
+    "kinocut_sound/delivery.py",
+    "kinocut_sound/format.py",
+    "kinocut_sound/limits.py",
+    "kinocut_sound/lines.py",
+    "kinocut_sound/receipt.py",
+    "kinocut_sound/render_fingerprint.py",
+    "kinocut_sound/routing.py",
+    "kinocut_sound/script_parser.py",
+    "kinocut_sound/sound_plan.py",
+    "kinocut_sound/timeline.py",
+    "kinocut_sound/validation.py",
+    "kinocut_sound/_timeline_identity.py",
+    "kinocut_sound/mix/_errors.py",
+    "kinocut_sound/mix/automated_routing.py",
+    "kinocut_sound/mix/automation.py",
+    "kinocut_sound/mix/bus_buffers.py",
+    "kinocut_sound/mix/crossfade.py",
+    "kinocut_sound/mix/ducking.py",
+    "kinocut_sound/mix/latency.py",
+    "kinocut_sound/mix/placement.py",
+    "kinocut_sound/mix/routing_protocol.py",
+    "kinocut_sound/mix/seam.py",
+    "kinocut_sound/mix/silence.py",
+    "kinocut_sound/mix/source_windows.py",
+    "kinocut_sound/mix/static_routing.py",
+    "kinocut_sound/post/_errors.py",
+    "kinocut_sound/public/asr_request.py",
+    "kinocut_sound/public/dub_request.py",
+    "kinocut_sound/public/loudness_request.py",
+    "kinocut_sound/public/master_request.py",
+    "kinocut_sound/public/mix_automation_request.py",
+    "kinocut_sound/public/mix_layer_receipt.py",
+    "kinocut_sound/public/mix_request_v2.py",
+    "kinocut_sound/public/mix_request_v3.py",
+    "kinocut_sound/public/mix_request_v4.py",
+    "kinocut_sound/public/mix_routing_receipt.py",
+    "kinocut_sound/public/mix_send_request.py",
+    "kinocut_sound/public/mix_sidechain_request.py",
+    "kinocut_sound/public/mix_window_receipt.py",
+    "kinocut_sound/qa/_errors.py",
+    "kinocut_sound/voice/_errors.py",
+    "kinocut_sound/voice_consistency/_errors.py",
+    "kinocut_sound/world/_errors.py",
 ]
 typeCheckingMode = "basic"
 pythonVersion = "3.11"

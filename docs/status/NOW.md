@@ -1,33 +1,10 @@
 # Kinocut now
 
-**November release (2026-10-27):** Runtime 1.16.5 is published and verified across PyPI, npm, GitHub releases and the official MCP Registry. This plugin bundle update is version 1.16.8 and pins runtime 1.16.5. Hermes catalog review, site deployment, fleet rollout and final owner acceptance remain separate.
+**Published:** 2.0.1 · **206 MCP / 177 CLI** · 2026-11-10 · `docs/public_claims.json`; the default MCP registration is a curated 18-tool core (`KINOCUT_TOOLS=all` serves 206). PyPI/npm, GitHub release `v2.0.1` and the official MCP Registry (local `uvx kinocut==2.0.1` stdio package) report 2.0.1; shim 1.6.22 pins it. 2.0.1 fixes the review card on a plain install (no Pillow needed). Hermes catalog review, site deployment, fleet rollout and final owner acceptance remain separate.
 
-GitHub backlog review and local fixes: [September 30 report](../research/github-backlog/2026-09-30/REPORT.md).
+**Development candidate:** 2.1.0 · **208 MCP / 178 CLI** (adds music-grid cutting, audio sync and mix audition, the content-addressed shot cache, and `video_direct` / `video_direct_apply` spoken-direction planning, plus offline LFM3 mode and the Hermes Desktop render pane; 18-tool default unchanged; published counts stay 206 / 177). Release is prepared as a draft and not yet published. Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]==1.15.1`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
-**Latest audit delivery:** [PR #588](https://github.com/KyaniteLabs/kinocut/pull/588)
-fixes the18 findings in the [debt closure ledger](../research/DEBT_CLOSURE.md).
-Selected source passed8,297 tests with189skips; exact2d903f7 passed all13checks
-including native Linux/macOS/Windows and bound installed-runtime readiness.
-See that PR for final documentation-head checks and merge status.
-Paid accuracy, representative listening, human desktop review and external owner
-gates remain explicitly separate. Maintenance [PR #596](https://github.com/KyaniteLabs/kinocut/pull/596)
-merged at `9727d465d698950f4054f868806a32a78876af8f`; tag and GitHub release
-`v1.16.1` target that commit. Implementation QA passed 8,973 tests with 193 skips,
-all thirteen exact-head checks passed, and the installed-artifact adversarial checks passed twice.
-PyPI and npm publicly report 1.16.1; shim 1.6.16 pins that version. The initial
-publication gate read MCP Registry 1.16.1 but failed while npm still showed 1.16.0.
-Later npm reads confirmed 1.16.1; local MCP Registry rechecks timed out.
-
-**Previous merged audit:** [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)
-landed at `3db9ba9f9cad590f4c018b76091ee3c27e7106fd`. Its tested source passed
-8,013 tests with 189 skips and thirteen exact-head checks. Further resource,
-architecture and acceptance work is tracked in the
-[debt closure ledger](../research/DEBT_CLOSURE.md); separate checkpoint results there are
-separate from the merged audit's evidence.
-
-**Published:** 2.0.1 · **206 MCP / 177 CLI** · 2026-11-10 · `docs/public_claims.json`; the default MCP registration is a curated 18-tool core (`KINOCUT_TOOLS=all` serves 206). PyPI/npm, GitHub release `v2.0.1` and the official MCP Registry (local `uvx kinocut==2.0.1` stdio package) report 2.0.1; shim 1.6.22 pins it. 2.0.1 fixes the review card on a plain install (no Pillow needed).
-
-**Development candidate:** 2.0.1 · **208 MCP / 178 CLI** (unreleased #458 adds `video_direct` / `video_direct_apply` spoken-direction planning; 18-tool default unchanged; published counts stay 206 / 177). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]==1.15.1`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+Historical audit and backlog records: [September 30 report](../research/github-backlog/2026-09-30/REPORT.md) · [debt closure ledger](../research/DEBT_CLOSURE.md) ([PR #588](https://github.com/KyaniteLabs/kinocut/pull/588), [PR #596](https://github.com/KyaniteLabs/kinocut/pull/596), [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)). Paid accuracy, representative listening, human desktop review and external owner gates remain explicitly separate.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;

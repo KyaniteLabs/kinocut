@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+from kinocut.publication import durable_receipt_ownership
 from kinocut.shot_cache import ShotSpec, render_shot_plan
 from kinocut.workflow.planner import _confine_artifact_path
 from kinocut.workflow.receipt import _write_receipt
@@ -60,17 +61,18 @@ def render_cached_cutfile(cf: Cutfile, path: Path, output: str, receipt: str | N
         ) from exc
     receipt = receipt or str(root / "receipts" / f"{_safe_slug(cf.name)}.receipt.json")
     _confine_artifact_path(receipt, root, "save_receipt")
-    final.parent.mkdir(parents=True, exist_ok=True)
-    result = render_shot_plan(shots, final, cache)
     Path(receipt).parent.mkdir(parents=True, exist_ok=True)
-    envelope = {
-        "artifact_kind": "cutfile_render",
-        "cutfile": str(path),
-        "name": cf.name,
-        "version": cf.version,
-        "output_path": str(final),
-        "receipt_path": receipt,
-        "shot_plan": result,
-    }
-    _write_receipt(envelope, receipt, root)
+    with durable_receipt_ownership(Path(receipt)):
+        final.parent.mkdir(parents=True, exist_ok=True)
+        result = render_shot_plan(shots, final, cache)
+        envelope = {
+            "artifact_kind": "cutfile_render",
+            "cutfile": str(path),
+            "name": cf.name,
+            "version": cf.version,
+            "output_path": str(final),
+            "receipt_path": receipt,
+            "shot_plan": result,
+        }
+        _write_receipt(envelope, receipt, root)
     return envelope

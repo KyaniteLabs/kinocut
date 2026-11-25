@@ -3,9 +3,95 @@
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Callable
+from typing import Any
+from urllib.parse import unquote
+
+from mcp.server.fastmcp.resources import ResourceTemplate
 
 from .errors import MCPVideoError
 from .server_app import _error_result, mcp
+
+_SCHEME_PREFIX_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]{1,}://")
+_TEMPLATE_PARAM_RE = re.compile(r"\{([^{}]+)\}")
+
+
+class _MultiSegmentResourceTemplate(ResourceTemplate):
+    """ResourceTemplate allowing ``{path}`` to span directory separators."""
+
+    def matches(self, uri: str) -> dict[str, Any] | None:
+        parts: list[str] = []
+        last = 0
+        for match in _TEMPLATE_PARAM_RE.finditer(self.uri_template):
+            parts.append(re.escape(self.uri_template[last : match.start()]))
+            name = match.group(1)
+            expr = ".+" if name == "path" else "[^/]+"
+            parts.append(f"(?P<{name}>{expr})")
+            last = match.end()
+        parts.append(re.escape(self.uri_template[last:]))
+        matched = re.fullmatch("".join(parts), uri)
+        if matched:
+            return matched.groupdict()
+        return None
+
+
+def _register_path_resource(uri_template: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Register a file-backed MCP resource template that accepts multi-segment paths."""
+
+    def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
+        template = _MultiSegmentResourceTemplate.from_function(
+            fn,
+            uri_template=uri_template,
+            name=fn.__name__,
+            description=fn.__doc__ or "",
+        )
+        mcp._resource_manager._templates[template.uri_template] = template
+        return fn
+
+    return decorator
+
+
+def _decode_resource_path(raw_path: str) -> str:
+    """Decode one percent-encoding layer and enforce traversal/control/scheme guards."""
+    if not isinstance(raw_path, str) or not raw_path:
+        raise MCPVideoError(
+            "Resource path must be non-empty.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    if "\x00" in raw_path or any(ord(c) < 32 for c in raw_path):
+        raise MCPVideoError(
+            "Resource path cannot contain control characters.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    if ".." in re.split(r"[\\/]+", raw_path):
+        raise MCPVideoError(
+            "Directory traversal is not allowed in resource paths.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    decoded = unquote(raw_path)
+    if not decoded or "\x00" in decoded or any(ord(c) < 32 for c in decoded):
+        raise MCPVideoError(
+            "Decoded resource path is empty or contains control characters.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    if ".." in re.split(r"[\\/]+", decoded):
+        raise MCPVideoError(
+            "Directory traversal is not allowed in resource paths.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    if _SCHEME_PREFIX_RE.match(decoded):
+        raise MCPVideoError(
+            "URL schemes are not allowed in file-backed resource paths.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    return decoded
 
 
 def _probe(path: str):
@@ -13,10 +99,10 @@ def _probe(path: str):
     # the resource handlers themselves stay registered from process start.
     from .engine_probe import probe
 
-    return probe(path)
+    return probe(_decode_resource_path(path))
 
 
-@mcp.resource("mcp-video://video/{path}/info")
+@_register_path_resource("mcp-video://video/{path}/info")
 def video_info_resource(path: str) -> str:
     """Get metadata about a video file (duration, resolution, codec, etc.)."""
     try:
@@ -26,7 +112,7 @@ def video_info_resource(path: str) -> str:
         return json.dumps(_error_result(e), indent=2)
 
 
-@mcp.resource("mcp-video://video/{path}/preview")
+@_register_path_resource("mcp-video://video/{path}/preview")
 def video_preview_resource(path: str) -> str:
     """Get a text storyboard description (key frame timestamps)."""
     try:
@@ -42,7 +128,7 @@ def video_preview_resource(path: str) -> str:
         return json.dumps(_error_result(e), indent=2)
 
 
-@mcp.resource("mcp-video://video/{path}/audio")
+@_register_path_resource("mcp-video://video/{path}/audio")
 def video_audio_resource(path: str) -> str:
     """Extract and describe the audio track of a video."""
     try:

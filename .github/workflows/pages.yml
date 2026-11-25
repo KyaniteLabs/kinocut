@@ -27,8 +27,22 @@ jobs:
       - name: Check forbidden tracked artifacts
         run: python3 .github/scripts/check-forbidden-artifacts.py
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+      # Upload only the public static pages. The repository root also holds
+      # source, tests and research dumps that must never be served.
+      - name: Stage public pages files
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          for name in index.html robots.txt sitemap.xml; do
+            if [ ! -f "$name" ]; then
+              echo "::error::required pages file $name is missing"
+              exit 1
+            fi
+            cp "$name" _site/
+          done
+          ls -la _site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
-          path: "."
+          path: "_site"
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

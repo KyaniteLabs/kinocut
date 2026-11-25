@@ -17,6 +17,7 @@ from kinocut_sound.limits import (
     MASTER_MEMORY_MULTIPLIER,
 )
 from kinocut_sound.mix._wav import decode_pcm_wav
+from kinocut_sound.post._subprocess import insert_protocol_whitelist, resolve_configured_binary
 from kinocut_sound.public.master_request import load_master_request, master_error
 from kinocut_sound.public.master_render import (
     analysis_args,
@@ -59,7 +60,17 @@ class _MasterJob:
 
     @property
     def base(self):
-        return [self.binary, "-hide_banner", "-nostdin", "-nostats", "-y", "-i", str(self.source)]
+        return [
+            self.binary,
+            "-hide_banner",
+            "-nostdin",
+            "-nostats",
+            "-y",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-i",
+            str(self.source),
+        ]
 
     def accept(self):
         remaining(self.deadline)
@@ -97,8 +108,9 @@ def _job(payload, project_root):
                 or MASTER_MEMORY_MULTIPLIER * (len(data) + output_limit) > MAX_MIX_MEMORY_BYTES
             ):
                 raise master_error("mastering exceeds input/output memory estimate", "master_over_limit")
-            binary = shutil.which("ffmpeg")
-            if binary is None:
+            override = resolve_configured_binary("ffmpeg")
+            binary = override if override is not None else shutil.which("ffmpeg")
+            if not binary:
                 raise master_error("mastering requires installed FFmpeg", "master_unavailable")
             remaining(deadline)
             with tempfile.TemporaryDirectory(prefix="kinocut-master-") as folder, open_root(folder) as workspace:
@@ -135,17 +147,31 @@ def _report(job, measured):
     return report
 
 
+def _render_command(job, measurements):
+    cmd = list(render_args(job, measurements))
+    if "-af" in cmd:
+        idx = cmd.index("-af") + 1
+        if idx < len(cmd):
+            cmd[idx] = (
+                f"{cmd[idx]},aresample={job.output_rate}:resampler=swr,"
+                f"apad=pad_len=2048,atrim=end_sample={job.output_count}"
+            )
+    return insert_protocol_whitelist(cmd)
+
+
 def render_master_request(payload, project_root):
     from kinocut_sound.public.master_bundle import prepare_bundle
 
     with _job(payload, project_root) as job:
         version_deadline = min(job.deadline, time.monotonic() + DEFAULT_LOUDNESS_VERSION_TIMEOUT_SECONDS)
         version = _version(run_sync([job.binary, "-version"], version_deadline))
-        measurements, _ = parse_normalization(run_sync(analysis_args(job), job.deadline))
-        rendered = run_sync(render_args(job, measurements), job.deadline)
+        measurements, _ = parse_normalization(run_sync(insert_protocol_whitelist(analysis_args(job)), job.deadline))
+        rendered = run_sync(_render_command(job, measurements), job.deadline)
         data = job.accept()
         _, mode = parse_normalization(rendered)
-        report = _report(job, run_sync(measurement_args(job.binary, job.output), job.deadline))
+        report = _report(
+            job, run_sync(insert_protocol_whitelist(measurement_args(job.binary, job.output)), job.deadline)
+        )
         result = prepare_bundle(job, data, report, version, mode)
         remaining(job.deadline)
         publish(job.parent_fd, job.stage_name, job.output_name)
@@ -158,11 +184,15 @@ async def render_master_request_async(payload, project_root):
     with _job(payload, project_root) as job:
         version_deadline = min(job.deadline, time.monotonic() + DEFAULT_LOUDNESS_VERSION_TIMEOUT_SECONDS)
         version = _version(await run_async([job.binary, "-version"], version_deadline))
-        measurements, _ = parse_normalization(await run_async(analysis_args(job), job.deadline))
-        rendered = await run_async(render_args(job, measurements), job.deadline)
+        measurements, _ = parse_normalization(
+            await run_async(insert_protocol_whitelist(analysis_args(job)), job.deadline)
+        )
+        rendered = await run_async(_render_command(job, measurements), job.deadline)
         data = job.accept()
         _, mode = parse_normalization(rendered)
-        report = _report(job, await run_async(measurement_args(job.binary, job.output), job.deadline))
+        report = _report(
+            job, await run_async(insert_protocol_whitelist(measurement_args(job.binary, job.output)), job.deadline)
+        )
         await asyncio.sleep(0)
         result = prepare_bundle(job, data, report, version, mode)
         await asyncio.sleep(0)

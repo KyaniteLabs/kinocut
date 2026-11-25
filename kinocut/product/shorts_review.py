@@ -41,9 +41,7 @@ def _coerce_decision(
             raise _review_error(
                 "The review decision targets the wrong candidate.",
                 code="shorts_review_invalid",
-                cause=(
-                    f"decision.candidate_id={decision.candidate_id!r} does not match candidate_id={candidate_id!r}."
-                ),
+                cause=own_reason("the decision's candidate_id does not match the candidate under review."),
                 recovery="Pass a decision whose candidate_id matches the candidate under review.",
             )
         if evidence_ref is not None and decision.evidence_ref is None:
@@ -113,7 +111,7 @@ def review_shorts_plan(
         raise _review_error(
             "The candidate does not exist.",
             code="shorts_candidate_not_found",
-            cause=f"{candidate_id!r} is not in the saved proposal set.",
+            cause=own_reason("the requested candidate_id is not in the saved proposal set."),
             recovery="Use a candidate id from the plan proposals.",
         )
 
@@ -194,7 +192,7 @@ def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> Candidate
         raise _review_error(
             "The candidate does not exist.",
             code="shorts_candidate_not_found",
-            cause=f"{candidate_id!r} is not in the plan proposals.",
+            cause=own_reason("the requested candidate_id is not in the plan proposals."),
             recovery="Choose a candidate from the proposal output.",
         )
 

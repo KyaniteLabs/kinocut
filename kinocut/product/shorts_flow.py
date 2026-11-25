@@ -388,24 +388,57 @@ def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]])
     return has_captions
 
 
+def _render_pad(
+    assembled: str,
+    output: str,
+    srt: str | None,
+    style: str | None,
+    quality: QualityLevel,
+    workdir: str,
+    seconds: float,
+    progress: _StagedProgress,
+) -> tuple[str, dict[str, Any] | None]:
+    """Resize to 9:16 first so captions render crisp at full vertical resolution."""
+    if srt is None:
+        resized = resize(
+            assembled,
+            aspect_ratio="9:16",
+            quality=quality,
+            output_path=output,
+            on_progress=progress.stage(seconds),
+        )
+        return resized.output_path, None
+    vertical_path = os.path.join(workdir, "vertical.mp4")
+    resized_path = resize(
+        assembled,
+        aspect_ratio="9:16",
+        quality=quality,
+        output_path=vertical_path,
+        on_progress=progress.stage(seconds),
+    ).output_path
+    progress.finish(seconds)
+    burned, caption_qa = burn_subtitles(resized_path, srt, output_path=output, style=style, qa_profile="vertical")
+    return burned.output_path, caption_qa
+
+
 def _shorts_result(
     segment_count: int, merge_step: dict[str, Any], caption_step: dict[str, Any], output_path: str, fit_mode: str
 ) -> dict[str, Any]:
+    vertical_step: dict[str, Any] = {
+        "stage": "vertical_template",
+        "status": StepStatus.COMPLETED,
+        "aspect_ratio": "9:16",
+        "output_path": output_path,
+    }
+    if fit_mode == "crop":
+        vertical_step["fit_mode"] = fit_mode
     steps = [
         {"stage": "trim", "status": StepStatus.COMPLETED, "segment_count": segment_count},
         merge_step,
+        vertical_step,
         caption_step,
-        {
-            "stage": "vertical_template",
-            "status": StepStatus.COMPLETED,
-            "aspect_ratio": "9:16",
-            "output_path": output_path,
-        },
         {"stage": "export", "status": StepStatus.COMPLETED, "output_path": output_path},
     ]
-    if fit_mode == "crop":
-        steps[3]["fit_mode"] = fit_mode
-        steps[2], steps[3] = steps[3], steps[2]
     try:
         size_bytes = Path(output_path).stat().st_size
     except OSError:
@@ -476,20 +509,9 @@ def video_shorts(
                     assembled_path, final_output, srt, caption_style, quality, seconds, progress.stage(seconds)
                 )
             else:
-                if srt is not None:
-                    captioned_path = os.path.join(workdir, "captioned.mp4")
-                    _, caption_qa = burn_subtitles(
-                        assembled_path, srt, output_path=captioned_path, style=caption_style, qa_profile="vertical"
-                    )
-                    assembled_path = captioned_path
-                    progress.finish(seconds)
-                final_output = resize(
-                    assembled_path,
-                    aspect_ratio="9:16",
-                    quality=quality,
-                    output_path=final_output,
-                    on_progress=progress.stage(seconds),
-                ).output_path
+                final_output, caption_qa = _render_pad(
+                    assembled_path, final_output, srt, caption_style, quality, workdir, seconds, progress
+                )
             if caption_qa is not None:
                 caption_step["subtitle_qa"] = caption_qa
             progress.finish(seconds)

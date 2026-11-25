@@ -9,11 +9,21 @@ const begin = src.indexOf('// --- reducer:begin')
 const end = src.indexOf('// --- reducer:end')
 assert.ok(begin >= 0 && end > begin, 'reducer markers present')
 const block = src.slice(begin, end)
-const { reduceRenders, initialRenders, runKind, LOOKUP_TOOLS, eventScope, isFailedComplete } = await import(
+const {
+  reduceRenders,
+  initialRenders,
+  runKind,
+  LOOKUP_TOOLS,
+  eventScope,
+  isFailedComplete,
+  formatDuration,
+  effectiveRemainingMs
+} = await import(
   'data:text/javascript;base64,' + Buffer.from(block).toString('base64')
 )
 
 const T = 'mcp__kinocut__video_trim'
+const OK = { result: { success: true } }
 const ev = (type, payload, now = 0) => ({ type, payload, now })
 
 test('start -> progress -> complete', () => {
@@ -23,7 +33,7 @@ test('start -> progress -> complete', () => {
   s = reduceRenders(s, ev('progress', { tool_id: 'a', name: T, percent: 42, message: 'encoding' }, 1500))
   assert.equal(s.active.a.percent, 42)
   assert.equal(s.active.a.message, 'encoding')
-  s = reduceRenders(s, ev('complete', { tool_id: 'a', name: T }, 3500))
+  s = reduceRenders(s, ev('complete', { tool_id: 'a', name: T, ...OK }, 3500))
   assert.deepEqual(s.active, {})
   assert.equal(s.recent.length, 1)
   assert.equal(s.recent[0].status, 'done')
@@ -186,7 +196,7 @@ test('a reused tool_id starts a fresh run after the earlier run completed', () =
 test('completing a reused tool_id preserves each started run in history', () => {
   let s = initialRenders()
   s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 100))
-  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, summary: 'first' }, 200))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, summary: 'first', ...OK }, 200))
   s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 300))
   s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, error: 'second failed' }, 400))
 
@@ -269,4 +279,160 @@ test('MiB values that overflow in bytes have no display size', () => {
   const result = { size_mb: Number.MAX_VALUE }
   const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 's', name: T, result })).recent
   assert.equal(row.sizeBytes, null)
+})
+
+test('queued durable job is never labeled done and retains job_id (D7-001/C5-001)', () => {
+  const queued = {
+    success: true,
+    operation: 'repurpose',
+    job_id: 'job:123',
+    status: 'queued',
+    clips: []
+  }
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'q1', name: 'mcp__kinocut__video_repurpose' }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'q1', name: 'mcp__kinocut__video_repurpose', result: JSON.stringify(queued) }, 250))
+  assert.equal(s.recent.length, 1)
+  assert.equal(s.recent[0].status, 'queued')
+  assert.notEqual(s.recent[0].status, 'done')
+  assert.equal(s.recent[0].jobId, 'job:123')
+})
+
+test('submitted and running durable job statuses stay distinct from done', () => {
+  for (const [wireStatus, expected] of [['submitted', 'submitted'], ['pending', 'queued'], ['running', 'running'], ['in_progress', 'running']]) {
+    const result = { success: true, job_id: `job:${wireStatus}`, status: wireStatus }
+    let s = reduceRenders(initialRenders(), ev('start', { tool_id: wireStatus, name: T }, 10))
+    s = reduceRenders(s, ev('complete', { tool_id: wireStatus, name: T, result }, 20))
+    assert.equal(s.recent[0].status, expected)
+    assert.equal(s.recent[0].jobId, `job:${wireStatus}`)
+  }
+})
+
+test('ambiguous completion envelopes never default to done (D7-004)', () => {
+  for (const payload of [
+    { tool_id: 'u1', name: T },
+    { tool_id: 'u2', name: T, result: null },
+    { tool_id: 'u3', name: T, result: 'plain text, not JSON' },
+    { tool_id: 'u4', name: T, result: {} }
+  ]) {
+    let s = reduceRenders(initialRenders(), ev('start', { tool_id: payload.tool_id, name: T }, 100))
+    s = reduceRenders(s, ev('complete', payload, 200))
+    assert.equal(s.recent[0].status, 'unknown', JSON.stringify(payload))
+    assert.notEqual(s.recent[0].status, 'done')
+  }
+})
+
+test('structuredContent failure without outer error flag counts as failed (D7-004)', () => {
+  const payload = {
+    tool_id: 'sc1',
+    name: T,
+    result: { structuredContent: { success: false, error: 'codec unsupported' } }
+  }
+  assert.equal(isFailedComplete(payload), true)
+  const [row] = reduceRenders(initialRenders(), ev('complete', payload, 500)).recent
+  assert.equal(row.status, 'failed')
+  assert.equal(row.message, 'codec unsupported')
+})
+
+test('terminal summary takes precedence over stale progress message on done (D7-004)', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'sum', name: T }, 100))
+  s = reduceRenders(s, ev('progress', { tool_id: 'sum', name: T, percent: 50, message: 'encoding frame 50' }, 200))
+  s = reduceRenders(s, ev('complete', { tool_id: 'sum', name: T, summary: 'Trimmed 12.0s clip', ...OK }, 500))
+  assert.equal(s.recent[0].status, 'done')
+  assert.equal(s.recent[0].message, 'Trimmed 12.0s clip')
+})
+
+test('completed rows retain output artifact paths, review card, directive, and sha256 (D7-009)', () => {
+  const result = JSON.stringify({
+    success: true,
+    output_path: '/renders/cut.mp4',
+    size_bytes: 2048,
+    preview_directive: '::preview{file="/renders/cut_review_card.html"}',
+    plays_inline: true,
+    review_card: {
+      created: true,
+      output_path: '/renders/cut_review_card.html',
+      input_sha256: 'a'.repeat(64)
+    }
+  })
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'art', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'art', name: T, result }, 600))
+  const [row] = s.recent
+  assert.equal(row.status, 'done')
+  assert.equal(row.outputPath, '/renders/cut.mp4')
+  assert.equal(row.reviewCardPath, '/renders/cut_review_card.html')
+  assert.equal(row.previewDirective, '::preview{file="/renders/cut_review_card.html"}')
+  assert.equal(row.playsInline, true)
+  assert.equal(row.artifactSha256, 'a'.repeat(64))
+})
+
+test('active map is capped and never leaks 500/500 uncapped rows on missing completes (D7-003/C5-002)', () => {
+  let s = initialRenders()
+  for (let i = 0; i < 500; i++) {
+    s = reduceRenders(s, ev('start', { tool_id: `run_${i}`, name: T }, i * 10))
+  }
+  assert.ok(Object.keys(s.active).length <= 50, `active leaked: ${Object.keys(s.active).length}`)
+  assert.ok(s.recent.length > 0, 'evicted rows should surface in recent as stale')
+  assert.equal(s.recent[0].status, 'stale')
+})
+
+test('nameless complete handles known tool_id and marks unmatched active runs stale + dismissible (D7-003/C5-002)', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'k1', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'k1', result: { success: true, output_path: '/tmp/a.mp4' } }, 200))
+  assert.deepEqual(s.active, {})
+  assert.equal(s.recent[0].status, 'done')
+  assert.equal(s.recent[0].outputPath, '/tmp/a.mp4')
+
+  s = reduceRenders(initialRenders(), ev('start', { tool_id: 'k2', name: T }, 100))
+  s = reduceRenders(s, ev('complete', {}, 300))
+  assert.equal(s.active.k2.stale, true)
+  assert.equal(s.active.k2.status, 'stale')
+  assert.equal(s.active.k2.remainingMs, null)
+
+  s = reduceRenders(s, { type: 'dismiss', key: 'k2', now: 400 })
+  assert.deepEqual(s.active, {})
+})
+
+test('tick and disconnect mark idle/disconnected active entries stale without marking failed (D7-003)', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'idle1', name: T }, 0))
+  s = reduceRenders(s, { type: 'tick', now: 10 * 60 * 1000 })
+  assert.equal(s.active.idle1.stale, true)
+  assert.equal(s.active.idle1.status, 'stale')
+
+  let s2 = reduceRenders(initialRenders(), { type: 'start', payload: { tool_id: 'dc1', name: T }, scope: 's1', now: 0 })
+  s2 = reduceRenders(s2, { type: 'disconnect', scope: 's1', now: 5000 })
+  assert.equal(s2.active['s1#dc1'].stale, true)
+  assert.equal(s2.active['s1#dc1'].status, 'stale')
+})
+
+test('ETA expires across unreported stalls and message-only updates (D7-007)', () => {
+  const payload = { tool_id: 'stall', name: T }
+  let s = reduceRenders(initialRenders(), ev('progress', { ...payload, percent: 10 }, 0))
+  s = reduceRenders(s, ev('progress', { ...payload, percent: 40 }, 1000))
+  assert.equal(s.active.stall.remainingMs, 2000)
+  // At 61s, a message-only progress update must drop the frozen ETA.
+  s = reduceRenders(s, ev('progress', { ...payload, message: 'still working' }, 61_000))
+  assert.equal(s.active.stall.percent, 40)
+  assert.equal(s.active.stall.remainingMs, null)
+
+  // Even without a progress event, effectiveRemainingMs expires in silence.
+  let s2 = reduceRenders(initialRenders(), ev('progress', { ...payload, percent: 10 }, 0))
+  s2 = reduceRenders(s2, ev('progress', { ...payload, percent: 40 }, 1000))
+  assert.equal(effectiveRemainingMs(s2.active.stall, 2000), 2000)
+  assert.equal(effectiveRemainingMs(s2.active.stall, 61_000), null)
+
+  // Start-less completion without duration_s records null duration instead of 0 ms.
+  const [row] = reduceRenders(initialRenders(), ev('complete', { tool_id: 'nodur', name: T, ...OK }, 5000)).recent
+  assert.equal(row.durationMs, null)
+})
+
+test('formatDuration never renders 1 m 60 s or 60.0 s at rollover boundaries (D7-026)', () => {
+  assert.equal(formatDuration(0), '0 ms')
+  assert.equal(formatDuration(999.6), '1.0 s')
+  assert.equal(formatDuration(59_940), '59.9 s')
+  assert.equal(formatDuration(59_950), '1 m 0 s')
+  assert.equal(formatDuration(60_000), '1 m 0 s')
+  assert.equal(formatDuration(119_400), '1 m 59 s')
+  assert.equal(formatDuration(119_600), '2 m 0 s')
+  assert.equal(formatDuration(null), '')
+  assert.equal(formatDuration(-5), '')
 })

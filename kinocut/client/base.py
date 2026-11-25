@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 import re
 from functools import wraps
 from typing import Any, Self
@@ -24,6 +25,18 @@ QUALITY_GATE_OPS = {"assert_quality", "release_checkpoint", "quality_check"}
 # ``assert_quality`` and ``release_checkpoint`` raise when the video fails, so a
 # return value means the gate passed. ``quality_check`` only reports.
 HARD_QUALITY_GATE_OPS = {"assert_quality", "release_checkpoint"}
+
+
+def _same_path(first: str | None, second: str | None) -> bool:
+    """True when two paths refer to the same canonical path or underlying file."""
+    if not first or not second:
+        return False
+    if os.path.realpath(first) == os.path.realpath(second):
+        return True
+    try:
+        return os.path.samefile(first, second)
+    except OSError:
+        return False
 
 
 def _raise_reported_failure(result: dict[str, Any]) -> None:
@@ -191,7 +204,8 @@ class ClientBase:
         final_output = self._resolve_alias("output_path", output_path, "output", output)
         result, warnings, saw_quality_gate, intermediates = self._run_pipeline_steps(steps, final_output)
         if cleanup and intermediates:
-            warnings.extend(self._cleanup_pipeline_intermediates(intermediates))
+            protected = tuple(p for p in (result.output_path, final_output) if p)
+            warnings.extend(self._cleanup_pipeline_intermediates(intermediates, protected=protected))
             result.intermediates = intermediates
         return self._finalize_pipeline_result(result, warnings, saw_quality_gate)
 
@@ -223,31 +237,52 @@ class ClientBase:
         current: str | None = None
         result: EditResult | None = None
         warnings: list[str] = []
-        intermediates: list[str] = []
+        produced_outputs: list[str] = []
+        protected_inputs: list[str] = []
         previous_op: str | None = None
-        checkpointed: bool = False
+        checkpointed_path: str | None = None
         last_media_index = self._last_media_step_index(steps)
         for index, step in enumerate(steps):
             op, params = self._prepare_pipeline_step(step, current, final_output, index == last_media_index)
+            for key in ("input_path", "video", "background", "main"):
+                raw_in = params.get(key)
+                if isinstance(raw_in, str) and raw_in and not any(_same_path(raw_in, p) for p in produced_outputs):
+                    protected_inputs.append(raw_in)
             if op in QUALITY_GATE_OPS:
                 report = getattr(self, op)(**params)
                 warnings.extend(self._quality_gate_warnings(op, params, report))
+                checked_target = params.get("input_path") or params.get("video") or current
                 # A gate does not change the artifact: what it inspected is what later steps edit.
-                if current is None and params.get("input_path"):
-                    current = str(params["input_path"])
-                checkpointed = op in HARD_QUALITY_GATE_OPS
+                if current is None and checked_target:
+                    current = str(checked_target)
+                if op in HARD_QUALITY_GATE_OPS:
+                    checkpointed_path = str(checked_target) if checked_target else None
+                # Read-only quality_check leaves any prior hard checkpoint intact.
             else:
                 step_result = self._execute_pipeline_media_step(op, params, previous_op, warnings)
-                if result is not None and result.output_path != final_output:
-                    intermediates.append(result.output_path)
+                produced_outputs.append(step_result.output_path)
                 result = step_result
                 current = result.output_path
-                checkpointed = False
+                checkpointed_path = None
             previous_op = op
         if result is None:
             raise MCPVideoError(
                 "pipeline produced no media output", error_type="validation_error", code="no_media_output"
             )
+        protected = [result.output_path, *protected_inputs]
+        if final_output:
+            protected.append(final_output)
+        intermediates: list[str] = []
+        seen_canonical: set[str] = set()
+        for candidate in produced_outputs:
+            if any(_same_path(candidate, keep) for keep in protected):
+                continue
+            canon = os.path.realpath(candidate)
+            if canon in seen_canonical:
+                continue
+            seen_canonical.add(canon)
+            intermediates.append(candidate)
+        checkpointed = checkpointed_path is not None and _same_path(checkpointed_path, result.output_path)
         return result, warnings, checkpointed, intermediates
 
     @classmethod
@@ -280,14 +315,19 @@ class ClientBase:
         return []
 
     @staticmethod
-    def _cleanup_pipeline_intermediates(intermediates: list[str]) -> list[str]:
+    def _cleanup_pipeline_intermediates(intermediates: list[str], *, protected: tuple[str, ...] = ()) -> list[str]:
         """Delete intermediate media files and return non-fatal cleanup warnings."""
-        import os
-
         warnings: list[str] = []
+        seen: set[str] = set()
         for path in intermediates:
+            if any(_same_path(path, keep) for keep in protected):
+                continue
+            canon = os.path.realpath(path)
+            if canon in seen:
+                continue
+            seen.add(canon)
             try:
-                if os.path.exists(path):
+                if os.path.exists(path) and not os.path.isdir(path):
                     os.remove(path)
             except OSError as exc:
                 warnings.append(f"Could not remove pipeline intermediate {path!r}: {exc}")

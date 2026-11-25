@@ -19,6 +19,7 @@ from typing import Any
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _reset_operation_inputs, _validate_artifact_path
 from ..output_policy import with_output_policy
+from ..publication import durable_receipt_ownership
 from ..validation_errors import rejected_value
 from ._errors import (
     INVALID_WORKFLOW_RECEIPT,
@@ -53,7 +54,7 @@ from .receipt import (
 from .spec import WorkflowSpec, WorkflowStep, load_spec_bytes, parse_spec, validate_spec_path
 from .status import RunStatus, StepStatus
 from .validator import validate_workflow_spec
-from .variants import apply_variant_overrides, variant_ids
+from .variants import apply_variant_overrides, validate_variant_id, variant_ids
 
 
 @with_output_policy
@@ -130,46 +131,54 @@ def _render_one(
     # self-overwrite. Reset the guard's operation scope so only the steps' own
     # declared inputs are protected.
     _reset_operation_inputs(preserve_writes=True)
-    hash_cache: dict[str, str | None] = {}
-    work_paths: dict[str, Path] = {}  # @work name -> absolute path on disk
-    sources = _build_sources(verdict, workspace_root, hash_cache)
-    steps_receipt, intermediates, failure, failed_index, resumed_from = _execute_steps(
-        spec,
-        workspace_root,
-        run_dir_rel,
-        run_dir_abs,
-        output_paths,
-        source_paths,
-        work_paths,
-        hash_cache,
-        prior_by_id,
-        resuming,
-        save_receipt,
-        verdict,
-        variant,
-        spec_hash,
-        sources,
-        keep_intermediates,
-    )
-    return _finalize_render(
-        spec.steps,
-        failure,
-        failed_index,
-        run_dir_abs,
-        intermediates,
-        verdict,
-        variant,
-        spec_hash,
-        sources,
-        steps_receipt,
-        workspace_root,
-        hash_cache,
-        run_dir_rel,
-        keep_intermediates,
-        resuming,
-        resumed_from,
-        save_receipt,
-    )
+    receipt_ownership: contextlib.AbstractContextManager[Any] = contextlib.nullcontext()
+    if save_receipt is not None:
+        if not isinstance(save_receipt, str) or not save_receipt:
+            raise workflow_error("save_receipt must be a non-empty file path", INVALID_WORKFLOW_SPEC)
+        _confine_artifact_path(save_receipt, workspace_root, "save_receipt")
+        Path(save_receipt).parent.mkdir(parents=True, exist_ok=True)
+        receipt_ownership = durable_receipt_ownership(Path(save_receipt))
+    with receipt_ownership:
+        hash_cache: dict[str, str | None] = {}
+        work_paths: dict[str, Path] = {}  # @work name -> absolute path on disk
+        sources = _build_sources(verdict, workspace_root, hash_cache)
+        steps_receipt, intermediates, failure, failed_index, resumed_from = _execute_steps(
+            spec,
+            workspace_root,
+            run_dir_rel,
+            run_dir_abs,
+            output_paths,
+            source_paths,
+            work_paths,
+            hash_cache,
+            prior_by_id,
+            resuming,
+            save_receipt,
+            verdict,
+            variant,
+            spec_hash,
+            sources,
+            keep_intermediates,
+        )
+        return _finalize_render(
+            spec.steps,
+            failure,
+            failed_index,
+            run_dir_abs,
+            intermediates,
+            verdict,
+            variant,
+            spec_hash,
+            sources,
+            steps_receipt,
+            workspace_root,
+            hash_cache,
+            run_dir_rel,
+            keep_intermediates,
+            resuming,
+            resumed_from,
+            save_receipt,
+        )
 
 
 # --- Single-spec render helpers ---
@@ -580,7 +589,7 @@ def _variant_receipt_path(save_receipt_dir: str | None, variant_id: str) -> str 
     """Per-variant receipt path ``<dir>/<safe-variant>.json`` (None when no dir given)."""
     if save_receipt_dir is None:
         return None
-    safe = variant_id.replace("/", "_").replace("\\", "_")
+    safe = validate_variant_id(variant_id)
     return str(Path(save_receipt_dir) / f"{safe}.json")
 
 

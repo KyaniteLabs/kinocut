@@ -54,7 +54,7 @@ def duck_bed_under_speech(
         active = level > DEFAULT_MIX_DUCK_THRESHOLD
         gain = max(target, gain - (1.0 - target) / attack_n) if active else min(1.0, gain + (1.0 - target) / release_n)
         for channel in range(channels):
-            sample = int(bed[i + channel] * gain)
+            sample = round(bed[i + channel] * gain)
             out.append(max(-32768, min(32767, sample)))
     # preserve remaining bed after speech ends
     if len(bed) > n:

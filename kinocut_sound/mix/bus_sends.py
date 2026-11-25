@@ -1,10 +1,11 @@
 """Finite bus sends with ordered returns and read-only pre/post-fader taps."""
 
+from array import array
 import heapq
 
 from kinocut_sound.limits import MAX_MIX_SENDS, MAX_MIX_ROUTING_BUSES, MAX_MIX_SEND_WORK_UNITS
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, mix_error
-from kinocut_sound.mix.pcm_ops import _scale_in_place, _overlay_scaled
+from kinocut_sound.mix.pcm_ops import _clamp_pcm16, _scale_in_place, _overlay_scaled
 from kinocut_sound.mix.bus_buffers import validate_bus_canvases, readonly_pcm_snapshot
 from kinocut_sound.routing import Bus, SendReturn, PanLaw
 from kinocut_sound.validation import PCM_MIX_CHANNEL_COUNTS
@@ -97,16 +98,21 @@ class BusSendGraph:
         }
         for bus_id in self.order:
             target = canvases[bus_id]
+            acc = array("d", target)
             for send in self.incoming[bus_id]:
                 source = post[send.source_bus_id] if send.post_fader else pre[send.source_bus_id]
-                _overlay_scaled(target, source, 10 ** (send.gain_db / 20))
+                _overlay_scaled(acc, source, 10 ** (send.gain_db / 20))
                 if not send.post_fader:
                     remaining[send.source_bus_id] -= 1
                     if remaining[send.source_bus_id] == 0:
                         del pre[send.source_bus_id]
             if bus_id in self.pre_sources:
-                pre[bus_id] = readonly_pcm_snapshot(target)
-            _scale_in_place(target, (10 ** (self.buses[bus_id].gain_db / 20),) * self.channels)
+                pre[bus_id] = (
+                    readonly_pcm_snapshot(target) if not self.incoming[bus_id] else memoryview(acc.tobytes()).cast("d")
+                )
+            _scale_in_place(acc, (10 ** (self.buses[bus_id].gain_db / 20),) * self.channels)
+            for index, value in enumerate(acc):
+                target[index] = _clamp_pcm16(value)
             post[bus_id] = memoryview(target).toreadonly()
         return canvases
 

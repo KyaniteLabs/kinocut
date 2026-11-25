@@ -33,7 +33,8 @@ def test_alias_identity_check_fails_when_alias_is_broken(monkeypatch):
     assert "kinocut.Client" in check["remediation"] or "alias" in check["remediation"].lower()
 
 
-def test_legacy_env_check_passes_when_no_stale_paths(monkeypatch):
+def test_legacy_env_check_passes_when_no_stale_paths(monkeypatch, tmp_path):
+    monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.delenv("MCP_VIDEO_CRUSH_PATH", raising=False)
     check = _check_legacy_env_paths()
     assert check["name"] == "legacy_env_paths"

@@ -26,6 +26,7 @@ from kinocut_sound.limits import (
     ASR_MEMORY_ESTIMATE_BYTES,
     MAX_ASR_INPUT_BYTES,
 )
+from kinocut_sound.post._subprocess import insert_protocol_whitelist
 from kinocut_sound.public.asr_bundle import prepare_bundle
 from kinocut_sound.public import asr_resample
 from kinocut_sound.public.asr_input import validate_header
@@ -132,7 +133,7 @@ def _pipeline(job):
     if job.rate != DEFAULT_ASR_SAMPLE_RATE_HZ:
         binary = asr_resample.installed_resampler()
         version = asr_resample.backend_version((yield ([binary, "-version"], False)))
-        yield (asr_resample.command(binary, job), False)
+        yield (insert_protocol_whitelist(asr_resample.command(binary, job)), False)
         material = _read_regular_file(job.workspace_fd, "source.f32", decoded_bytes)
         if len(material) != decoded_bytes:
             raise asr_error("resampler output has invalid length", "asr_invalid_output")

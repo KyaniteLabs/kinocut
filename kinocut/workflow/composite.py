@@ -31,6 +31,9 @@ from __future__ import annotations
 
 import contextlib
 import json
+import os
+import re
+import secrets
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -280,11 +283,17 @@ def render_composite_step(
             synth_layer[field] = str(confined)
         synth_layers.append(synth_layer)
     synth_spec = {"canvas": canvas, "layers": synth_layers}
-    safe_id = step.id.replace("/", "_").replace("\\", "_")
-    synth_path = workspace_root / f"mcp_video_composite_{run_dir_abs.name}_{safe_id}.json"
+    legacy_synth = workspace_root / f"mcp_video_composite_{run_dir_abs.name}_{step.id}.json"
+    if legacy_synth.is_symlink():
+        _confine_synth_path(str(legacy_synth), workspace_root)
+    safe_id = re.sub(r"[^A-Za-z0-9._-]+", "_", str(step.id))[:48] or "step"
+    synth_path = workspace_root / f".mcp_video_composite_{run_dir_abs.name}_{safe_id}_{secrets.token_hex(8)}.json"
     _confine_synth_path(str(synth_path), workspace_root)
-    synth_path.write_text(json.dumps(synth_spec), encoding="utf-8")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(synth_path), flags, 0o600)
     try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(synth_spec))
         adapter.engine_fn(spec_path=str(synth_path), output_path=str(output_abs))
     finally:
         with contextlib.suppress(OSError):

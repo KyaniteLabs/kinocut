@@ -8,7 +8,8 @@ Includes auto-fix capabilities.
 from __future__ import annotations
 
 import logging
-from typing import ClassVar
+import os
+from typing import Any, ClassVar
 
 from ...ffmpeg_helpers import _validate_input_path
 from ..models import DesignIssue, DesignQualityReport
@@ -78,13 +79,34 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
         self._frame_data: list[dict] = []
         self.metrics: dict[str, dict] = {}
         self._color_analysis_cache: dict[str, dict] = {}
+        self._probe_cache: dict[tuple[Any, ...], dict] = {}
+        self._scene_changes_cache: dict[tuple[Any, ...], list[dict]] = {}
+        self._temporal_motion_cache: dict[tuple[Any, ...], dict] = {}
+        self._last_fixes_failed: list[str] = []
 
-    def analyze(self, video_path: str, auto_fix: bool = False) -> DesignQualityReport:
+    def _source_identity_key(self, video_path: str) -> tuple[Any, ...] | None:
+        """Return a stat-based source identity key for per-run probe/analysis caching."""
+        try:
+            st = os.stat(video_path)
+        except OSError:
+            return None
+        return (os.path.realpath(video_path), st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
+
+    def analyze(
+        self,
+        video_path: str,
+        auto_fix: bool = False,
+        strict: bool = False,
+        *,
+        fix_output_path: str | None = None,
+    ) -> DesignQualityReport:
         """Run comprehensive design quality analysis.
 
         Args:
             video_path: Path to video file
             auto_fix: If True, automatically apply fixes where possible
+            strict: If True, promote warnings to errors
+            fix_output_path: Optional destination path for auto-fixes
 
         Returns:
             DesignQualityReport with issues and applied fixes
@@ -94,7 +116,12 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
         self._frame_data = []
         self.metrics = {}
         self._color_analysis_cache = {}
-        fixes_applied = []
+        self._probe_cache = {}
+        self._scene_changes_cache = {}
+        self._temporal_motion_cache = {}
+        self._last_fixes_failed = []
+        fixes_applied: list[str] = []
+        fixes_failed: list[str] = []
 
         # Collect frame-by-frame data
         self._collect_frame_data(video_path)
@@ -113,6 +140,11 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
         self._check_transition_timing(video_path)
         self._check_visual_rhythm(video_path)
 
+        if strict:
+            for issue in self.issues:
+                if issue.severity == "warning":
+                    issue.severity = "error"
+
         # Calculate scores
         technical_score = self._calculate_technical_score(video_path)
         design_score = self._calculate_design_score()
@@ -122,7 +154,8 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
 
         # Auto-fix if requested
         if auto_fix:
-            fixes_applied = self._apply_auto_fixes(video_path, self.issues)
+            fixes_applied = self._apply_auto_fixes(video_path, self.issues, output_path=fix_output_path)
+            fixes_failed = list(self._last_fixes_failed)
 
         # Generate 100/100 recommendations
         report = DesignQualityReport(
@@ -134,6 +167,7 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
             motion_score=motion_score,
             issues=self.issues,
             fixes_applied=fixes_applied,
+            fixes_failed=fixes_failed,
         )
         report.recommendations = report.get_100_recommendations()
 

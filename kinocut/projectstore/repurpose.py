@@ -8,6 +8,7 @@ from typing import Any
 
 from kinocut.engine_repurpose import PLATFORM_PRESETS, _select_platforms
 from kinocut.ffmpeg_helpers import _validate_input_path
+from kinocut.publication import validate_artifact_location
 from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE
 from kinocut.repurpose_policy import repurpose_release_policy
 from kinocut.projectstore import store
@@ -49,8 +50,11 @@ def _install_spec(project: store.Project, spec: dict[str, Any], platforms: list[
     for index, platform in enumerate(platforms):
         spec["outputs"][f"out{index}"]["path"] = f".kinocut/repurpose/{platform}.mp4"
     path = project.root / "repurpose_spec.json"
+    if path.is_symlink():
+        raise contract_error("repurpose spec path must not be a symlink", INVALID_RECORD)
+    validate_artifact_location(str(path), "repurpose spec")
     encoded = json.dumps(spec, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    with store._mapped_os_errors():
+    with store._project_lock(project), store._mapped_os_errors():
         store._write_atomically(path, lambda output: output.write(encoded), binary=True)
     return path
 

@@ -8,12 +8,14 @@ from .engine_runtime_utils import (
     _movflags_args,
     _quality_args,
     _require_filter,
+    _run_video_only,
     _timed_operation,
 )
 from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _run_ffmpeg,
     _sanitize_ffmpeg_number,
 )
@@ -23,6 +25,66 @@ from .validation import (
 )
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_value
 from .models import EditResult
+
+
+def _chroma_key_command(
+    input_path: str,
+    safe_color: str,
+    safe_similarity: str,
+    safe_blend: str,
+    staged: str,
+    *,
+    is_mov: bool,
+) -> list[str]:
+    if is_mov:
+        vf = f"chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend},format=yuva444p12le"
+        return [
+            "-i",
+            input_path,
+            "-vf",
+            vf,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a?",
+            "-c:v",
+            "prores_ks",
+            "-profile:v",
+            "4",
+            "-pix_fmt",
+            "yuva444p12le",
+            "-c:a",
+            "copy",
+            *_movflags_args(staged),
+            staged,
+        ]
+    graph = (
+        r"[0:v]pad=iw+mod(iw\,2):ih+mod(ih\,2),split[bg][fg];"
+        "[bg]drawbox=color=black:t=fill[matte];"
+        f"[fg]chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend}[keyed];"
+        "[matte][keyed]overlay=shortest=1:format=auto,format=yuv420p[out]"
+    )
+    return [
+        "-i",
+        input_path,
+        "-filter_complex",
+        graph,
+        "-map",
+        "[out]",
+        "-map",
+        "0:a?",
+        "-c:v",
+        "libx264",
+        *_quality_args(),
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        DEFAULT_AUDIO_BITRATE,
+        *_movflags_args(staged),
+        staged,
+    ]
 
 
 def chroma_key(
@@ -62,24 +124,24 @@ def chroma_key(
     safe_similarity = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(similarity, "similarity")))
     safe_blend = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(blend, "blend")))
 
-    # Use MOV with prores_ks (supports alpha) when outputting with transparency
+    # Use MOV with prores_ks 4444 (-profile:v 4) when outputting with transparency;
+    # non-MOV containers composite the keyed subject over a black matte.
     is_mov = output.lower().endswith(".mov")
 
-    if is_mov:
-        vf = f"chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend},format=yuva444p16le"
-        codec_args = ["-c:v", "prores_ks", "-pix_fmt", "yuva444p12le"]
-    else:
-        vf = f"chromakey=color={safe_color}:similarity={safe_similarity}:blend={safe_blend}"
-        codec_args = ["-c:v", "libx264", *_quality_args(), "-c:a", "aac", "-b:a", DEFAULT_AUDIO_BITRATE]
-
-    with _timed_operation() as timing:
-        _run_ffmpeg(["-i", input_path, "-vf", vf, *codec_args, *_movflags_args(output), output])
-
-    return _build_edit_result(
-        output,
-        "chroma_key",
-        timing,
-    )
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+        cmd = _chroma_key_command(input_path, safe_color, safe_similarity, safe_blend, staged, is_mov=is_mov)
+        if is_mov:
+            _run_video_only(_run_ffmpeg, cmd)
+        else:
+            _run_ffmpeg(cmd)
+        result = _build_edit_result(
+            staged,
+            "chroma_key",
+            timing,
+        )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 # ---------------------------------------------------------------------------

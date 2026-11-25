@@ -22,8 +22,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 
-# Run tests
-pytest tests/ -v
+# Run the full test suite (parallel non-timing phase + serial process_timing phase)
+python3 scripts/run_full_suite.py
 
 # Run a specific test file
 pytest tests/test_engine.py -v
@@ -182,7 +182,7 @@ To monitor CI and review comments on pull requests, run:
 1. Fork the repo
 2. Create a feature branch (`git checkout -b feature/my-feature`)
 3. Make your changes with tests
-4. Run `pytest tests/ -v -m "not slow"` — all must pass
+4. Run `python3 scripts/run_full_suite.py -m "not slow"` (or `python3 scripts/run_full_suite.py` for the full repository gate) — all must pass
 5. Open a PR with a clear description of what changed and why
 
 ## Contributor Attribution

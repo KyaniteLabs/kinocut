@@ -4,7 +4,10 @@ from collections.abc import Mapping
 from datetime import datetime, UTC
 import math
 import itertools
+import re
 from typing import TypedDict
+
+_UNIT_NUMBER_RE = re.compile(r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+))\s*(ms|s)$", re.I)
 
 
 class GrooveReceipt(TypedDict):
@@ -29,13 +32,14 @@ def _timestamp(value):
                 raise ValueError
         if isinstance(value, str):
             value = value.strip()
-            if value.endswith("ms"):
-                value = float(value[:-2]) / 1000
-            elif "T" in value or " " in value:
-                instant = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            unit_match = _UNIT_NUMBER_RE.fullmatch(value)
+            if unit_match:
+                num = float(unit_match[1])
+                value = num / 1000 if unit_match[2].lower() == "ms" else num
+            elif "T" in value or "t" in value or " " in value:
+                iso = re.sub(r"[Zz]$", "+00:00", value)
+                instant = datetime.fromisoformat(iso)
                 value = (instant if instant.tzinfo else instant.replace(tzinfo=UTC)).timestamp()
-            else:
-                value = value.removesuffix("s")
         if isinstance(value, bool) or not math.isfinite(float(value)):
             raise ValueError
         return float(value)
@@ -58,6 +62,8 @@ def quantize_real_timestamps(
     span = source[-1] - source[0] if source else 0.0
     if target_duration_s is not None and (not math.isfinite(target_duration_s) or target_duration_s < 0):
         raise ValueError("Invalid target duration")
+    if target_duration_s is not None and span == 0.0 and len(source) > 1 and target_duration_s > 0:
+        raise ValueError("Cannot scale identical timestamps to a nonzero target duration")
     scale = target_duration_s / span if span and target_duration_s is not None else 1.0
     events, collisions = [], []
     for index, timestamp in enumerate(source):

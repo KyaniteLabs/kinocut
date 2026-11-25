@@ -17,6 +17,65 @@ import time
 from .defaults import DEFAULT_RENDER_STOP_TIMEOUT
 from .errors import MCPVideoError, ProcessingError
 
+_SENSITIVE_SUBPROCESS_ENV_VARS = frozenset(
+    {
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "KINOCUT_VISION_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GROQ_API_KEY",
+        "XAI_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "OPENROUTER_API_KEY",
+        "HF_TOKEN",
+        "HUGGING_FACE_HUB_TOKEN",
+        "HUGGINGFACE_HUB_TOKEN",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "GITLAB_TOKEN",
+        "NPM_TOKEN",
+        "NODE_AUTH_TOKEN",
+        "NODE_OPTIONS",
+        "PYPI_TOKEN",
+        "TWINE_PASSWORD",
+    }
+)
+_SENSITIVE_SUBPROCESS_ENV_SUFFIXES = (
+    "_API_KEY",
+    "_SECRET_KEY",
+    "_ACCESS_TOKEN",
+    "_AUTH_TOKEN",
+    "_PRIVATE_KEY",
+)
+_PROXY_ENV_VARS = frozenset({"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"})
+
+
+def sanitized_subprocess_env(
+    base_env: dict[str, str] | None = None,
+    *,
+    extra: dict[str, str] | None = None,
+    strip_proxies: bool = False,
+) -> dict[str, str]:
+    """Return a subprocess environment with ambient credentials and injection vars scrubbed."""
+    source = getattr(os, "environ", {}) if base_env is None else base_env
+    cleaned: dict[str, str] = {}
+    for key, value in source.items():
+        upper = key.upper()
+        if upper in _SENSITIVE_SUBPROCESS_ENV_VARS:
+            continue
+        if strip_proxies and upper in _PROXY_ENV_VARS:
+            continue
+        if any(upper.endswith(suffix) for suffix in _SENSITIVE_SUBPROCESS_ENV_SUFFIXES):
+            continue
+        cleaned[key] = value
+    if extra:
+        cleaned.update(extra)
+    return cleaned
+
 
 class ProcessTree:
     """One owned command and all its descendants.
@@ -39,7 +98,13 @@ class ProcessTree:
     """
 
     def __init__(
-        self, cmd: list[str], *, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds: tuple[int, ...] = ()
+        self,
+        cmd: list[str],
+        *,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        pass_fds: tuple[int, ...] = (),
+        env: dict[str, str] | None = None,
     ):
         from .offline import offline_media_command
         from .process_windows import CREATE_SUSPENDED, WindowsJob
@@ -58,6 +123,7 @@ class ProcessTree:
         self._exit_event: threading.Event | None = None
         self._exit_thread: threading.Thread | None = None
         self.command = cmd
+        child_env = sanitized_subprocess_env(env)
         try:
             # Popen has no timeout; caller owns a deadline and waits with a timeout.
             self.process = subprocess.Popen(  # noqa: S603 - trusted argv, no shell.
@@ -65,6 +131,7 @@ class ProcessTree:
                 stdin=subprocess.DEVNULL,
                 stdout=stdout,
                 stderr=stderr,
+                env=child_env,
                 start_new_session=os.name == "posix",
                 creationflags=CREATE_SUSPENDED if os.name == "nt" else 0,
                 pass_fds=pass_fds,

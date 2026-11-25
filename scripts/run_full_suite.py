@@ -39,6 +39,7 @@ def _phases(workers: str, extra: list[str], marker: str = "") -> list[tuple[str,
 def _run(args: argparse.Namespace, directory: Path) -> int:
     total = time.monotonic()
     collected = False
+    serial_collected = False
     suites = ET.Element("testsuites")
     for index, (name, cmd) in enumerate(_phases(args.workers, args.extra, args.marker)):
         if args.cov:
@@ -61,11 +62,34 @@ def _run(args: argparse.Namespace, directory: Path) -> int:
         if rc not in (0, 5):  # 5 = nothing collected, e.g. an extra -k filter matched one phase only
             return rc
         collected = collected or rc == 0
+        serial_collected = index > 0 and rc == 0
     if not collected:
         print("== no tests collected in any phase", flush=True)
         return 5
+    if args.cov and not serial_collected:
+        # Only the serial phase carries --cov-report= (and so the config's
+        # fail_under). When it collects nothing, the parallel phase's data was
+        # never reported or enforced: do both here instead of skipping coverage.
+        enforced = _enforce_coverage(args)
+        if enforced != 0:
+            return enforced
     print(f"== full suite passed in {time.monotonic() - total:.0f}s", flush=True)
     return 0
+
+
+def _enforce_coverage(args: argparse.Namespace) -> int:
+    """Print the combined coverage report and apply ``fail_under`` from the config.
+
+    ``--cov=<source>`` names packages; ``coverage report --include`` matches file
+    paths, so each source becomes a ``*/<source>/*`` glob. A bare ``--cov`` leaves
+    the selection to the config, exactly as pytest-cov would.
+    """
+    sources = [source for source in args.cov if source]
+    cmd = [sys.executable, "-m", "coverage", "report"]
+    if sources:
+        cmd.append("--include=" + ",".join(f"*/{source}/*" for source in sources))
+    print(f"== coverage (serial phase collected nothing): {' '.join(cmd[1:])}", flush=True)
+    return subprocess.call(cmd)
 
 
 def main(argv: list[str] | None = None) -> int:

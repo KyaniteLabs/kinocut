@@ -2,6 +2,7 @@
 
 import os
 import re
+import stat
 
 from ..agent_homes import inside_agent_scratch_or_refuse, require_absolute_under_hermes
 from ..errors import MCPVideoError
@@ -122,6 +123,35 @@ def _validate_artifact_location(path: str, label: str) -> str:
     return resolved
 
 
+def _owns_durable_receipt(resolved: str) -> bool:
+    """True when ``resolved`` is the active durable_receipt_ownership target with a verified witness."""
+    from ._receipts import _RECEIPT, _proof
+
+    receipt = _RECEIPT.get()
+    if receipt is None:
+        return False
+    target, witnesses = receipt
+    if os.path.realpath(str(target)) != resolved:
+        return False
+    try:
+        current = os.stat(resolved, follow_symlinks=False)
+    except OSError:
+        return False
+    if not stat.S_ISREG(current.st_mode):
+        return False
+    directory = target.parent / f".{target.name}.ownership"
+    if directory.is_symlink():
+        return False
+    expected = _proof(directory, current)
+    if expected not in witnesses or expected.is_symlink():
+        return False
+    try:
+        wstat = os.stat(expected, follow_symlinks=False)
+    except OSError:
+        return False
+    return (wstat.st_dev, wstat.st_ino) == (current.st_dev, current.st_ino)
+
+
 def _validate_write_path(
     path: str,
     *,
@@ -138,18 +168,19 @@ def _validate_write_path(
 
     if os.path.exists(resolved):
         operation_owned = _owns_operation_output(resolved)
+        durable_owned = _owns_durable_receipt(resolved)
         recorded_owned = allow_recorded and owns_output(resolved)
         if is_staged_output(path) and operation_owned:
             return path
         suffix = os.path.splitext(resolved)[1].lower()
         permitted_media = suffix in allowed_existing_suffixes and suffix in _SAFE_EXISTING_OUTPUT_SUFFIXES
-        if not permitted_media and not (operation_owned or recorded_owned):
+        if not permitted_media and not (operation_owned or durable_owned or recorded_owned):
             raise MCPVideoError(
                 f"Refusing to overwrite an existing file at {label.lower()}",
                 error_type="validation_error",
                 code="unsafe_path",
             )
-        if _OVERWRITE.get() is not True:
+        if _OVERWRITE.get() is not True and not durable_owned:
             raise MCPVideoError(
                 f"{label} already exists; pass overwrite=true to replace permitted outputs",
                 error_type="validation_error",

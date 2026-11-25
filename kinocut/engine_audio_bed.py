@@ -483,7 +483,7 @@ def _receipt_hash(receipt: AudioBedReceipt) -> str:
 def _write_receipt(path: str, receipt: AudioBedReceipt) -> None:
     """Write the receipt as pretty-printed JSON via an atomic temp-and-rename."""
     payload = receipt.model_dump_json(indent=2)
-    with _atomic_artifact(path) as staged, _open_staged_writer(staged) as stream:
+    with _atomic_artifact(path, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
         stream.write((payload + "\n").encode("utf-8"))
 
 
@@ -761,7 +761,7 @@ def audio_bed(
     _validate_output_path(output_path)
     _reject_output_alias(output_path, (voice_source, music_path))
     if save_receipt is not None:
-        _validate_artifact_path(save_receipt)
+        _validate_artifact_path(save_receipt, allow_recorded=True)
     with _verified_audio_sources(voice_source, music_path, output_path) as sources:
         voice_snapshot, music_snapshot = sources
         pass_fds = voice_snapshot.pass_fds + music_snapshot.pass_fds

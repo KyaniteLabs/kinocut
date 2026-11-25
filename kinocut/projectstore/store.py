@@ -74,6 +74,16 @@ from kinocut.contracts.trusted_execution import (
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import layout
 from kinocut.projectstore._migrations import migrate_raw
+from kinocut.projectstore._wal import (
+    _DIRECT_APPEND_THRESHOLD as _DIRECT_APPEND_THRESHOLD,
+    _append_with_wal as _wal_append_with_wal,
+    _effective_read_limit as _effective_read_limit,
+    _open_nofollow as _open_nofollow,
+    _parse_wal_metadata as _parse_wal_metadata,
+    _recover_wal as _wal_recover_wal,
+    _wal_path as _wal_path,
+    _write_all as _write_all,
+)
 from ..validation_errors import rejected_value
 
 # Streaming chunk for copying prior record files during an atomic append.
@@ -420,6 +430,7 @@ def append_record_locked(project: Project, record: RecordBase) -> RecordBase:
     line = _canonical_line(stored.model_dump(mode="json"))
     _revalidate_at_boundary(stored, line)
     path = safe_target(project, rel)
+    _recover_wal(path)
     existing = _read_raw_records(path)
     if any(obj.get("record_id") == rid for obj in existing):
         raise contract_error("a record with this id already exists", INVALID_RECORD)
@@ -469,6 +480,11 @@ def _mapped_os_errors() -> Iterator[None]:
         raise contract_error("a project-store filesystem operation failed", INVALID_RECORD) from exc
 
 
+def _recover_wal(path: Path) -> None:
+    """Reconcile any leftover append WAL from a prior crashed writer (caller holds project lock)."""
+    _wal_recover_wal(path, mapped_os_errors=_mapped_os_errors, fsync_dir=_fsync_dir)
+
+
 def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
     """Create a secure same-dir temp, fill it as text or bytes, then swap.
 
@@ -477,13 +493,15 @@ def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
     is flushed and ``fsync``-ed, then swapped in with an atomic :func:`os.replace`
     followed by a parent-directory ``fsync`` for durability. The write is
     all-or-nothing: the prior file is kept as a backup first (hard link or
-    copy, so ``path`` never disappears for readers), and if *any* step —
-    including the post-replace directory ``fsync`` — fails, the prior bytes are
-    restored so a reported failure never leaves a partially-advanced file. Every
-    raw OS error is mapped to a privacy-safe :class:`MCPVideoError`.
+    symlink-safe copy, so ``path`` never disappears for readers), and if *any*
+    step — including the post-replace directory ``fsync`` — fails, the prior
+    bytes are restored so a reported failure never leaves a partially-advanced
+    file. Every raw OS error is mapped to a privacy-safe :class:`MCPVideoError`.
     """
 
     with _mapped_os_errors():
+        if path.is_symlink():
+            raise contract_error("refusing to overwrite a symlinked store file", INVALID_RECORD)
         path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
         tmp = Path(tmp_name)
@@ -497,21 +515,31 @@ def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
                 os.fsync(handle.fileno())
             if path.exists():
                 backup = path.with_name(f".{path.name}.bak.{os.getpid()}")
-                if backup.exists():
+                if os.path.lexists(backup):
+                    if backup.is_symlink():
+                        raise contract_error("refusing to use a symlinked backup path", INVALID_RECORD)
                     backup.unlink()
                 # Keep the prior bytes for rollback WITHOUT moving ``path`` away: a
                 # lock-free reader must never observe the file missing mid-write (#708).
                 try:
                     os.link(path, backup)
                 except OSError:
-                    shutil.copy2(path, backup)
+                    # Fallback copy without ever following a pre-planted or racing symlink.
+                    backup_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                    if hasattr(os, "O_NOFOLLOW"):
+                        backup_flags |= os.O_NOFOLLOW
+                    backup_fd = os.open(backup, backup_flags, 0o600)
+                    with os.fdopen(backup_fd, "wb") as dst, path.open("rb") as src:
+                        shutil.copyfileobj(src, dst, _COPY_CHUNK)
+                        dst.flush()
+                        os.fsync(dst.fileno())
             installed = False
             try:
                 os.replace(tmp, path)
                 installed = True
                 _fsync_dir(path.parent)
             except BaseException:
-                if backup is not None and backup.exists():
+                if backup is not None and os.path.lexists(backup) and not backup.is_symlink():
                     os.replace(backup, path)  # restore prior bytes on any failure
                     backup = None
                 elif installed:
@@ -524,15 +552,31 @@ def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
                 raise
         finally:
             with contextlib.suppress(OSError):
-                if tmp.exists():
+                if os.path.lexists(tmp) and not tmp.is_symlink():
                     tmp.unlink()
             with contextlib.suppress(OSError):
-                if backup is not None and backup.exists():
+                if backup is not None and os.path.lexists(backup) and not backup.is_symlink():
                     backup.unlink()
 
 
+def _append_with_wal(path: Path, line: str) -> None:
+    """O(1) crash-safe append via a tiny per-record WAL and ftruncate rollback."""
+    _wal_append_with_wal(path, line, mapped_os_errors=_mapped_os_errors, fsync_dir=_fsync_dir)
+
+
 def _atomic_append(path: Path, line: str) -> None:
-    """Preserve atomic snapshots; allow the filesystem to clone prior extents."""
+    """Append one record atomically without quadratic full-file copying."""
+
+    if path.is_symlink():
+        raise contract_error("refusing to overwrite a symlinked store file", INVALID_RECORD)
+    if path.exists():
+        try:
+            prior_size = path.stat().st_size
+        except OSError:
+            prior_size = 0
+        if prior_size >= _DIRECT_APPEND_THRESHOLD:
+            _append_with_wal(path, line)
+            return
 
     def _fill(writer: Any) -> None:
         if path.exists():
@@ -572,14 +616,27 @@ def read_records(project: Project, record_kind: str) -> list[RecordBase]:
     if not path.exists():
         return []
     records: list[RecordBase] = []
-    with _mapped_os_errors(), path.open("r", encoding="utf-8") as handle:
-        for line in handle:  # streamed line-by-line, not whole-file
-            stripped = line.strip()
-            if stripped:
-                record = _read_one(model, record_kind, stripped)
-                if record.project_id != project.project_id:
-                    raise contract_error("stored record belongs to another project", INVALID_RECORD)
-                records.append(record)
+    with _mapped_os_errors():
+        limit = _effective_read_limit(path)
+        with path.open("rb") as raw_handle:
+            data = raw_handle.read(limit) if limit is not None else None
+        if data is not None:
+            for raw_line in data.decode("utf-8").splitlines():
+                stripped = raw_line.strip()
+                if stripped:
+                    record = _read_one(model, record_kind, stripped)
+                    if record.project_id != project.project_id:
+                        raise contract_error("stored record belongs to another project", INVALID_RECORD)
+                    records.append(record)
+        else:
+            with path.open("r", encoding="utf-8") as handle:
+                for line in handle:  # streamed line-by-line, not whole-file
+                    stripped = line.strip()
+                    if stripped:
+                        record = _read_one(model, record_kind, stripped)
+                        if record.project_id != project.project_id:
+                            raise contract_error("stored record belongs to another project", INVALID_RECORD)
+                        records.append(record)
     return records
 
 

@@ -14,6 +14,7 @@ def solve_publish_cutfile(
     source: str = "media/hero.mp4",
     source_duration: float = 60.0,
     captions: bool = False,
+    subtitle_source: str | None = None,
 ) -> dict[str, Any]:
     """Build a cutfile that should pass ``validate_publish_spec`` after render."""
     key = (platform or "").strip().lower().replace("-", "_").replace(" ", "_")
@@ -31,16 +32,28 @@ def solve_publish_cutfile(
     else:
         height = max(min_h, 1080)
         width = int(height * 16 / 9)
+    sources: list[dict[str, Any]] = [{"id": "hero", "path": source}]
     ops: list[dict[str, Any]] = [{"op": "trim", "start": 0, "duration": duration}]
     if ar != "any":
         ops.append({"op": "resize", "width": width, "height": height})
+    warnings: list[str] = []
+    requires_transcription = False
     if captions:
-        ops.append({"op": "add_text", "text": "CAPTIONS", "position": "bottom-center"})
+        if subtitle_source and subtitle_source.strip():
+            sources.append({"id": "subtitles", "path": subtitle_source.strip()})
+            video_ref = f"step_{len(ops)}"
+            ops.append({"op": "burn_in", "srcs": [video_ref, "subtitles"]})
+        else:
+            requires_transcription = True
+            warnings.append(
+                "Captions requested without a subtitle_source; transcribe with video_ai_transcribe "
+                "and attach a burn_in op (or use video_direct) instead of placeholder text."
+            )
     cf = validate_cutfile(
         {
             "name": f"{key}-solve",
             "version": 1,
-            "sources": [{"id": "hero", "path": source}],
+            "sources": sources,
             "ops": ops,
         }
     )
@@ -51,9 +64,13 @@ def solve_publish_cutfile(
         width=width,
         container=str(spec["container"]),
     )
-    return {
+    payload: dict[str, Any] = {
         **cf.to_dict(),
         "platform": key,
         "publish_proof": proof,
         "next_action": "review_then_cutfile_render",
     }
+    if requires_transcription:
+        payload["requires_transcription"] = True
+        payload["warnings"] = warnings
+    return payload

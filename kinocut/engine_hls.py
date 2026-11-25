@@ -23,7 +23,7 @@ def _validate_hls_options(segment_duration: int, qualities: list[str] | None) ->
             error_type="validation_error",
             code="invalid_parameter",
         )
-    resolved = qualities or ["high"]
+    resolved = list(dict.fromkeys(qualities or ["high"]))
     invalid = [quality for quality in resolved if quality not in VALID_HLS_QUALITIES]
     if invalid:
         raise MCPVideoError(

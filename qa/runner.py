@@ -63,8 +63,17 @@ EXPECTED_PATH_IDS = {
     "hyperframes-preview",
     "brand-render",
 }
+OPTIONAL_V210_PATH_IDS = frozenset(
+    {
+        "trim-music-grid",
+        "direct-plan-and-apply",
+        "quality-check-dark-grade",
+        "offline-doctor",
+        "hermes-desktop-plugin",
+    }
+)
 PLACEHOLDER = re.compile(r"\{\{([a-z_]+)\}\}")
-COMMAND_ALLOWLIST = {"kino", "ffmpeg", "ffprobe", "uv", "{{python}}", "{{venv_python}}"}
+COMMAND_ALLOWLIST = {"kino", "ffmpeg", "ffprobe", "uv", "node", "{{python}}", "{{venv_python}}"}
 BRAND_RENDER_ASSET = Path("assets") / "kinocut-wordmark.svg"
 HYPERFRAMES_VERSION = "0.8.104"
 FLEET_ROOT_ENV = "KINOCUT_QA_FLEET_ROOT"
@@ -74,10 +83,27 @@ class CatalogError(ValueError):
     """The versioned catalog is malformed or unsafe to interpret."""
 
 
+def _browser_temp_root() -> str:
+    """Return a short, portable temp root for browser sockets via tempfile."""
+    candidate = tempfile.gettempdir()
+    if len(candidate) < 40 and os.path.isdir(candidate):
+        return candidate
+    saved = {key: os.environ.pop(key, None) for key in ("TMPDIR", "TEMP", "TMP")}
+    saved_cache = tempfile.tempdir
+    try:
+        tempfile.tempdir = None
+        return tempfile.gettempdir()
+    finally:
+        tempfile.tempdir = saved_cache
+        for key, value in saved.items():
+            if value is not None:
+                os.environ[key] = value
+
+
 @contextmanager
 def browser_tempdir():
     """Keep Playwright sockets short and remove only our own directory."""
-    with tempfile.TemporaryDirectory(prefix="kinoqa-", dir="/tmp") as directory:
+    with tempfile.TemporaryDirectory(prefix="kinoqa-", dir=_browser_temp_root()) as directory:
         previous = os.environ.get("TMPDIR")
         os.environ["TMPDIR"] = directory
         try:
@@ -163,9 +189,10 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
     ids = [item for item in raw_ids if isinstance(item, str)]
     if len(ids) != len(set(ids)):
         raise CatalogError("duplicate required path id")
-    if set(ids) != EXPECTED_PATH_IDS:
-        missing = sorted(EXPECTED_PATH_IDS - set(ids))
-        extra = sorted(set(ids) - EXPECTED_PATH_IDS)
+    id_set = set(ids)
+    missing = sorted(EXPECTED_PATH_IDS - id_set)
+    extra = sorted(id_set - (EXPECTED_PATH_IDS | OPTIONAL_V210_PATH_IDS))
+    if missing or extra:
         raise CatalogError(f"required path set drift (missing={missing}, extra={extra})")
     for entry in entries:
         if not isinstance(entry.get("sources"), list) or not entry["sources"]:
@@ -504,7 +531,8 @@ class OperatorRunner:
         executable = argv[0] if argv else ""
         trusted_paths = {str(Path(sys.executable).resolve()), str(self.python.resolve()), str(self.kino.resolve())}
         trusted = (
-            executable in {"git", "kino", "ffmpeg", "ffprobe", "uv"} or str(Path(executable).resolve()) in trusted_paths
+            executable in {"git", "kino", "ffmpeg", "ffprobe", "uv", "node"}
+            or str(Path(executable).resolve()) in trusted_paths
         )
         if self.hyperframes_executable and str(Path(executable).resolve()) == str(
             Path(self.hyperframes_executable).resolve()
@@ -628,6 +656,16 @@ class OperatorRunner:
             "source-alias-guard",
         ):
             self._run_operator(self._entry(path_id))
+        present_ids = {entry["id"] for entry in required_paths(self.catalog)}
+        for path_id in (
+            "trim-music-grid",
+            "direct-plan-and-apply",
+            "quality-check-dark-grade",
+            "offline-doctor",
+            "hermes-desktop-plugin",
+        ):
+            if path_id in present_ids:
+                self._run_selected(self._entry(path_id))
         self._run_mcp_protocol()
         for path_id in ("mcp-video_doctor", "mcp-video_info", "mcp-list_operations"):
             self._run_mcp_call(self._entry(path_id))
@@ -916,6 +954,22 @@ class OperatorRunner:
         return self._run(self._expanded(entry), timeout=timeout)
 
     def _run_operator(self, entry: dict[str, Any]) -> None:
+        path_id = entry.get("id")
+        if path_id == "trim-music-grid":
+            self._run_trim_music_grid(entry)
+            return
+        if path_id == "direct-plan-and-apply":
+            self._run_direct_plan_and_apply(entry)
+            return
+        if path_id == "quality-check-dark-grade":
+            self._run_quality_check_dark_grade(entry)
+            return
+        if path_id == "offline-doctor":
+            self._run_offline_doctor(entry)
+            return
+        if path_id == "hermes-desktop-plugin":
+            self._run_hermes_desktop_plugin(entry)
+            return
         if not self.installed:
             self._blocked(entry, "target checkout install unavailable")
             return
@@ -1032,9 +1086,10 @@ class OperatorRunner:
             if entry["id"] == "info":
                 probe = self._ffprobe(self.work / "fixtures" / "input.mp4")
                 data = _read_json_object(cp.stdout)
-                info_res = data.get("resolution") if isinstance(data, dict) else None
-                dims_match = isinstance(data, dict) and (
-                    (data.get("width") == probe["width"] and data.get("height") == probe["height"])
+                info = data.get("data") if isinstance(data, dict) and isinstance(data.get("data"), dict) else data
+                info_res = info.get("resolution") if isinstance(info, dict) else None
+                dims_match = isinstance(info, dict) and (
+                    (info.get("width") == probe["width"] and info.get("height") == probe["height"])
                     or info_res == f"{probe['width']}x{probe['height']}"
                 )
                 if (
@@ -1216,7 +1271,213 @@ class OperatorRunner:
             code=cp.returncode,
         )
 
+    def _entry_commands(self, entry: dict[str, Any]) -> list[list[str]]:
+        if entry.get("commands"):
+            return [expand_argv(cmd, self._values()) for cmd in entry["commands"]]
+        if entry.get("argv"):
+            return [self._expanded(entry)]
+        return []
+
+    def _entry_env(self, entry: dict[str, Any], *, extra: dict[str, str] | None = None) -> dict[str, str]:
+        env = self._base_env()
+        declared = entry.get("env")
+        if isinstance(declared, dict):
+            for key, value in declared.items():
+                if isinstance(key, str) and value is not None:
+                    env[key] = str(expand_data(str(value), self._values()))
+        if extra:
+            env.update(extra)
+        return env
+
+    @staticmethod
+    def _argv_output_path(argv: list[str]) -> Path | None:
+        for index, token in enumerate(argv):
+            if token in {"-o", "--output"} and index + 1 < len(argv):
+                return Path(argv[index + 1])
+            if token.startswith("--output="):
+                return Path(token.split("=", 1)[1])
+        return None
+
+    def _run_trim_music_grid(self, entry: dict[str, Any]) -> None:
+        if not self.installed:
+            self._blocked(entry, "target checkout install unavailable")
+            return
+        if not self.fixtures_ready:
+            self._blocked(entry, "required synthetic fixture generation did not pass")
+            return
+        commands = self._entry_commands(entry)
+        if not commands:
+            self._fail(entry, "trim-music-grid entry declares no command")
+            return
+        argv = commands[0]
+        cp = self._run(argv, timeout=240, env=self._entry_env(entry))
+        if cp.returncode != 0:
+            self._fail(entry, f"music-grid trim failed: {cp.stderr[-600:] or cp.stdout[-600:]}", code=cp.returncode)
+            return
+        data = _read_json_object(cp.stdout)
+        if data is not None and data.get("success") is False:
+            self._fail(entry, f"music-grid trim reported success=false: {cp.stdout[-400:]}", code=cp.returncode)
+            return
+        out = self._argv_output_path(argv)
+        if out is None and isinstance(data, dict) and isinstance(data.get("output_path"), str):
+            out = Path(data["output_path"])
+        if out is None:
+            out = self.work / "artifacts" / "trim-music-grid.mp4"
+        probe = self._ffprobe(out) if out.is_file() else None
+        if probe and probe["duration"] > 0 and probe["has_audio"] and self._decode(out).returncode == 0:
+            self._pass(
+                entry,
+                f"music-grid trim produced decodable {probe['duration']:.2f}s output with audio",
+                code=cp.returncode,
+            )
+        else:
+            self._fail(entry, f"music-grid trim output missing or failed probe/decode: {out}", code=cp.returncode)
+
+    def _run_direct_plan_and_apply(self, entry: dict[str, Any]) -> None:
+        if not self.installed:
+            self._blocked(entry, "target checkout install unavailable")
+            return
+        if not self.fixtures_ready:
+            self._blocked(entry, "required synthetic fixture generation did not pass")
+            return
+        commands = self._entry_commands(entry)
+        if not commands:
+            self._fail(entry, "direct-plan-and-apply entry declares no command")
+            return
+        last_cp: subprocess.CompletedProcess[str] | None = None
+        last_data: dict[str, Any] | None = None
+        output_path: Path | None = None
+        for argv in commands:
+            cp = self._run(argv, timeout=240, env=self._entry_env(entry))
+            last_cp = cp
+            if cp.returncode != 0:
+                self._fail(
+                    entry,
+                    f"kino direct step failed: {cp.stderr[-600:] or cp.stdout[-600:]}",
+                    code=cp.returncode,
+                )
+                return
+            data = _read_json_object(cp.stdout)
+            if data is None or data.get("success") is False:
+                self._fail(
+                    entry,
+                    f"kino direct did not return structured success JSON: {cp.stdout[-500:] or cp.stderr[-500:]}",
+                    code=cp.returncode,
+                )
+                return
+            last_data = data
+            candidate = self._argv_output_path(argv)
+            if candidate is not None:
+                output_path = candidate
+        if output_path is None and isinstance(last_data, dict):
+            for key in ("output_path", "final_output"):
+                found = _deep_find(last_data, key)
+                if found and isinstance(found[0], str):
+                    output_path = Path(found[0])
+                    break
+        if any("--apply" in argv for argv in commands) and (
+            output_path is None or not output_path.is_file() or self._decode(output_path).returncode != 0
+        ):
+            self._fail(
+                entry,
+                f"direct --apply did not produce a decodable output file ({output_path})",
+                code=last_cp.returncode if last_cp else None,
+            )
+            return
+        self._pass(
+            entry,
+            "direct plan/apply returned structured success JSON and verified rendered output",
+            code=last_cp.returncode if last_cp else 0,
+        )
+
+    def _run_quality_check_dark_grade(self, entry: dict[str, Any]) -> None:
+        if not self.installed:
+            self._blocked(entry, "target checkout install unavailable")
+            return
+        if not self.fixtures_ready:
+            self._blocked(entry, "required synthetic fixture generation did not pass")
+            return
+        commands = self._entry_commands(entry)
+        if not commands:
+            self._fail(entry, "quality-check-dark-grade entry declares no command")
+            return
+        cp = self._run(commands[0], timeout=240, env=self._entry_env(entry))
+        if cp.returncode != 0:
+            self._fail(
+                entry,
+                f"dark-grade quality check failed: {cp.stderr[-600:] or cp.stdout[-600:]}",
+                code=cp.returncode,
+            )
+            return
+        data = _read_json_object(cp.stdout)
+        profiles = _deep_find(data, "profile") if data is not None else []
+        has_dark_grade = "dark-grade" in profiles or any(
+            isinstance(item, dict) and item.get("name") == "dark-grade" for item in profiles
+        )
+        if data is not None and data.get("success") is not False and has_dark_grade:
+            self._pass(entry, "video-quality-check recorded dark-grade profile in structured JSON", code=cp.returncode)
+        else:
+            self._fail(
+                entry,
+                f"video-quality-check did not return structured dark-grade report: {cp.stdout[-500:]}",
+                code=cp.returncode,
+            )
+
+    def _run_offline_doctor(self, entry: dict[str, Any]) -> None:
+        if not self.installed:
+            self._blocked(entry, "target checkout install unavailable")
+            return
+        commands = self._entry_commands(entry)
+        argv = commands[0] if commands else ["kino", "--format", "json", "doctor"]
+        env = self._entry_env(entry, extra={"KINOCUT_OFFLINE": "1"})
+        cp = self._run(argv, timeout=120, env=env)
+        report = self._doctor_report(cp)
+        summary = report.get("summary") if isinstance(report, dict) else None
+        checks = report.get("checks") if isinstance(report, dict) else None
+        has_offline_check = isinstance(checks, list) and any(
+            isinstance(item, dict) and item.get("name") == "offline_readiness" for item in checks
+        )
+        if (
+            cp.returncode == 0
+            and isinstance(summary, dict)
+            and summary.get("required_ok") is True
+            and has_offline_check
+        ):
+            self._pass(
+                entry,
+                "KINOCUT_OFFLINE=1 kino doctor reports required_ok=true and exposes offline_readiness check",
+                code=cp.returncode,
+            )
+        else:
+            self._fail(
+                entry,
+                f"offline doctor did not satisfy required_ok/offline_readiness assertions: {cp.stderr[-500:] or cp.stdout[-500:]}",
+                code=cp.returncode,
+            )
+
+    def _run_hermes_desktop_plugin(self, entry: dict[str, Any]) -> None:
+        env = self._entry_env(entry)
+        if not shutil.which("node", path=env["PATH"]):
+            self._blocked(entry, "node is unavailable; no installation attempted")
+            return
+        commands = self._entry_commands(entry)
+        argv = (
+            commands[0]
+            if commands
+            else ["node", "--test", str(self.product_root / "plugins" / "kinocut" / "desktop" / "plugin.test.mjs")]
+        )
+        cp = self._run(argv, cwd=self.product_root, timeout=120, env=env)
+        if cp.returncode == 0:
+            self._pass(entry, "Hermes Desktop plugin unit tests passed via node --test", code=cp.returncode)
+        else:
+            self._fail(
+                entry,
+                f"Hermes Desktop plugin tests failed: {cp.stderr[-600:] or cp.stdout[-600:]}",
+                code=cp.returncode,
+            )
+
     def _run_selected(self, entry: dict[str, Any]) -> None:
+        path_id = entry.get("id")
         action = entry.get("action")
         if action == "isolate_environment":
             self._run_clean_environment()
@@ -1238,6 +1499,16 @@ class OperatorRunner:
             self._run_static_review(entry)
         elif action == "hyperframes_preview":
             self._run_hyperframes(entry)
+        elif path_id == "trim-music-grid" or action == "trim_music_grid":
+            self._run_trim_music_grid(entry)
+        elif path_id == "direct-plan-and-apply" or action == "direct_plan_and_apply":
+            self._run_direct_plan_and_apply(entry)
+        elif path_id == "quality-check-dark-grade" or action == "quality_check_dark_grade":
+            self._run_quality_check_dark_grade(entry)
+        elif path_id == "offline-doctor" or action == "offline_doctor":
+            self._run_offline_doctor(entry)
+        elif path_id == "hermes-desktop-plugin" or action in {"hermes_desktop_plugin", "node_test"}:
+            self._run_hermes_desktop_plugin(entry)
         else:
             self._run_operator(entry)
 

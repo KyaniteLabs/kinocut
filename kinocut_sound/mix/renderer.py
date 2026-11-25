@@ -5,6 +5,7 @@ from __future__ import annotations
 from array import array
 from dataclasses import dataclass
 from math import isfinite
+from typing import Any
 
 from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS, DEFAULT_MIX_CHANNEL_COUNT
 from kinocut_sound.validation import PCM_MIX_CHANNEL_COUNTS
@@ -29,7 +30,7 @@ from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
 from kinocut_sound.mix.routing_protocol import RoutingProcessor
 from kinocut_sound.mix.layers import MixLayer, apply_layers
-from kinocut_sound.mix.pcm_ops import _overlay
+from kinocut_sound.mix.pcm_ops import _overlay, _quantize_pcm16
 from kinocut_sound.timeline import Timeline
 from kinocut_sound.world.layers import DuckingContract
 from kinocut_sound._canonical import location_violation
@@ -62,7 +63,7 @@ class MixResult:
 
 
 def _blank(length: int) -> array:
-    return array("h", [0] * length)
+    return array("d", [0.0] * length)
 
 
 class MixRenderer:
@@ -93,6 +94,37 @@ class MixRenderer:
             raise mix_error("tail_seconds must be finite and nonnegative", MIX_INPUT_INVALID) from exc
         if isinstance(tail_seconds, bool) or not isfinite(self.tail_seconds) or self.tail_seconds < 0:
             raise mix_error("tail_seconds must be finite and nonnegative", MIX_INPUT_INVALID)
+
+    def _apply_mix_transitions(
+        self,
+        timeline: Timeline,
+        clips: tuple[MixClip, ...],
+        clip_map: dict[str, MixClip],
+        stem_for: dict[str, str],
+        transitions: tuple[CrossfadeTransition, ...],
+        canvases: dict[str, array],
+    ) -> list[Any]:
+        changed, seams = apply_transitions(
+            timeline,
+            {c.cue_id: c.wav_bytes for c in clips},
+            stem_for,
+            transitions,
+            self.sample_rate_hz,
+            self.channel_count,
+        )
+        for cue_id, wav_bytes in changed.items():
+            if clip_map[cue_id].stem_id not in canvases:
+                raise mix_error("transition stem must exist in delivery layout", MIX_CROSSFADE_INVALID)
+            clip_map[cue_id] = MixClip(cue_id, wav_bytes, clip_map[cue_id].stem_id)
+        return seams
+
+    @staticmethod
+    def _finalize_canvases(canvases: dict[str, array], routing: RoutingProcessor | None) -> dict[str, array]:
+        if routing is not None:
+            if hasattr(routing, "graph") or hasattr(routing, "sidechain_processor"):
+                canvases = {sid: _quantize_pcm16(samples) for sid, samples in canvases.items()}
+            canvases = routing.process_buses(canvases)
+        return {sid: _quantize_pcm16(samples) for sid, samples in canvases.items()}
 
     def render(
         self,
@@ -141,18 +173,7 @@ class MixRenderer:
         stem_ids = delivery.stems.stem_ids or ("dialogue", "ambience", "sfx")
         canvases = {sid: _blank(total_samples) for sid in stem_ids}
         ordered = sorted(placement.placements, key=lambda p: p.start_seconds)
-        changed, seams = apply_transitions(
-            timeline,
-            {c.cue_id: c.wav_bytes for c in clips},
-            stem_for,
-            transitions,
-            self.sample_rate_hz,
-            self.channel_count,
-        )
-        for cue_id, wav_bytes in changed.items():
-            if clip_map[cue_id].stem_id not in canvases:
-                raise mix_error("transition stem must exist in delivery layout", MIX_CROSSFADE_INVALID)
-            clip_map[cue_id] = MixClip(cue_id, wav_bytes, clip_map[cue_id].stem_id)
+        seams = self._apply_mix_transitions(timeline, clips, clip_map, stem_for, transitions, canvases)
 
         self._render_clips(ordered, clip_map, canvases, stem_ids)
         if bed_wav is not None:
@@ -160,8 +181,7 @@ class MixRenderer:
         layer_frames, ducking_summary = apply_layers(
             canvases, layers, self.sample_rate_hz, self.channel_count, layer_ducking
         )
-        if routing is not None:
-            canvases = routing.process_buses(canvases)
+        canvases = self._finalize_canvases(canvases, routing)
 
         return self._finish_mix(
             canvases,
@@ -210,7 +230,11 @@ class MixRenderer:
         return samples
 
     def _encode(self, samples):
-        return pcm_to_wav(samples, sample_rate_hz=self.sample_rate_hz, channel_count=self.channel_count)
+        return pcm_to_wav(
+            _quantize_pcm16(samples),
+            sample_rate_hz=self.sample_rate_hz,
+            channel_count=self.channel_count,
+        )
 
     def _render_clips(
         self,

@@ -17,6 +17,14 @@ import contextlib
 import hashlib
 import json
 import os
+import secrets
+import threading
+from collections.abc import Iterator
+
+try:
+    import fcntl as _fcntl
+except ImportError:  # pragma: no cover - Windows
+    _fcntl = None
 
 _LEDGER_NAME = "outputs.jsonl"
 # Past this size the ledger is compacted down to entries that still match a file.
@@ -25,6 +33,29 @@ _COMPACT_BYTES = 1024 * 1024
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 _Snapshot = frozenset[tuple[str, tuple[int, ...]]]
 _cached: tuple[bytes, _Snapshot] | None = None
+_THREAD_LOCK = threading.Lock()
+
+
+@contextlib.contextmanager
+def _ledger_lock() -> Iterator[None]:
+    """Serialize ledger appends and compactions across threads and POSIX processes."""
+    with _THREAD_LOCK:
+        if _fcntl is None:
+            yield
+            return
+        directory = state_dir()
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        lock_path = os.path.join(directory, f".{_LEDGER_NAME}.lock")
+        fd = os.open(lock_path, os.O_RDWR | os.O_CREAT | _NOFOLLOW | getattr(os, "O_CLOEXEC", 0), 0o600)
+        try:
+            _fcntl.flock(fd, _fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                with contextlib.suppress(OSError):
+                    _fcntl.flock(fd, _fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
 
 
 def state_dir() -> str:
@@ -59,7 +90,7 @@ def record_output(path: str) -> None:
 
 def _record_identity(resolved: str, current: os.stat_result) -> None:
     global _cached
-    with contextlib.suppress(OSError, ValueError):
+    with contextlib.suppress(OSError, ValueError), _ledger_lock():
         line = json.dumps({"path": resolved, "id": _identity(current)}, separators=(",", ":")) + "\n"
         fd = _open_ledger(os.O_WRONLY | os.O_APPEND | os.O_CREAT)
         try:
@@ -69,7 +100,7 @@ def _record_identity(resolved: str, current: os.stat_result) -> None:
             os.close(fd)
         _cached = None
         if size > _COMPACT_BYTES:
-            _compact()
+            _compact_unlocked()
 
 
 def _entries() -> _Snapshot:
@@ -106,18 +137,34 @@ def owns(path: str) -> bool:
     return (resolved, tuple(current)) in _entries()
 
 
-def _compact() -> None:
+def _compact_unlocked() -> None:
+    global _cached
     keep: dict[str, tuple[int, ...]] = {}
     for p, ident in _entries():
         with contextlib.suppress(OSError):
             if tuple(_identity(os.stat(p, follow_symlinks=False))) == ident:
                 keep[p] = ident
-    staged = _ledger_path() + f".{os.getpid()}.tmp"
-    with contextlib.suppress(OSError):
-        fd = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | _NOFOLLOW, 0o600)
+    staged = _ledger_path() + f".{os.getpid()}.{secrets.token_hex(8)}.tmp"
+    replaced = False
+    try:
+        fd = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW | getattr(os, "O_CLOEXEC", 0), 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             for p, ident in keep.items():
                 stream.write(json.dumps({"path": p, "id": ident}, separators=(",", ":")) + "\n")
-        # A record appended during compaction can be lost; that file then just
-        # cannot be cleaned up by Kinocut, which is the safe direction.
+            stream.flush()
+            with contextlib.suppress(OSError):
+                os.fsync(stream.fileno())
         os.replace(staged, _ledger_path())
+        replaced = True
+        _cached = None
+    except OSError:
+        return
+    finally:
+        if not replaced:
+            with contextlib.suppress(OSError):
+                os.unlink(staged)
+
+
+def _compact() -> None:
+    with contextlib.suppress(OSError), _ledger_lock():
+        _compact_unlocked()

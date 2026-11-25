@@ -11,7 +11,7 @@ revision_policy: 'The runner reports the catalog-source git revision and catalog
   only; it is not a claim that later product revisions were tested. All surface counts/names are discovered
   at runtime, not pinned here.'
 policy:
-  pass: All 26 required setup/fixture/brand/operator/protocol/browser paths execute and satisfy their assertions
+  pass: All 31 required setup/fixture/brand/operator/protocol/browser paths execute and satisfy their assertions
     on the caller-supplied exact merged product SHA; missing required inputs remain BLOCKED.
   blocked: Missing exact fixture, installed dependency, consent, browser, or approved human decision is
     BLOCKED and makes the run nonzero.
@@ -434,6 +434,112 @@ paths:
   - '1'
   - -o
   - '{{qa_work}}/fixtures/input.mp4'
+- id: trim-music-grid
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Exit 0 and success result; the 2.1.0 music grid resolves one bar at 120 BPM to a clip whose independent
+    ffprobe duration is 2 seconds, and the result's warnings name the music-grid frames so the grid, not
+    a seconds trim, produced the cut.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 32
+    quote: '| `trim` | Trim a clip. Musical bar:beat:sub times with `--bpm`, `--offset`, `--fps` (2.1.0). |'
+  argv:
+  - kino
+  - --format
+  - json
+  - trim
+  - '{{qa_work}}/fixtures/input.mp4'
+  - --bpm
+  - '120'
+  - -s
+  - '1:1:1'
+  - -e
+  - '2:1:1'
+  - -o
+  - '{{qa_work}}/artifacts/bar.mp4'
+- id: direct-plan-and-apply
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - The spoken-direction plan is a single video_trim step with no unresolved question; --apply renders a
+    decodable 2-second clip and a per-step receipt bound to it (2.1.0 video_direct / video_direct_apply).
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 36
+    quote: '| `direct DIRECTION -i INPUT` | Plan an edit from the user''s words; `--apply` renders after review (2.1.0). |'
+  argv:
+  - kino
+  - --format
+  - json
+  - direct
+  - make it 2 seconds
+  - -i
+  - '{{qa_work}}/fixtures/input.mp4'
+  - -o
+  - '{{qa_work}}/artifacts/direct.mp4'
+  - --apply
+- id: quality-check-dark-grade
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Structured report records profile.name=dark-grade with the profile's own bands, and a profile_baseline for
+    the default profile; the command exits 0 while reporting the dark-grade verdict without inventing approval.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 78
+    quote: '| `video-quality-check INPUT` | Run every quality check and return a structured report. `--profile dark-grade` (2.1.0) scores deliberately dark footage against its own bands. |'
+  argv:
+  - kino
+  - --format
+  - json
+  - video-quality-check
+  - '{{qa_work}}/fixtures/input.mp4'
+  - --profile
+  - dark-grade
+- id: offline-doctor
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  env:
+    KINOCUT_OFFLINE: '1'
+  assertions:
+  - With KINOCUT_OFFLINE=1, doctor still reports summary.required_ok=true and lists an offline_readiness
+    check whose details.enabled is true; no network or model download is attempted.
+  sources:
+  - file: docs/OFFLINE_LFM3.md
+    line: 9
+    quote: Set `KINOCUT_OFFLINE=1` to forbid network use; `kino doctor --json` then reports offline readiness.
+  argv:
+  - kino
+  - --format
+  - json
+  - doctor
+- id: hermes-desktop-plugin
+  category: operator
+  required: true
+  surface: asset
+  action: node_test
+  wiring: Executed by qa/runner.py's node_test handler against the caller-supplied checkout's
+    plugins/kinocut/desktop/plugin.test.mjs with the local Node binary; nothing is installed.
+  assertions:
+  - Exit 0 and node --test reports zero failures for the Hermes Desktop plugin lifecycle suite.
+  sources:
+  - file: plugins/kinocut/README.md
+    line: 100
+    quote: node --test plugins/kinocut/desktop/plugin.test.mjs
+  argv:
+  - node
+  - --test
+  - '{{product_root}}/plugins/kinocut/desktop/plugin.test.mjs'
 - id: mcp-video_doctor
   category: operator
   required: true

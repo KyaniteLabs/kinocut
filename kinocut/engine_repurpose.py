@@ -161,8 +161,20 @@ def repurpose_plan(
     return manifest
 
 
-def _release_checkpoint(video_path: str, output_dir: str, min_score: float) -> dict[str, Any]:
-    quality = assert_quality(video_path, min_score=min_score)
+def _release_checkpoint(
+    video_path: str,
+    output_dir: str,
+    min_score: float,
+    *,
+    profile: str | None = None,
+    profile_reason: str | None = None,
+) -> dict[str, Any]:
+    quality = assert_quality(
+        video_path,
+        min_score=min_score,
+        profile=profile,
+        profile_reason=profile_reason,
+    )
     review_dir = os.path.join(output_dir, "release_review")
     os.makedirs(review_dir, exist_ok=True)
     thumb = thumbnail(video_path, output_path=os.path.join(review_dir, "thumbnail.jpg"))
@@ -181,12 +193,14 @@ def repurpose(
     platforms: list[str] | None = None,
     include_release_checkpoint: bool = True,
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
+    profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Render a local content repurposing package and manifest."""
     policy = repurpose_release_policy(include_release_checkpoint, min_score)
     input_path = _validate_input_path(input_path)
     selected = _select_platforms(platforms)
-    package_dir = _prepare_output_dir(input_path, output_dir, RENDER_MANIFEST)
+    package_dir = _prepare_output_dir(input_path, output_dir, RENDER_MANIFEST, allow_replace_owned=True)
     manifest = _build_manifest(input_path, package_dir, selected, render=True)
 
     for variant in manifest["variants"]:
@@ -219,11 +233,15 @@ def repurpose(
             frame_count=4,
         ).model_dump()
         if policy.include_release_checkpoint:
+            ckpt_kwargs: dict[str, Any] = {"min_score": policy.min_score}
+            if profile is not None or profile_reason is not None:
+                ckpt_kwargs["profile"] = profile
+                ckpt_kwargs["profile_reason"] = profile_reason
             variant["release_checkpoint"] = _release_checkpoint(
                 exported.output_path,
                 os.path.join(platform_dir, "checkpoint"),
-                min_score=policy.min_score,
+                **ckpt_kwargs,
             )
 
-    manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST)
+    manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST, allow_replace_owned=True)
     return manifest

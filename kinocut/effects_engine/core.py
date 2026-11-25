@@ -39,19 +39,26 @@ def effect_vignette(
     _validate_output_path(output)
     intensity = _sanitize_ffmpeg_number(intensity, "intensity")
     radius = _sanitize_ffmpeg_number(radius, "radius")
+    smoothness = _sanitize_ffmpeg_number(smoothness, "smoothness")
 
-    # FFmpeg vignette filter: angle (in radians) controls the radius
-    # intensity maps to darkness
+    clamped_intensity = max(0.0, min(1.0, float(intensity)))
+    clamped_radius = max(0.0, min(1.0, float(radius)))
+    clamped_smoothness = max(0.0, min(1.0, float(smoothness)))
 
-    # Convert radius to angle (FFmpeg uses angle in radians)
-    # angle of PI/2 = corner to center, angle of PI/5 = closer to edges
-    angle = 3.14159 * (1 - radius * 0.8)  # Scale to reasonable range
+    # Radial smoothstep vignette mask controlled by radius (clear center size)
+    # and smoothness (edge falloff feather width: 0.0 = crisp edge, 1.0 = soft).
+    # X/W and Y/H are plane-normalized across Y/U/V, and blending toward a
+    # neutral black frame avoids YUV chroma color casts.
+    inner = max(0.0, (0.35 + 0.55 * clamped_radius) * (1.0 - 0.55 * clamped_smoothness))
+    feather = max(0.02, 0.03 + 0.62 * clamped_smoothness)
+    radial = "hypot(2*X/W-1,2*Y/H-1)/1.41421356"
+    ramp = f"clip(({radial}-{inner:.6f})/{feather:.6f},0,1)"
+    falloff = f"({clamped_intensity:.6f}*pow({ramp},2)*(3-2*{ramp}))"
 
-    # Blend the forward darkening directly, without interpreting YUV as RGB alpha.
     filters = (
-        f"split[original][vignetted];"
-        f"[vignetted]vignette=angle={angle}:mode=forward[vignette];"
-        f"[original][vignette]blend=all_expr='A*(1-{intensity})+B*{intensity}'"
+        f"split[original][base];"
+        f"[base]drawbox=c=black:t=fill[dark];"
+        f"[original][dark]blend=all_expr='A*(1-{falloff})+B*{falloff}'"
     )
 
     cmd = [

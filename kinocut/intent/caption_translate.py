@@ -9,9 +9,16 @@ from typing import Any
 from collections.abc import Callable, Mapping
 
 from kinocut.errors import MCPVideoError
-from kinocut.ffmpeg_helpers import _validate_input_path, _validate_output_path
+from kinocut.ffmpeg_helpers import (
+    _atomic_artifact,
+    _open_staged_writer,
+    _validate_artifact_path,
+    _validate_input_path,
+)
 from kinocut.intent.language_coverage import language_coverage_report
 from kinocut_sound.captions import _parse_srt as _parse_srt
+
+_SAFE_LANG_TAG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$")
 
 # Small deterministic EN→ES map for offline honesty tests (not a full MT system).
 _EN_ES: Mapping[str, str] = {
@@ -61,6 +68,48 @@ class TranslateResult:
         return asdict(self)
 
 
+def _translate_cues(
+    cues: list[tuple[str, str, str]],
+    src_l: str,
+    tgt_l: str,
+    backend: str,
+    translator: Callable[[str, str, str], str] | None,
+) -> tuple[list[tuple[str, str, str]], str, int | None, int, int]:
+    fn = translator or _default_translate
+    out_cues: list[tuple[str, str, str]] = []
+    translated_words: int | None = None
+    total_words = 0
+    untranslated_cues = 0
+    used = "identity" if src_l == tgt_l else backend
+    for start, end, body in cues:
+        if src_l == tgt_l:
+            translated = body
+        else:
+            words_in_cue = len(_WORD.findall(body))
+            if translator is None:
+                translated, matched = _offline_map_translate(body, src_l, tgt_l)
+                translated_words = (translated_words or 0) + matched
+                total_words += words_in_cue
+                if words_in_cue and matched == 0:
+                    untranslated_cues += 1
+            else:
+                translated = fn(body, src_l, tgt_l)
+        out_cues.append((start, end, translated))
+    return out_cues, used, translated_words, total_words, untranslated_cues
+
+
+def _resolve_caption_output_path(src: Path, output_path: str | None, tgt_l: str) -> str:
+    if output_path:
+        return _validate_artifact_path(output_path, allow_recorded=True)
+    if not _SAFE_LANG_TAG_RE.fullmatch(tgt_l):
+        raise MCPVideoError(
+            "target_lang must be a safe language tag (letters, digits, '_', '-')",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    return _validate_artifact_path(str(src.with_name(f"{src.stem}.{tgt_l}.srt")), allow_recorded=True)
+
+
 def translate_caption_file(
     input_path: str,
     output_path: str | None = None,
@@ -83,42 +132,20 @@ def translate_caption_file(
             error_type="validation_error",
             code="unsupported_translate_pair",
         )
-    text = src.read_text(encoding="utf-8")
-    cues = _parse_srt(text)
+    cues = _parse_srt(src.read_text(encoding="utf-8"))
     if not cues:
         raise MCPVideoError(
             "no SRT cues found",
             error_type="validation_error",
             code="empty_srt",
         )
-    fn = translator or _default_translate
-    out_cues: list[tuple[str, str, str]] = []
-    translated_words: int | None = None
-    total_words = 0
-    untranslated_cues = 0
-    for start, end, body in cues:
-        if src_l == tgt_l:
-            translated = body
-            used = "identity"
-        else:
-            words_in_cue = len(_WORD.findall(body))
-            if translator is None:
-                translated, matched = _offline_map_translate(body, src_l, tgt_l)
-                translated_words = (translated_words or 0) + matched
-                total_words += words_in_cue
-                if words_in_cue and matched == 0:
-                    untranslated_cues += 1
-            else:
-                translated = fn(body, src_l, tgt_l)
-            used = backend
-        out_cues.append((start, end, translated))
-    if output_path:
-        out_str = _validate_output_path(output_path)
-    else:
-        out_str = _validate_output_path(str(src.with_name(f"{src.stem}.{tgt_l}.srt")))
+    out_cues, used, translated_words, total_words, untranslated_cues = _translate_cues(
+        cues, src_l, tgt_l, backend, translator
+    )
+    out_str = _resolve_caption_output_path(src, output_path, tgt_l)
     out = Path(out_str)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(_render_srt(out_cues), encoding="utf-8")
+    with _atomic_artifact(out_str, allow_recorded=True) as staged, _open_staged_writer(staged) as stream:
+        stream.write(_render_srt(out_cues).encode("utf-8"))
     warnings: list[str] = []
     if translated_words is not None and total_words and translated_words < total_words:
         percent = round(100 * translated_words / total_words)
@@ -133,7 +160,7 @@ def translate_caption_file(
         source_lang=src_l,
         target_lang=tgt_l,
         cue_count=len(out_cues),
-        backend=used if src_l != tgt_l else "identity",
+        backend=used,
         coverage=coverage,
         translated_words=translated_words,
         total_words=total_words,

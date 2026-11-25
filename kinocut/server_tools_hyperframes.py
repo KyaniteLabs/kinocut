@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from typing import Any
+import ipaddress
 import re
+from urllib.parse import urlsplit
 
 from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
+from .errors import MCPVideoError
 from .limits import MAX_PORT, MIN_PORT
+from .offline import is_offline_mode
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import (
     VALID_HYPERFRAMES_RESOLUTIONS,
@@ -268,8 +272,43 @@ def hyperframes_capture(
     inherited provider credentials cannot enable upstream image uploads. Inspect
     retained images with your host's configured model instead.
     """
-    if not url.startswith(("http://", "https://")):
+    if is_offline_mode():
+        raise MCPVideoError(
+            "Hyperframes capture requires network access and is blocked in offline mode (KINOCUT_OFFLINE=1)",
+            error_type="validation_error",
+            code="offline_network_blocked",
+        )
+    if not isinstance(url, str) or not url or any(ord(ch) < 0x20 or ch.isspace() for ch in url):
+        return _validation_error("url must be a valid http:// or https:// URL without control characters or whitespace")
+    parsed = urlsplit(url)
+    if parsed.scheme.lower() not in {"http", "https"} or not parsed.hostname:
         return _validation_error("url must start with http:// or https://")
+    if parsed.username is not None or parsed.password is not None:
+        raise MCPVideoError(
+            "Capture URL must not include embedded credentials",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
+    hostname = parsed.hostname.strip().rstrip(".").lower()
+    if hostname in {"localhost", "localhost.localdomain"} or hostname.endswith(".localhost"):
+        raise MCPVideoError(
+            "Capture URL targets a blocked local host",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
+    try:
+        ip_literal = ipaddress.ip_address(hostname.split("%", 1)[0])
+    except ValueError:
+        ip_literal = None
+    if ip_literal is not None:
+        from .ai_engine.download import _is_blocked_ip
+
+        if _is_blocked_ip(str(ip_literal)):
+            raise MCPVideoError(
+                "Capture URL targets a blocked private, loopback, or metadata IP address",
+                error_type="validation_error",
+                code="ssrf_blocked",
+            )
     from .hyperframes_engine import capture
 
     return _result(

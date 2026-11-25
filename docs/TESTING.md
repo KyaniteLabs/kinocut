@@ -211,7 +211,7 @@ The test suite is designed for CI:
 ## Adding New Tests
 
 When adding features:
-1. Add test to appropriate class in `test_real_all_features.py`
+1. Add test to appropriate class in `tests/test_real_media.py`
 2. Use `sample_clips` or `short_test_clip` fixtures for speed
 3. Mark slow tests with `@pytest.mark.slow`
 4. Skip conditionally if dependencies optional:

@@ -9,15 +9,53 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 2.1.0 - 2026-11-24
+
+Your agent can now cut to the beat, place sound effects on drum hits, re-render only the shots that
+changed, and plan a cut from spoken words. The surface is 208 MCP tools / 178 CLI commands (18 by
+default, unchanged), and the whole offline path works without a network.
 
 ### Added
 
-- Opt-in local request log of `(request → chosen operation)` pairs for routing-corpus work: `KINOCUT_REQUEST_LOG=1` (or a path) records every MCP operation invocation as a redacted JSONL record (paths, URL queries and credential-shaped strings stripped); harvest with `python -m kinocut.request_log`. Off by default, local only, no telemetry.
-- Turn plain spoken direction into a deterministic, reviewable edit plan with `video_direct`, then explicitly execute it with `video_direct_apply(confirm=true)` or `kino direct "WORDS" -i INPUT --apply` (#458). Plans disclose defaults, unknown phrases and at most one question; voice memos reuse optional local transcription. Apply validates the entire tool/path/argument chain before rendering and returns per-step receipts on success or failure.
-- Support trims, silence removal, pacing, delivery formats, center reframing, -14 LUFS loudness, synchronized captions, muting and final-video thumbnails. Both tools live in the `intent` profile and the `video_plan_ops` family. Development now has 208 MCP tools / 178 CLI commands; published 2.0.1 counts are unchanged.
+- **Cut on music.** `kinocut.music_grid` gives Python-authored timelines a rational `bar:beat:sub`
+  grid with BPM and song offset, per-cut rounding that never accumulates drift, microtiming, groove
+  templates, keyframe lint and rhythm cells. `kino trim` takes `--bpm`, `--fps` and `--offset`; timeline
+  JSON takes `"grid": {"bpm": …, "offset_s": …}`. (#878)
+- **Audio sync and mix audition.** `kinocut.audio_sync` detects onsets in kick, snare and hat bands and
+  places effects with `pocket_lock`, `both` or `avoid_masking` modes, builds sample-phase-stacked hits,
+  and exports A/B proxies of premixed alternatives against one picture. No new Python dependencies. (#879)
+- **Render only changed shots.** `kinocut.shot_cache` keys a shot by source contents, argv, parameters,
+  frame range and upstream digests, reuses matching clips across runs, renders in parallel, splices with
+  `-c copy`, verifies the decoded frame count, and returns a receipt with per-shot digests. (#880)
+- **Spoken direction to an edit plan.** `video_direct` turns plain words into a deterministic,
+  reviewable plan and `video_direct_apply(confirm=true)` or `kino direct "WORDS" -i INPUT --apply`
+  executes it (#458). Plans disclose defaults, unknown phrases and at most one question; apply validates
+  the whole tool/path/argument chain before rendering and returns per-step receipts on success or
+  failure. Both tools live in the `intent` profile and the `video_plan_ops` family. (#870)
+- **Offline mode.** `KINOCUT_OFFLINE=1` restricts model providers to loopback and adds LFM3-VL-2B
+  vision and 360 direction, an LFM3-Audio-2B transcription backend, FSRCNN upscaling and staged
+  BiRefNet mattes, with `kino doctor` reporting `offline_readiness` from local files only. (#881)
+- **Watch renders from Hermes Desktop.** The opt-in plugin shows live percent, estimated time left,
+  elapsed time, output size and the failure cause in a "Kinocut renders" pane and status bar, with
+  keyboard focus, light and dark themes, and reduced motion. (#877)
+- **Review a cut on the TV.** The Hermes skill prepares a contact sheet plus a square-pixel proxy,
+  sends both to a paired TV, and consumes `APPROVE <id>` / `REJECT <id>` exactly once after checking
+  cut, proxy and sheet digests. Proxies keep every audio stream and its metadata, so multi-track A/B
+  auditions keep the mix being compared. (#881)
+- Opt-in local request log of `(request → chosen operation)` pairs for routing-corpus work:
+  `KINOCUT_REQUEST_LOG=1` (or a path) records every MCP operation invocation as a redacted JSONL record
+  (paths, URL queries and credential-shaped strings stripped); harvest with
+  `python -m kinocut.request_log`. Off by default, local only, no telemetry. (#845)
+- **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no
+  longer scores as underexposed: `video-quality-check` and `release-checkpoint` take
+  `--profile dark-grade`. A black or flat frame still fails. (#760)
+- **Multi-platform install configs & one-click links.** Added `docs/INSTALL_PLATFORMS.md` covering VS Code / GitHub Copilot (`vscode:mcp/install` one-click link + `examples/vscode_mcp.json`), Cursor (`cursor://anysphere.cursor-deeplink/mcp/install`), Codex CLI (`examples/codex_config.toml`), Windsurf, Zed, Cline / Roo Code, OpenCode (`plugins/kinocut/opencode-plugin/opencode.json` and `index.js`), Hermes, Claude, and Gemini CLI, plus Codex/OpenAI skill metadata parity (`skills/kinocut-repurpose/agents/openai.yaml`).
 
-- **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no longer scores as underexposed: `video-quality-check` and `release-checkpoint` take `--profile dark-grade`. A black or flat frame still fails. (#760)
+### Security
+
+- **Offline & SSRF hardening.** Enforced fail-closed `KINOCUT_OFFLINE=1` network guards across model downloads, transcription, vision providers, and remote media fetchers; restricted local vision adapters to verified loopback endpoints with SSRF/redirect checks and stripped provider credentials from child environments.
+- **Atomic publication, C2PA, and overwrite safety.** Hardened atomic media, receipt, storyboard, and C2PA publication paths with no-follow directory-identity checks, hard-link ownership ledger validation, strict overwrite consent, and agent-config/credential home protection.
+- **Subprocess and CI/release hardening.** Enforced explicit `stdin=` handling, bounded execution, and process-tree cleanup across media subprocesses, alongside hardened two-phase release cutover and fail-closed verification gates.
 
 ### Changed
 
@@ -25,13 +63,24 @@ This project follows a simple release-note style:
   return it as `review_card` plus a `preview_directive`, so an agent can show the cut without
   a second call. Pass `review=False` to skip it. A card that fails to render is reported in
   `review_card.error` and never fails the edit.
+- Shorts render in a single crop-only pass, media and artifacts publish atomically, and Hyperframes
+  preview, review and session boundaries are hardened. (#862, #863, #866)
+- **O(1) WAL projectstore & lazy hot-path loading.** Reworked projectstore CAS, GC, and ownership appends onto an O(1) WAL (`projectstore._wal`), made `describe_operation` schema loading lazy on the hot path, and bounded onset extraction. (#860, #861, #873)
+- **Guardrail speedup (`37 -> <=6`).** Consolidated and accelerated architecture/reliability guardrails from 37 to `<=6` while preserving fail-closed module/function-size, error-hygiene, and subprocess contracts.
+- **Hermes Desktop job lifecycle.** Hardened Hermes Desktop plugin active/recent job lifecycle transitions, launcher environment parity, review-card digest verification, and stale-job eviction.
+- 33 unreachable modules, the dead BasicPitch bridge and orphaned tests are gone, and Pyright now
+  checks only paths that exist. (#864, #876, #882)
 
 ### Fixed
 
+- **Zero-clip audio mixing.** Fixed gain-staging, peak headroom, PCM bounds, and audition mix rendering across `kinocut_sound` and `kinocut.audio_sync` so combined tracks avoid clipping.
+- **FFmpeg 7.x shot cache, rotation, and masking fidelity.** Fixed FFmpeg 7.x compatibility in `kinocut.shot_cache` concat/keying, display-matrix rotation and reframe geometry, chroma-key/advanced masking, and subtitle/merge guardrails.
 - CLI commands that draw a progress bar (`kino trim`, `kino video-ai-transcribe`, …) no longer hang on a
   real terminal. The home-directory redaction stream wrote through Rich's live-display proxy and recursed
   into itself; it now writes to the terminal underneath the proxy, so human output still shows `~` and JSON
   still carries absolute paths.
+- Hyperframes cache-directory and browser-launch failures are classified errors instead of generic
+  processing failures, and the POSIX probe cache invalidates again when a file changes. (#872, #875)
 
 ## 2.0.1 - 2026-11-10
 

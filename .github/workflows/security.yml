@@ -44,10 +44,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Audits the shipped runtime surface exactly as the pipeline installs it.
+          # Audits the shipped runtime surface exactly as the pipeline installs it,
+          # plus the optional extras that pull in torch, transformers, Pillow,
+          # opencv and anthropic (the base wheel alone never resolves them).
           python3 -m venv .venv-audit
           .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 --upgrade pip
           .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 -e .
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 -e ".[dev,image,image-ai,ai,transcribe,lfm3-audio,stems,upscale,object-matte]"
           .venv-audit/bin/pip freeze --exclude-editable > audit-frozen.txt
           .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 pip-audit
           mapfile -t ignore_flags < <(grep -vE '^[[:space:]]*(#|$)' scripts/pip_audit_allowlist.txt | awk '{print "--ignore-vuln", $1}')
@@ -56,9 +59,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f npm/package-lock.json ]; then
-            echo "npm surface: no package-lock.json (thin uvx launcher, zero runtime deps); nothing to audit yet"
+          # Audit every lockfile that exists; the thin uvx launcher ships none.
+          shopt -s nullglob
+          lockfiles=($(git ls-files '*/package-lock.json' 'package-lock.json'))
+          if [ ${#lockfiles[@]} -eq 0 ]; then
+            echo "npm surface: no package-lock.json tracked; nothing to audit yet"
             exit 0
           fi
-          cd npm
-          npm audit --package-lock-only --audit-level=high
+          for lockfile in "${lockfiles[@]}"; do
+            echo "Auditing $(dirname "$lockfile")"
+            (cd "$(dirname "$lockfile")" && npm audit --package-lock-only --audit-level=high)
+          done

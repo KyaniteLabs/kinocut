@@ -9,13 +9,14 @@ embedded as a ``data:`` URI, and so is the muted preview player. A ``<button dat
 from __future__ import annotations
 
 import base64
+import hashlib
 import html
 import os
 import tempfile
 from typing import Any
 
 from .errors import MCPVideoError
-from .validation_errors import rejected_value
+from .validation_errors import exception_kind, rejected_value
 
 MAX_SEND_TEXT = 500
 MAX_INLINE_IMAGE_BYTES = 200 * 1024
@@ -66,6 +67,7 @@ def render_review_card(
     actions: list[tuple[str, str]],
     video: bytes | None = None,
     poster: bytes | None = None,
+    input_sha256: str | None = None,
 ) -> str:
     """Return one self-contained HTML document: no scripts, no external URLs.
 
@@ -77,11 +79,18 @@ def render_review_card(
         "<!doctype html>",
         '<html lang="en"><head><meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
-        f"<title>{_esc(title)}</title>",
-        f"<style>{_STYLE}</style></head><body>",
-        '<div class="card">',
-        f"<h1>{_esc(title)}</h1>",
     ]
+    if input_sha256:
+        parts.append(f'<meta name="kinocut-input-sha256" content="{_esc(input_sha256)}">')
+    card_attrs = f' class="card" data-input-sha256="{_esc(input_sha256)}"' if input_sha256 else ' class="card"'
+    parts.extend(
+        [
+            f"<title>{_esc(title)}</title>",
+            f"<style>{_STYLE}</style></head><body>",
+            f"<div{card_attrs}>",
+            f"<h1>{_esc(title)}</h1>",
+        ]
+    )
     if video:
         poster_attr = f' poster="data:image/jpeg;base64,{base64.b64encode(poster).decode("ascii")}"' if poster else ""
         parts.append(
@@ -129,6 +138,19 @@ def _jpeg(image_path: str, width: int, qscale: int) -> bytes:
 
 def _mean_luma(image_path: str) -> float:
     """Mean 8-bit luma of an image, sampled on a 16x16 grayscale thumbnail."""
+    try:
+        from PIL import Image  # type: ignore[import-untyped]
+    except ImportError:
+        Image = None  # type: ignore[assignment]
+    if Image is not None:
+        try:
+            with Image.open(image_path) as img:
+                thumb = img.convert("L").resize((16, 16))
+                raw = thumb.tobytes()
+            return sum(raw) / len(raw) if raw else 0.0
+        except OSError:
+            pass
+
     from .ffmpeg_helpers import _run_ffmpeg_bytes
 
     raw = _run_ffmpeg_bytes(
@@ -148,14 +170,14 @@ def _sheet_bytes(sheet_path: str, max_bytes: int = MAX_INLINE_IMAGE_BYTES) -> tu
     if len(raw) <= max_bytes:
         return raw, mime
     data = _jpeg(sheet_path, MAX_IMAGE_WIDTH, 5)
-    for width, qscale in ((MAX_IMAGE_WIDTH, 9), (640, 9), (480, 12)):
+    for width, qscale in ((MAX_IMAGE_WIDTH, 9), (640, 9), (480, 12), (320, 18), (240, 24)):
         if len(data) <= max_bytes:
             break
         data = _jpeg(sheet_path, width, qscale)
     return data, "image/jpeg"
 
 
-def _poster_bytes(frames: list[str]) -> bytes | None:
+def _poster_bytes(frames: list[str], *, preencoded_jpeg: bool = False) -> bytes | None:
     """Return a JPEG of the first storyboard frame that isn't near-black, else the brightest one."""
     best: tuple[float, str] | None = None
     for frame in frames:
@@ -167,7 +189,169 @@ def _poster_bytes(frames: list[str]) -> bytes | None:
             best = (luma, frame)
     if best is None:
         return None
+    if preencoded_jpeg:
+        with open(best[1], "rb") as fh:
+            raw = fh.read()
+        if raw[:2] == b"\xff\xd8":
+            return raw
     return _jpeg(best[1], POSTER_WIDTH, 6)
+
+
+def _sha256_file(path: str) -> str:
+    """Compute hex SHA-256 of ``path`` in bounded chunks."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        while chunk := fh.read(65536):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _coerce_probe_info(input_path: str, probe_info: Any) -> Any:
+    """Reuse already-available render metadata when complete, avoiding a redundant ffprobe."""
+    from .models import VideoInfo
+
+    if isinstance(probe_info, VideoInfo):
+        return probe_info
+    if not isinstance(probe_info, dict):
+        return None
+    duration = probe_info.get("duration")
+    fps = probe_info.get("fps")
+    codec = probe_info.get("codec") or probe_info.get("video_codec")
+    width = probe_info.get("width")
+    height = probe_info.get("height")
+    if (width is None or height is None) and isinstance(probe_info.get("resolution"), str):
+        parts = probe_info["resolution"].lower().split("x", 1)
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            width, height = int(parts[0]), int(parts[1])
+    if (
+        isinstance(duration, (int, float))
+        and not isinstance(duration, bool)
+        and duration > 0
+        and isinstance(width, int)
+        and not isinstance(width, bool)
+        and width > 0
+        and isinstance(height, int)
+        and not isinstance(height, bool)
+        and height > 0
+        and isinstance(fps, (int, float))
+        and not isinstance(fps, bool)
+        and fps > 0
+        and isinstance(codec, str)
+        and codec.strip()
+    ):
+        size_bytes = probe_info.get("size_bytes")
+        if not isinstance(size_bytes, int) or isinstance(size_bytes, bool) or size_bytes <= 0:
+            try:
+                size_bytes = os.path.getsize(input_path)
+            except OSError:
+                size_bytes = None
+        return VideoInfo(
+            path=input_path,
+            duration=float(duration),
+            width=width,
+            height=height,
+            fps=float(fps),
+            codec=codec.strip(),
+            size_bytes=size_bytes,
+        )
+    return None
+
+
+def _single_frame_command(input_path: str, output_path: str) -> list[str]:
+    return [
+        "-i",
+        input_path,
+        "-frames:v",
+        "1",
+        "-vf",
+        f"scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p",
+        "-q:v",
+        "6",
+        "-y",
+        output_path,
+    ]
+
+
+def _sheet_and_frames_command(
+    input_path: str,
+    duration: float,
+    frame_count: int,
+    sheet_path: str,
+    frame_pattern: str,
+) -> list[str]:
+    cols = min(4, frame_count)
+    rows = (frame_count + cols - 1) // cols
+    tile_w = min(480, max(160, (MAX_IMAGE_WIDTH // cols) & ~1))
+    tile_h = max(90, int(tile_w * 9 / 16) & ~1)
+    interval = duration / (frame_count + 1)
+    fps_expr = f"{1.0 / interval:.6f}"
+    filter_complex = (
+        f"[0:v]fps={fps_expr},split=2[for_sheet][for_frames];"
+        f"[for_sheet]scale={tile_w}:{tile_h}:force_original_aspect_ratio=decrease,"
+        f"pad={tile_w}:{tile_h}:(ow-iw)/2:(oh-ih)/2,tile={cols}x{rows},format=yuvj420p[sheet];"
+        f"[for_frames]scale=w='min({POSTER_WIDTH},iw)':h=-2,format=yuvj420p[poster_frames]"
+    )
+    return [
+        "-ss",
+        f"{interval:.3f}",
+        "-i",
+        input_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[sheet]",
+        "-frames:v",
+        "1",
+        "-q:v",
+        "6",
+        "-y",
+        sheet_path,
+        "-map",
+        "[poster_frames]",
+        "-frames:v",
+        str(frame_count),
+        "-q:v",
+        "6",
+        "-y",
+        frame_pattern,
+    ]
+
+
+def _extract_sheet_and_frames(
+    input_path: str,
+    duration: float,
+    frame_count: int,
+    out_dir: str,
+) -> tuple[str | None, list[str]]:
+    """Extract contact sheet and poster-sized frames in a single FFmpeg pass."""
+    from .ffmpeg_helpers import _run_ffmpeg
+
+    sheet_path = os.path.join(out_dir, "review_sheet.jpg")
+    frame_pattern = os.path.join(out_dir, "review_frame_%03d.jpg")
+
+    if frame_count > 1 and duration > 0:
+        _run_ffmpeg(_sheet_and_frames_command(input_path, duration, frame_count, sheet_path, frame_pattern))
+    else:
+        single_frame = os.path.join(out_dir, "review_frame_001.jpg")
+        _run_ffmpeg(_single_frame_command(input_path, single_frame))
+        sheet_path = single_frame
+
+    frames = sorted(
+        os.path.join(out_dir, name)
+        for name in os.listdir(out_dir)
+        if name.startswith("review_frame_") and name.endswith(".jpg")
+    )
+    if not frames:
+        fallback = os.path.join(out_dir, "review_frame_001.jpg")
+        _run_ffmpeg(_single_frame_command(input_path, fallback))
+        if os.path.isfile(fallback) and os.path.getsize(fallback) > 0:
+            frames = [fallback]
+    sheet = (
+        sheet_path
+        if os.path.isfile(sheet_path) and os.path.getsize(sheet_path) > 0
+        else (frames[0] if frames else None)
+    )
+    return sheet, frames
 
 
 def _preview_bytes(input_path: str, duration: float, budget: int) -> bytes | None:
@@ -226,14 +410,51 @@ def final_export_path(input_path: str) -> str:
     return f"{os.path.splitext(input_path)[0]}-final.mp4"
 
 
+def _build_review_card_payload(
+    input_path: str,
+    info: Any,
+    input_sha256: str,
+    sheet_data: bytes,
+    sheet_mime: str,
+) -> dict[str, Any]:
+    name = os.path.basename(input_path)
+    facts = {
+        "Duration": _format_duration(info.duration),
+        "Resolution": info.resolution,
+        "FPS": f"{info.fps:g}",
+        "Codec": info.codec,
+        "Size": _format_size(info.size_bytes),
+        "SHA-256": input_sha256[:16],
+    }
+    final_path = final_export_path(input_path)
+    actions = [
+        (
+            "Approve & export",
+            f"Approve this cut: {input_path} (sha256:{input_sha256}). "
+            f"Run video_release_checkpoint on it; "
+            f"if it passes, video_export it to {final_path}.",
+        ),
+        ("Dig in", f"Show me more detail on {input_path}"),
+        ("Try another range", f"Try a different range of {input_path}"),
+    ]
+    return {
+        "title": name,
+        "facts": facts,
+        "images": [(f"Contact sheet of {name}", sheet_data, sheet_mime)],
+        "actions": actions,
+        "input_sha256": input_sha256,
+    }
+
+
 def write_review_card(
     input_path: str,
     output_path: str | None = None,
     frame_count: int = 6,
+    *,
+    probe_info: Any = None,
 ) -> dict[str, Any]:
     """Write ``<stem>_review_card.html`` (contact sheet + facts + buttons) for chat review."""
     from .engine_probe import probe
-    from .engine_storyboard import storyboard
     from .ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_input_path
 
     input_path = _validate_input_path(input_path)
@@ -245,11 +466,17 @@ def write_review_card(
         )
     if output_path is None:
         output_path = _fresh_card_path(input_path)
+    elif any(ch in output_path for ch in ('"', "}", "\r", "\n")):
+        raise MCPVideoError(
+            "Review card output_path cannot contain directive-breaking characters",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
 
-    info = probe(input_path)
+    info = _coerce_probe_info(input_path, probe_info) or probe(input_path)
+    input_sha256 = _sha256_file(input_path)
     with tempfile.TemporaryDirectory(prefix="kinocut_review_card_") as tmp:
-        board = storyboard(input_path, output_dir=tmp, frame_count=frame_count)
-        sheet = board.grid or (board.frames[0] if board.frames else None)
+        sheet, frames = _extract_sheet_and_frames(input_path, info.duration, frame_count, tmp)
         if sheet is None:
             raise MCPVideoError(
                 "Could not extract any frames for the review card",
@@ -257,38 +484,15 @@ def write_review_card(
                 code="no_frames",
             )
         sheet_data, sheet_mime = _sheet_bytes(sheet, SHEET_BYTES_WITH_PLAYER)
-        poster = _poster_bytes(board.frames)
+        poster = _poster_bytes(frames, preencoded_jpeg=True)
 
-    name = os.path.basename(input_path)
-    facts = {
-        "Duration": _format_duration(info.duration),
-        "Resolution": info.resolution,
-        "FPS": f"{info.fps:g}",
-        "Codec": info.codec,
-        "Size": _format_size(info.size_bytes),
-    }
-    final_path = final_export_path(input_path)
-    actions = [
-        (
-            "Approve & export",
-            f"Approve this cut: {input_path}. Run video_release_checkpoint on it; "
-            f"if it passes, video_export it to {final_path}.",
-        ),
-        ("Dig in", f"Show me more detail on {input_path}"),
-        ("Try another range", f"Try a different range of {input_path}"),
-    ]
-    card = {
-        "title": name,
-        "facts": facts,
-        "images": [(f"Contact sheet of {name}", sheet_data, sheet_mime)],
-        "actions": actions,
-    }
+    card = _build_review_card_payload(input_path, info, input_sha256, sheet_data, sheet_mime)
     shell = render_review_card(**card)
     poster_b64 = len(base64.b64encode(poster)) if poster else 0
     room = MAX_CARD_BYTES - len(shell.encode("utf-8")) - poster_b64 - 400
     video = _preview_bytes(input_path, info.duration, room * 3 // 4)
     if video is None:
-        facts["Preview"] = "too long to play here; open the file to watch it"
+        card["facts"]["Preview"] = "too long to play here; open the file to watch it"
     document = render_review_card(**card, video=video, poster=poster)
     with _atomic_artifact(output_path) as staged, _open_staged_writer(staged) as stream:
         stream.write(document.encode("utf-8"))
@@ -297,7 +501,9 @@ def write_review_card(
         "operation": "review_card",
         "output_path": output_path,
         "preview_directive": f'::preview{{file="{output_path}"}}',
-        "frame_count": len(board.frames),
+        "input_sha256": input_sha256,
+        "approval_digest": f"sha256:{input_sha256}",
+        "frame_count": len(frames),
         "duration": info.duration,
         "resolution": info.resolution,
         "size_bytes": len(document.encode("utf-8")),
@@ -315,10 +521,22 @@ def attach_review_card(result: dict[str, Any], review: bool) -> dict[str, Any]:
     if not review or not result.get("success") or not output_path:
         return result
     try:
-        card = write_review_card(output_path)
+        card = write_review_card(output_path, probe_info=result)
     except MCPVideoError as exc:
         result["review_card"] = {"created": False, "error": exc.to_dict()}
         return result
-    result["review_card"] = {"created": True, "output_path": card["output_path"]}
+    except OSError as exc:
+        err = MCPVideoError(
+            f"Could not write review card: {exception_kind(exc)}",
+            error_type="processing_error",
+            code="review_card_io_error",
+        )
+        result["review_card"] = {"created": False, "error": err.to_dict()}
+        return result
+    result["review_card"] = {
+        "created": True,
+        "output_path": card["output_path"],
+        "input_sha256": card["input_sha256"],
+    }
     result["preview_directive"] = card["preview_directive"]
     return result

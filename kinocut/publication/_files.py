@@ -13,6 +13,7 @@ from ..errors import MCPVideoError
 from ..type_names import exception_kind
 from ._anchor import _Directory, _partial_output, _rename_exclusive, _same_inode, _unsafe
 from ._operation import _OVERWRITE, _record_write
+from ._policy import _owns_durable_receipt
 from ._receipts import _witness_receipt_stage
 from ._staging import owned_stage
 
@@ -79,7 +80,7 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
         if anchor.fd is None:
             os.close(fd)
             fd = None
-        if _OVERWRITE.get() is True:
+        if _OVERWRITE.get() is True or _owns_durable_receipt(final):
             if anchor.fd is not None:
                 os.replace(stage, basename, src_dir_fd=anchor.fd, dst_dir_fd=anchor.fd)
             else:

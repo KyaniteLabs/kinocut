@@ -28,6 +28,8 @@ import time
 from kinocut.projectstore._filelock import lock_exclusive
 from kinocut.errors import MCPVideoError
 from kinocut.publication import durable_receipt_ownership, with_output_policy
+from kinocut.request_log import redact_text
+from kinocut.type_names import exception_kind
 from kinocut.projectstore.render_jobs import (
     RenderJobStatus,
     get_render_job,
@@ -196,9 +198,17 @@ def main(argv: list[str]) -> int:
             ):
                 run_job(project, args.job_id)
         except Exception as exc:  # defensive: record a bounded failure, never hang the job
+            logger.warning("Detached render runner failed", exc_info=True)
             with contextlib.suppress(Exception):
                 if _requested_stop_label(project, args.job_id) is None:
-                    mark_failed(project, args.job_id, "render_failed", repr(exc)[:256])
+                    if isinstance(exc, MCPVideoError):
+                        error = exc.to_dict()
+                        code = str(error.get("code") or "render_failed")
+                        message = redact_text(str(error.get("message") or "Render failed"))[:256]
+                    else:
+                        code = "render_failed"
+                        message = redact_text(f"Render runner failed ({exception_kind(exc)})")[:256]
+                    mark_failed(project, args.job_id, code, message)
     return 0
 
 

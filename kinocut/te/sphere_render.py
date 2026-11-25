@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import tempfile
 from copy import deepcopy
@@ -15,6 +16,7 @@ from kinocut.engine_merge import merge
 from kinocut.engine_probe import _cache_key
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_output_path
+from kinocut.publication import validate_artifact_location
 from kinocut.quality_guardrails import assert_quality
 from kinocut.source_identity import assert_source_identity, stream_source_identity
 from kinocut.te.sphere_graph import render_window_single_pass
@@ -32,6 +34,8 @@ def render_sphere_plan(
     work_dir: str | None = None,
     allow_fail: bool = False,
     min_score: float | None = None,
+    profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Extract cameras and assemble split/pip/switch/single. Requires approved.
 
@@ -60,7 +64,15 @@ def render_sphere_plan(
     assert_equirect_geometry(source)
     source_key = _cache_key(source)
     _validate_output_path(output_path)
-    root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
+    raw_root = str(work_dir) if work_dir is not None else str(Path(output_path).resolve().parent / "_sphere_work")
+    resolved_root = validate_artifact_location(raw_root, "Work directory")
+    if os.path.lexists(resolved_root) and not os.path.isdir(resolved_root):
+        raise MCPVideoError(
+            "Work directory target is not a directory.",
+            error_type="validation_error",
+            code="unsafe_path",
+        )
+    root = Path(resolved_root)
     root.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="render-", dir=root))
     pieces = [_render_window(current, window, work, index) for index, window in enumerate(current["windows"])]
@@ -71,7 +83,11 @@ def render_sphere_plan(
     with _atomic_output(output_path) as staged:
         with open(assembled, "rb") as rendered, _open_staged_writer(staged) as writer:
             shutil.copyfileobj(rendered, writer)
-        gate = _maybe_quality(staged, allow_fail=allow_fail, min_score=min_score)
+        quality_kwargs: dict[str, Any] = {"allow_fail": allow_fail, "min_score": min_score}
+        if profile is not None or profile_reason is not None:
+            quality_kwargs["profile"] = profile
+            quality_kwargs["profile_reason"] = profile_reason
+        gate = _maybe_quality(staged, **quality_kwargs)
         assert_source_identity(source, identity)
         if _cache_key(source) != source_key:
             raise MCPVideoError(
@@ -114,10 +130,23 @@ def _render_window(plan: dict[str, Any], window: dict[str, Any], work: Path, ind
     )
 
 
-def _maybe_quality(output_path: str, *, allow_fail: bool, min_score: float | None) -> dict[str, Any]:
+def _maybe_quality(
+    output_path: str,
+    *,
+    allow_fail: bool,
+    min_score: float | None,
+    profile: str | None = None,
+    profile_reason: str | None = None,
+) -> dict[str, Any]:
     score = DEFAULT_QUALITY_GATE_SCORE if min_score is None else float(min_score)
     try:
-        report = assert_quality(output_path, min_score=score, max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS)
+        report = assert_quality(
+            output_path,
+            min_score=score,
+            max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS,
+            profile=profile,
+            profile_reason=profile_reason,
+        )
         return {"passed": True, "report": report}
     except Exception as exc:
         from ..validation_errors import reason
