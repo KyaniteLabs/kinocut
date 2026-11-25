@@ -30,7 +30,7 @@ test("manifest.json is valid MV3 with least-privilege permissions", () => {
 
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.name, "Kinocut Companion");
-  assert.equal(manifest.version, "2.1.0");
+  assert.equal(manifest.version, "2.2.0");
   assert.deepEqual(manifest.permissions, ["nativeMessaging", "downloads", "storage"]);
   assert.equal(manifest.host_permissions, undefined);
   assert.equal(manifest.externally_connectable, undefined);
