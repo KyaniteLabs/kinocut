@@ -34,10 +34,11 @@ def _digest_file(path: Path) -> tuple[str, str]:
     return sha.hexdigest(), md5.hexdigest()
 
 
-def _verify_weights(path: Path, *, delete_invalid: bool = True) -> None:
+def _verify_weights(path: Path, *, delete_invalid: bool | None = None) -> None:
+    should_delete = (not is_offline_mode()) if delete_invalid is None else delete_invalid
     size = path.stat().st_size
     if size != OBJECT_MATTE_WEIGHTS_BYTES:
-        if delete_invalid:
+        if should_delete:
             path.unlink(missing_ok=True)
         raise MCPVideoError(
             f"Object-matte weights size mismatch for {path.name}: expected {OBJECT_MATTE_WEIGHTS_BYTES}, got {size}.",
@@ -47,7 +48,7 @@ def _verify_weights(path: Path, *, delete_invalid: bool = True) -> None:
         )
     sha, md5 = _digest_file(path)
     if sha != OBJECT_MATTE_WEIGHTS_SHA256 or md5 != OBJECT_MATTE_WEIGHTS_MD5:
-        if delete_invalid:
+        if should_delete:
             path.unlink(missing_ok=True)
         raise MCPVideoError(
             f"Object-matte weights integrity check failed for {path.name}.",

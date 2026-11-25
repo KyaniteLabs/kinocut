@@ -1,16 +1,21 @@
 """Image analysis engine — color extraction, palette generation, product analysis.
 
 Pure Python (no FFmpeg). Requires optional deps: Pillow, scikit-learn, webcolors.
-Install with: pip install kinocut[image]==2.0.1
+The pinned install command for the ``image`` extra comes from
+``kinocut._install_hints.pip_install_hint("image")``.
 """
 
 from __future__ import annotations
 
 import colorsys
+import contextlib
+import ipaddress
+import socket
 from typing import Any
 import os
 from urllib.parse import urlsplit
 
+from ._install_hints import pip_install_hint, pinned_requirement
 from .defaults import (
     DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS,
     ENV_PRODUCT_DESCRIPTION_MAX_TOKENS,
@@ -89,11 +94,19 @@ def resolve_vision_endpoint(
             kind = "custom"
         else:
             kind = "local"
-            if not style and (
-                parsed.path.rstrip("/").endswith("/v1/chat/completions")
-                or (not base_url and not env.get(ENV_VISION_BASE_URL) and env.get("LFM3_VL_URL"))
-            ):
-                style = "openai"
+            path = parsed.path.rstrip("/")
+            if not style:
+                # A loopback base URL names an OpenAI-compatible server unless
+                # its path says otherwise; a bare host keeps the legacy
+                # Anthropic-compatible Messages route.
+                if path.endswith("/v1/messages"):
+                    style = "anthropic"
+                elif (
+                    path.endswith("/v1")
+                    or path.endswith("/v1/chat/completions")
+                    or (not base_url and not env.get(ENV_VISION_BASE_URL) and env.get("LFM3_VL_URL"))
+                ):
+                    style = "openai"
     if style == "openai" and not resolved_url:
         raise MCPVideoError("OpenAI-compatible vision requires KINOCUT_VISION_BASE_URL", code="invalid_parameter")
     return {
@@ -135,6 +148,49 @@ def _resolve_vision_api_key(endpoint: dict[str, Any]) -> str:
     )
 
 
+def _require_public_vision_endpoint(url: str) -> None:
+    """Refuse to send KINOCUT_VISION_API_KEY to a host that resolves off the public internet.
+
+    The endpoint was already checked for an HTTPS scheme; this closes the
+    DNS-rebinding case where a public-looking name resolves to a loopback,
+    link-local, private or otherwise non-global address.
+    """
+    host = urlsplit(url).hostname or ""
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        addresses = [_public_address(info[4][0]) for info in infos]
+    except (OSError, ValueError) as exc:
+        raise MCPVideoError(
+            "Remote vision endpoint host could not be resolved to a public address",
+            error_type="validation_error",
+            code="unsafe_endpoint",
+        ) from exc
+    if not addresses or any(address is None for address in addresses):
+        raise MCPVideoError(
+            "Remote vision endpoints must resolve to public addresses; private, loopback and "
+            "link-local destinations are refused",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
+
+
+def _public_address(value: str) -> str | None:
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return None
+    for candidate in (address.ipv4_mapped if address.version == 6 else None, address):
+        if candidate is None:
+            continue
+        if candidate.version == 6 and candidate.sixtofour is not None:
+            candidate = candidate.sixtofour
+        if candidate.version == 6 and candidate.teredo is not None:
+            candidate = candidate.teredo[1]
+        if not candidate.is_global or candidate.is_multicast:
+            return None
+    return value
+
+
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
@@ -145,16 +201,16 @@ def _require_image_deps() -> None:
     try:
         import PIL.Image  # noqa: F401
     except ImportError:
+        hint = pip_install_hint("image")
         raise MCPVideoError(
-            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==2.0.1"
-            " (under the Hermes plugin's uvx launcher, start the server with"
-            " uvx --from 'kinocut[image]==2.0.1' kinocut instead)",
+            f"Image analysis requires optional dependencies. Install with: {hint}"
+            f" (under the Hermes plugin's uvx launcher, start the server with"
+            f" uvx --from '{pinned_requirement('image')}' kinocut instead)",
             error_type="dependency_error",
             code="missing_optional_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image]==2.0.1, or for the uvx launcher: "
-                "uvx --from 'kinocut[image]==2.0.1' kinocut",
+                "description": f"Run: {hint}, or for the uvx launcher: uvx --from '{pinned_requirement('image')}' kinocut",
             },
         ) from None
 
@@ -193,8 +249,28 @@ def _extract_frame_if_video(path: str) -> str:
     import tempfile
 
     frame_path = os.path.join(tempfile.gettempdir(), f"mcp_video_frame_{secrets.token_hex(16)}.jpg")
-    result = thumbnail(path, output_path=frame_path)
+    try:
+        result = thumbnail(path, output_path=frame_path)
+    except BaseException:
+        _remove_quietly(frame_path)
+        raise
     return result.frame_path
+
+
+def _remove_quietly(path: str) -> None:
+    with contextlib.suppress(OSError):
+        os.remove(path)
+
+
+@contextlib.contextmanager
+def _analysis_image(path: str):
+    """Yield the image to analyze, always removing a frame extracted from a video."""
+    frame_path = _extract_frame_if_video(path)
+    try:
+        yield frame_path
+    finally:
+        if frame_path != path:
+            _remove_quietly(frame_path)
 
 
 def _open_image_safe(path: str) -> Any:
@@ -288,11 +364,6 @@ def extract_colors(
     _require_image_deps()
     _validate_image(image_path)
 
-    # If video input, extract a representative frame
-    frame_path = _extract_frame_if_video(image_path)
-    if frame_path != image_path:
-        image_path = frame_path
-
     if n_colors < 1 or n_colors > 20:
         raise MCPVideoError(
             "n_colors must be between 1 and 20",
@@ -303,45 +374,48 @@ def extract_colors(
     import numpy as np
     from sklearn.cluster import MiniBatchKMeans
 
-    img = _open_image_safe(image_path).convert("RGB")
-    # Resize for speed — max 200px on the longest side
-    img.thumbnail((200, 200))
-    pixels = np.array(img).reshape(-1, 3).astype(float)
-    if len(pixels) > 50000:
-        pixels = pixels[:50000]
+    # A video input is analyzed through a representative frame that is
+    # removed afterwards; the result keeps the path the caller supplied.
+    with _analysis_image(image_path) as frame_path:
+        img = _open_image_safe(frame_path).convert("RGB")
+        # Resize for speed — max 200px on the longest side
+        img.thumbnail((200, 200))
+        pixels = np.array(img).reshape(-1, 3).astype(float)
+        if len(pixels) > 50000:
+            pixels = pixels[:50000]
 
-    kmeans = MiniBatchKMeans(n_clusters=n_colors, random_state=42, n_init=3)
-    labels = kmeans.fit_predict(pixels)
+        kmeans = MiniBatchKMeans(n_clusters=n_colors, random_state=42, n_init=3)
+        labels = kmeans.fit_predict(pixels)
 
-    # Count pixels per cluster
-    histogram = np.bincount(labels)
-    counts = {label: int(histogram[label]) for label in dict.fromkeys(labels.tolist())}
-    total = len(labels)
+        # Count pixels per cluster
+        histogram = np.bincount(labels)
+        counts = {label: int(histogram[label]) for label in dict.fromkeys(labels.tolist())}
+        total = len(labels)
 
-    # Sort by pixel count descending
-    sorted_clusters = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+        # Sort by pixel count descending
+        sorted_clusters = sorted(counts.items(), key=lambda x: x[1], reverse=True)
 
-    colors: list[DominantColor] = []
-    for cluster_id, count in sorted_clusters:
-        center = kmeans.cluster_centers_[cluster_id]
-        r, g, b = round(center[0]), round(center[1]), round(center[2])
-        r = max(0, min(255, r))
-        g = max(0, min(255, g))
-        b = max(0, min(255, b))
-        colors.append(
-            DominantColor(
-                hex=_rgb_to_hex(r, g, b),
-                rgb=(r, g, b),
-                name=_closest_color_name(r, g, b),
-                percentage=round(count / total * 100, 1),
+        colors: list[DominantColor] = []
+        for cluster_id, count in sorted_clusters:
+            center = kmeans.cluster_centers_[cluster_id]
+            r, g, b = round(center[0]), round(center[1]), round(center[2])
+            r = max(0, min(255, r))
+            g = max(0, min(255, g))
+            b = max(0, min(255, b))
+            colors.append(
+                DominantColor(
+                    hex=_rgb_to_hex(r, g, b),
+                    rgb=(r, g, b),
+                    name=_closest_color_name(r, g, b),
+                    percentage=round(count / total * 100, 1),
+                )
             )
-        )
 
-    return ColorExtractionResult(
-        image_path=image_path,
-        colors=colors,
-        n_colors=n_colors,
-    )
+        return ColorExtractionResult(
+            image_path=image_path,
+            colors=colors,
+            n_colors=n_colors,
+        )
 
 
 def generate_palette(
@@ -353,11 +427,6 @@ def generate_palette(
     _require_image_deps()
     _validate_image(image_path)
 
-    # If video input, extract a representative frame
-    frame_path = _extract_frame_if_video(image_path)
-    if frame_path != image_path:
-        image_path = frame_path
-
     valid_harmonies = {"complementary", "analogous", "triadic", "split_complementary"}
     if harmony not in valid_harmonies:
         raise MCPVideoError(
@@ -366,49 +435,50 @@ def generate_palette(
             code="invalid_harmony",
         )
 
-    # Get dominant color
-    extraction = extract_colors(image_path, n_colors=n_colors)
-    source = extraction.colors[0]
-    r, g, b = source.rgb
+    with _analysis_image(image_path) as frame_path:
+        # Get dominant color
+        extraction = extract_colors(frame_path, n_colors=n_colors)
+        source = extraction.colors[0]
+        r, g, b = source.rgb
 
-    # Convert to HSL for harmony math
-    h, lightness, s = _rgb_to_hsl(r, g, b)
+        # Convert to HSL for harmony math
+        h, lightness, s = _rgb_to_hsl(r, g, b)
 
-    # Harmony rotation rules
-    harmony_offsets: dict[str, list[float]] = {
-        "complementary": [0.0, 0.5],
-        "analogous": [0.0, 1 / 12, -1 / 12, 2 / 12, -2 / 12],
-        "triadic": [0.0, 1 / 3, 2 / 3],
-        "split_complementary": [0.0, 150 / 360, 210 / 360],
-    }
-    offsets = harmony_offsets[harmony]
+        # Harmony rotation rules
+        harmony_offsets: dict[str, list[float]] = {
+            "complementary": [0.0, 0.5],
+            "analogous": [0.0, 1 / 12, -1 / 12, 2 / 12, -2 / 12],
+            "triadic": [0.0, 1 / 3, 2 / 3],
+            "split_complementary": [0.0, 150 / 360, 210 / 360],
+        }
+        offsets = harmony_offsets[harmony]
 
-    role_names: dict[str, list[str]] = {
-        "complementary": ["base", "complement"],
-        "analogous": ["base", "analogous1", "analogous2", "analogous3", "analogous4"],
-        "triadic": ["base", "triadic1", "triadic2"],
-        "split_complementary": ["base", "split1", "split2"],
-    }
+        role_names: dict[str, list[str]] = {
+            "complementary": ["base", "complement"],
+            "analogous": ["base", "analogous1", "analogous2", "analogous3", "analogous4"],
+            "triadic": ["base", "triadic1", "triadic2"],
+            "split_complementary": ["base", "split1", "split2"],
+        }
 
-    palette: list[PaletteColor] = []
-    for i, offset in enumerate(offsets):
-        new_h = (h + offset) % 1.0
-        nr, ng, nb = _hsl_to_rgb(new_h, s, lightness)
-        role = role_names[harmony][i] if i < len(role_names[harmony]) else f"accent{i}"
-        palette.append(
-            PaletteColor(
-                hex=_rgb_to_hex(nr, ng, nb),
-                rgb=(nr, ng, nb),
-                role=role,
+        palette: list[PaletteColor] = []
+        for i, offset in enumerate(offsets):
+            new_h = (h + offset) % 1.0
+            nr, ng, nb = _hsl_to_rgb(new_h, s, lightness)
+            role = role_names[harmony][i] if i < len(role_names[harmony]) else f"accent{i}"
+            palette.append(
+                PaletteColor(
+                    hex=_rgb_to_hex(nr, ng, nb),
+                    rgb=(nr, ng, nb),
+                    role=role,
+                )
             )
-        )
 
-    return PaletteResult(
-        image_path=image_path,
-        harmony=harmony,
-        palette=palette,
-        source_color=source,
-    )
+        return PaletteResult(
+            image_path=image_path,
+            harmony=harmony,
+            palette=palette,
+            source_color=source,
+        )
 
 
 def _strip_vision_bearer_auth(request: Any) -> None:
@@ -437,6 +507,8 @@ def _describe_product_with_vision(
     endpoint = resolve_vision_endpoint(base_url, model)
     require_vision_provider(endpoint["endpoint_kind"])
     if endpoint.get("api_style") == "openai":
+        if endpoint["endpoint_kind"] == "custom":
+            _require_public_vision_endpoint(endpoint["base_url"])
         mime_type, img_data = _encoded_vision_image(image_path)
         text = chat_completion(
             completions_url(endpoint["base_url"]),
@@ -455,10 +527,17 @@ def _describe_product_with_vision(
             },
             feature="Vision",
             local_alternative=VISION_LOCAL_HINT,
-            key=_resolve_vision_api_key(endpoint) if endpoint["endpoint_kind"] == "custom" else None,
+            key=_openai_vision_key(endpoint),
         )
         return strip_think_blocks(text)
     return _describe_anthropic(endpoint, image_path)
+
+
+def _openai_vision_key(endpoint: dict[str, Any]) -> str | None:
+    """Bearer key for the OpenAI-compatible route; loopback servers may require one."""
+    if endpoint["endpoint_kind"] == "custom":
+        return _resolve_vision_api_key(endpoint)
+    return os.environ.get("KINOCUT_VISION_API_KEY") or None
 
 
 _PRODUCT_PROMPT = (
@@ -487,16 +566,19 @@ def _describe_anthropic(endpoint: dict, image_path: str) -> str:
             error_type="validation_error",
             code="unsafe_vision_headers",
         )
+    if endpoint["endpoint_kind"] == "custom":
+        _require_public_vision_endpoint(endpoint["base_url"])
     try:
         import anthropic
     except ImportError:
+        hint = pip_install_hint("image-ai")
         raise MCPVideoError(
-            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]==2.0.1",
+            f"AI description requires the anthropic package. Install with: {hint}",
             error_type="dependency_error",
             code="missing_ai_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image-ai]==2.0.1",
+                "description": f"Run: {hint}",
             },
         ) from None
 
@@ -570,16 +652,12 @@ def analyze_product(
     _require_image_deps()
     _validate_image(image_path)
 
-    # If video input, extract a representative frame
-    frame_path = _extract_frame_if_video(image_path)
-    if frame_path != image_path:
-        image_path = frame_path
+    with _analysis_image(image_path) as frame_path:
+        colors_result = extract_colors(frame_path, n_colors=n_colors)
 
-    colors_result = extract_colors(image_path, n_colors=n_colors)
-
-    description: str | None = None
-    if use_ai:
-        description = _describe_product_with_vision(image_path, base_url, model)
+        description: str | None = None
+        if use_ai:
+            description = _describe_product_with_vision(frame_path, base_url, model)
 
     return ProductAnalysisResult(
         image_path=image_path,

@@ -9,7 +9,15 @@ from dataclasses import dataclass, field
 MAX_TEXT = 4000
 MAX_LENGTH = 14400.0
 _NUMBER = r"\d+(?:\.\d+)?"
-_TIME = rf"(?:\d+:\d{{2}}|{_NUMBER}[ -]*(?:minutes?|mins?|m)(?:\s*{_NUMBER}[ -]*(?:seconds?|secs?|s))?|{_NUMBER}[ -]*(?:seconds?|secs?|s))"
+# MM:SS or HH:MM:SS. A colon stamp never starts inside a longer one ("1:02:60"
+# must not fall back to "1:02"), and its seconds never reach 60.
+_COLON_TIME = r"(?<![\d:])\d+:\d{2}(?::[0-5]\d)?(?![\d:])"
+_UNIT_TIME = (
+    rf"{_NUMBER}[ -]*(?:hours?|hrs?|h)(?:\s*{_NUMBER}[ -]*(?:minutes?|mins?|m))?(?:\s*{_NUMBER}[ -]*(?:seconds?|secs?|s))?"
+    rf"|{_NUMBER}[ -]*(?:minutes?|mins?|m)(?:\s*{_NUMBER}[ -]*(?:seconds?|secs?|s))?"
+    rf"|{_NUMBER}[ -]*(?:seconds?|secs?|s)"
+)
+_TIME = rf"(?:{_COLON_TIME}|{_UNIT_TIME})"
 _ONES = dict(
     zip(
         [
@@ -78,10 +86,14 @@ def _numbers(match: re.Match) -> str:
 
 def _seconds(value: str) -> float:
     if ":" in value:
-        m, s = value.split(":")
-        return float(m) * 60 + float(s)
-    parts = re.findall(rf"({_NUMBER})[ -]*(minutes?|mins?|m|seconds?|secs?|s)\b", value)
-    return sum(float(n) * (60 if unit.startswith("m") else 1) for n, unit in parts)
+        parts = [float(part) for part in value.split(":")]
+        if len(parts) == 3:
+            hours, minutes, seconds = parts
+            return hours * 3600 + minutes * 60 + seconds
+        minutes, seconds = parts
+        return minutes * 60 + seconds
+    parts = re.findall(rf"({_NUMBER})[ -]*(hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)\b", value)
+    return sum(float(n) * (3600 if unit.startswith("h") else 60 if unit.startswith("m") else 1) for n, unit in parts)
 
 
 def _normalize(text: str) -> tuple[str, list]:
@@ -158,12 +170,38 @@ def _is_negated(match: re.Match, text: str, intent: str) -> bool:
     return bool(denied or preserved or turned_off)
 
 
+def _format_choice(value: str) -> str:
+    if value in {"square", "1:1"} or value.endswith("feed") or (value.startswith("instagram") and "reel" not in value):
+        return "square"
+    if value in {"youtube", "landscape", "16:9"}:
+        return "landscape"
+    return "vertical"
+
+
+def _intent_target(intent: str, text: str) -> str:
+    """The value an intent match asks for; negating one value never denies another."""
+    if intent == "format":
+        return _format_choice(text)
+    if intent == "pacing":
+        return "slower" if re.search(r"\b(?:slow|slower)\b", text) else "faster"
+    return intent
+
+
 def _take_intent(d: Direction, take, pattern: str, intent: str):
     matches = take(pattern)
-    active = [match for match in matches if not _is_negated(match, d.text, intent)]
-    denied = len(active) != len(matches)
-    d.explicit_negation |= denied
-    if denied:
+    refused = [match for match in matches if _is_negated(match, d.text, intent)]
+    active = [match for match in matches if match not in refused]
+    d.explicit_negation |= bool(refused)
+    if refused and active:
+        refused_targets = {_intent_target(intent, match[0]) for match in refused}
+        if refused_targets & {_intent_target(intent, match[0]) for match in active}:
+            d.question = d.question or "Should I apply that change, or keep this part as requested?"
+            return []
+        # "Don't make it vertical, make it landscape": the denied value is
+        # dropped, the other request in the sentence survives.
+        d.assumptions.append("A negated request was left out; the other request in that sentence is kept for review.")
+        return active
+    if refused:
         d.question = d.question or "Should I apply that change, or keep this part as requested?"
         return []
     return active
@@ -173,19 +211,10 @@ def _parse_formats(d: Direction, take) -> None:
     formats = _take_intent(
         d,
         take,
-        r"\b(?:youtube shorts?|instagram reels?|tiktok|tik tok|reels|shorts|vertical|portrait|9:16|square|1:1|instagram(?: (?:square|feed))?|feed|youtube|landscape|16:9)\b",
+        r"\b(?:youtube shorts?|instagram reels?|tiktok|tik tok|reels|shorts|vertical|portrait|9:16|square|1:1|instagram(?: (?:square|feed))?|(?:instagram |social )?feed|youtube|landscape|16:9)\b",
         "format",
     )
-    choices = []
-    for m in formats:
-        value = m[0]
-        choices.append(
-            "square"
-            if value in {"square", "1:1", "feed"} or (value.startswith("instagram") and "reel" not in value)
-            else "landscape"
-            if value in {"youtube", "landscape", "16:9"}
-            else "vertical"
-        )
+    choices = [_format_choice(m[0]) for m in formats]
     if choices:
         d.platform = choices[-1]
         if len(set(choices)) > 1:

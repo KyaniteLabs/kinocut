@@ -10,23 +10,41 @@ release they already have.
 
 from __future__ import annotations
 
+import re
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _distribution_version
 
 __all__ = ["pinned_requirement", "pip_install_hint", "running_version"]
 
+_VERSION_PARTS = re.compile(r"\d+")
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    """Numeric components of a release string, for ordering two releases."""
+    return tuple(int(part) for part in _VERSION_PARTS.findall(version.split("+", 1)[0]))
+
 
 def running_version() -> str:
-    """The version of the kinocut distribution that is actually running."""
-    try:
-        return _distribution_version("kinocut")
-    except PackageNotFoundError:
-        # A source tree that was never installed has no distribution
-        # metadata; releases keep the package constant in sync, so it is
-        # the best remaining answer for "what is running".
-        from . import __version__
+    """The version of the kinocut distribution that is actually running.
 
+    An editable or development checkout keeps its own ``__version__`` while
+    the installed distribution metadata can still name an older release;
+    the code that is running is the truth in that case, so the newer of the
+    two wins. A source tree that was never installed has no distribution
+    metadata at all and falls back to the package constant.
+    """
+    from . import __version__
+
+    try:
+        installed = _distribution_version("kinocut")
+    except PackageNotFoundError:
         return __version__
+    try:
+        if _version_key(__version__) > _version_key(installed):
+            return __version__
+    except ValueError:
+        return __version__
+    return installed
 
 
 def pinned_requirement(extra: str | None = None) -> str:
