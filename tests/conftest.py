@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 import pytest
 
 from tests.rescue_fixtures import make_rescue_fixture
-from mcp_video.rescue.models import (
+from kinocut.rescue.models import (
     RescueEstimate,
     RescuePlan,
     SourceIdentity,

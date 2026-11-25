@@ -24,7 +24,7 @@
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
   <img src="https://img.shields.io/badge/MCP-206%20tools-orange.svg" alt="206 MCP tools in the published package">
-  <img src="https://img.shields.io/badge/CLI-178%20commands-orange.svg" alt="178 CLI commands">
+  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands in the published package">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>

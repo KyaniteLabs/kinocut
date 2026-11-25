@@ -86,14 +86,14 @@ def test_readme_states_published_version_and_tip_counts(claims: dict) -> None:
     assert "kyanitelabs.github.io/mcp-video" not in readme
     assert "github.com/KyaniteLabs/mcp-video" not in readme
 
-    # Headline badge is the pinned published served count (one-number rule).
-    tip_badge = re.search(r"MCP-(\d+)%20tools", readme)
-    assert tip_badge is not None
-    assert int(tip_badge.group(1)) == claims["published_mcp_tools"]
+    # Headline badges both report the pinned published package counts (one-number rule).
+    mcp_badge = re.search(r"MCP-(\d+)%20tools", readme)
+    assert mcp_badge is not None
+    assert int(mcp_badge.group(1)) == claims["published_mcp_tools"]
 
     cli_badge = re.search(r"CLI-(\d+)%20commands", readme)
     assert cli_badge is not None
-    assert int(cli_badge.group(1)) == claims["development_cli_commands"]
+    assert int(cli_badge.group(1)) == claims["published_cli_commands"]
 
     # Published surface language in the FAQ / status table.
     assert str(claims["published_mcp_tools"]) in readme

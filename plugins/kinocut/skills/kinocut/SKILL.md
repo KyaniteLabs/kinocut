@@ -25,7 +25,7 @@ that carry the tools named below are:
 `profile:editor` carries `video_crop`, `video_edit`, `video_export`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
-`profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide` in published 2.0.1. The next release adds `video_direct` and `video_direct_apply`;
+`profile:intent` carries `video_cutfile_render`, `video_direct`, `video_direct_apply`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
 `profile:revideo` carries `revideo_install`, `revideo_materialize`, `revideo_render`, `revideo_render_job`;
 If neither `list_operations` nor a profile has an operation, follow an
 operation-specific fallback below; otherwise stop and report that it is
@@ -56,14 +56,9 @@ Trim, merge and shorts return a card with the cut: reply with their `preview_dir
 
 Require `ui.show_media` on the paired TV. Run `kinocut.tv_preview.prepare_tv_review_payload`, then use `tv_review_messages` to bind TV-reachable HTTP(S) URLs for the proxy and QC sheet. Send both via `gadget_action`; never send local paths or start a media server. Use the decision card with `gadget_ask` when supported, or require `APPROVE <review_id>` or `REJECT <review_id>` from the paired TV. In the process that prepared the review, call `consume_tv_review_decision` with the originating ID. Run the release checkpoint only on the returned approved cut and export only on pass. If the TV path is unavailable, use the Desktop review card.
 
-## When the user just says what they want (next release)
+## When the user just says what they want
 
-The `video_direct` planning flow is from the next release and is not available in
-the published 2.0.1 launch. Check `list_operations` first. If `video_direct` is
-not listed, use `video_intent` for supported intents.
-
-When available, pass the user's words verbatim to
-`video_direct(input_path=ABS_PATH, direction=WORDS)`
+Pass the user's words verbatim to `video_direct(input_path=ABS_PATH, direction=WORDS)`
 (default surface: `video_plan_ops` with `{"operation": "video_direct", "params": {...}}`).
 Read the plan's assumptions back in one sentence. Mention unrecognized words.
 Ask the plan's single question if present. Resolve it with the user's words and

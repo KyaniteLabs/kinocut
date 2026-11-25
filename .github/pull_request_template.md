@@ -10,7 +10,7 @@
 
 <!-- Paste commands and outcomes. Prefer focused tests plus the relevant broader suite. -->
 
-- [ ] `python3 -m pytest tests/ -x -q --tb=short`
+- [ ] `python3 scripts/run_full_suite.py`
 - [ ] `python3 -c "import kinocut, mcp_video"`
 - [ ] `./scripts/git-professional-audit.sh`
 - [ ] Other:
