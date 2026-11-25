@@ -43,6 +43,30 @@ python scripts/golden_path.py
 `scripts/apply_public_release_cutover.py` defaults to `--require-live` (PyPI 200 for
 the new `published_version`).
 
+### Post-publish cutover (do not skip)
+
+Publication is the gate, not the finish line. Run the post-publish phase once
+PyPI serves the release:
+
+```bash
+python scripts/apply_public_release_cutover.py --phase post-publish \
+  --version <new> --previous-version <old> --date <YYYY-MM-DD> \
+  --mcp-tools 208 --cli-commands 178 --mcp-video-version <shim> --apply
+cd packaging/claude-plugin && uv lock   # real artifact hashes, PyPI only
+```
+
+Two failures this ceremony prevents, both seen in the 2.2.0 cycle:
+
+- **Skipping it entirely.** `v2.1.0` published without the post-publish phase, so
+  every plugin manifest and install pin still named `2.0.1` for two releases.
+  `tests/test_kinocut_distribution.py` and `tests/test_install_pin_sweep.py`
+  fail on the drift; run them before pushing.
+- **The lock and the OpenCode helper.** `packaging/claude-plugin/uv.lock` needs
+  real wheel hashes from PyPI, and `plugins/kinocut/opencode-plugin/index.js`
+  carries its own `RUNTIME_VERSION` because the host reads JavaScript. The
+  script now rewrites the helper; the lock stays manual and is printed as a
+  reminder.
+
 ## 3. Ship package + registry
 
 Follow existing publish workflow (PyPI, MCP Registry recovery if needed).

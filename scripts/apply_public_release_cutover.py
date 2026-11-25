@@ -53,6 +53,14 @@ PLUGIN_MANIFESTS = (
     "plugins/kinocut/kinocut.mcp.json",
 )
 VIDEO_CI_ACTION = ".github/actions/kinocut-video-ci/action.yml"
+OPENCODE_PLUGIN = "plugins/kinocut/opencode-plugin"
+#: The OpenCode helper is JavaScript, so ``_pin_everywhere``'s Python-specific
+#: regexes miss its ``RUNTIME_VERSION`` and the pinned manifest next to it.
+OPENCODE_MANIFEST = OPENCODE_PLUGIN + "/opencode.json"
+OPENCODE_HELPER = OPENCODE_PLUGIN + "/index.js"
+#: The packaging lock pins the published runtime and is only valid once PyPI
+#: serves the artifacts, so the cutover reports it rather than guessing hashes.
+PACKAGING_LOCK = "packaging/claude-plugin/uv.lock"
 
 
 def _allow_published_version(version: str, *, require_live: bool) -> bool:
@@ -219,6 +227,20 @@ def post_publish_phase(args: argparse.Namespace, ver: str, prev: str) -> int:
     # The packaging lock pins the published runtime for the plain Claude plugin.
     _pin_everywhere(ROOT / "packaging" / "claude-plugin" / "pyproject.toml", prev, ver, apply=apply)
 
+    # The OpenCode host reads a JavaScript helper, not a Python entry point, so
+    # its runtime constant needs its own substitution or the plugin silently
+    # launches the outgoing release.
+    _sub_file(
+        ROOT / OPENCODE_HELPER,
+        r'const RUNTIME_VERSION = "[^"]+"',
+        f'const RUNTIME_VERSION = "{ver}"',
+        apply=apply,
+    )
+    if (ROOT / OPENCODE_MANIFEST).is_file():
+        _pin_everywhere(ROOT / OPENCODE_MANIFEST, prev, ver, apply=apply)
+    else:
+        print(f"  SKIP (absent): {OPENCODE_MANIFEST}")
+
     if not args.mcp_video_version:
         print(
             "FAIL: --mcp-video-version is required for post-publish (the shim release that pins this kinocut).",
@@ -290,6 +312,7 @@ def main() -> int:
     print()
     print("Manual next (post-publish):")
     print("  - Site: kinocut-site/scripts/bump-published-version.sh")
+    print(f"  - cd packaging/claude-plugin && uv lock  (regenerate {PACKAGING_LOCK} against PyPI {ver})")
     print("  - pytest tests/test_public_claims.py tests/test_install_pin_sweep.py tests/test_public_surface.py -q")
     if not args.apply:
         print("\nDry-run only. Re-run with --apply to write.")
