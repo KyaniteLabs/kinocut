@@ -28,7 +28,8 @@ def test_goal_compiles_valid_vertical_cutfile() -> None:
     ops = [o["op"] for o in cf["ops"]]
     assert "trim" in ops
     assert "resize" in ops
-    assert "add_text" in ops
+    assert "add_text" not in ops
+    assert cf.get("requires_transcription") is True
     assert any(o.get("duration") == 15 for o in cf["ops"] if o["op"] == "trim")
 
 

@@ -117,8 +117,10 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
     except ImportError as exc:
         missing = getattr(exc, "name", None)
         if isinstance(exc, ModuleNotFoundError) and (missing == "mcp" or str(missing).startswith("mcp.")):
+            from ._install_hints import pip_install_hint
+
             err_console.print(
-                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut==2.0.1[/bold]",
+                f"[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]{pip_install_hint(quoted=False)}[/bold]",
             )
         else:
             err_console.print(f"[red]MCP mode failed to start:[/red] {_render_import_failure(exc)}")
@@ -297,6 +299,7 @@ def main() -> None:
     except Exception as e:
         if use_json:
             from .errors import MCPVideoError, retry_context, retry_message
+            from .request_log import redact_text
 
             if isinstance(e, MCPVideoError):
                 try:
@@ -307,7 +310,7 @@ def main() -> None:
                     err_data = {
                         "type": "internal_error",
                         "code": "to_dict_failed",
-                        "message": retry_message(str(e), "to_dict_failed"),
+                        "message": retry_message(redact_text(str(e)), "to_dict_failed"),
                     }
                 print(json.dumps({"success": False, "error": err_data}, indent=2), file=sys.stderr)
             else:
@@ -315,7 +318,7 @@ def main() -> None:
                     json.dumps(
                         {
                             "success": False,
-                            "error": {"type": "unknown", "message": retry_message(str(e), "unknown")},
+                            "error": {"type": "unknown", "message": retry_message(redact_text(str(e)), "unknown")},
                         },
                         indent=2,
                     ),

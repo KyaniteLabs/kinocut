@@ -91,7 +91,7 @@ def test_run_diagnostics_marks_required_tools_ok_when_present(tmp_path):
             return "0.6.31"
         if command[:2] == ["node", "-e"]:
             return "0.6.31"
-        return f"{command[0]} version test"
+        return f"{command[0]} version 7.1.1"
 
     present_packages = {"mcp", "pydantic", "rich", "kinocut"}
 
@@ -458,7 +458,7 @@ def test_run_diagnostics_requires_matching_distribution_for_package_checks():
 
     report = run_diagnostics(
         which=lambda name: f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None,
-        version_runner=lambda command: f"{command[0]} version test",
+        version_runner=lambda command: f"{command[0]} version 7.1.1",
         find_spec=fake_find_spec,
         package_version=fake_package_version,
     )
@@ -481,7 +481,7 @@ def test_run_diagnostics_reports_kinocut_import_path_when_distribution_metadata_
 
     report = run_diagnostics(
         which=lambda name: f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None,
-        version_runner=lambda command: f"{command[0]} version test",
+        version_runner=lambda command: f"{command[0]} version 7.1.1",
         find_spec=fake_find_spec,
         package_version=lambda name: None,
     )
@@ -535,7 +535,7 @@ def test_run_diagnostics_includes_mcp_server_import_check():
         return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None
 
     def fake_version(command: list[str]) -> str | None:
-        return f"{command[0]} version test"
+        return f"{command[0]} version 7.1.1"
 
     imported: list[str] = []
 
@@ -574,7 +574,7 @@ def test_server_import_failure_breaks_required_summary():
         return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None
 
     def fake_version(command: list[str]) -> str | None:
-        return f"{command[0]} version test"
+        return f"{command[0]} version 7.1.1"
 
     def broken_import(name: str) -> object:
         raise ModuleNotFoundError("No module named 'fcntl'", name="fcntl")

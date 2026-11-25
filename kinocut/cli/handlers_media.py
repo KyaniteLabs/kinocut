@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json as _json
+import sys
 from typing import Any
 
 from .common import _parse_json_arg, _with_spinner
@@ -212,16 +213,15 @@ def _register_batch_commands(runner: CommandRunner) -> None:
     from ..engine import compare_quality, export_frames, video_batch
 
     def _batch(a, j):
-        _out(
-            video_batch(
-                a.inputs,
-                operation=a.operation,
-                params=_parse_json_arg(a.params, "params", json_mode=j) if a.params else {},
-                output_dir=a.output_dir,
-            ),
-            j,
-            _format_batch_text,
+        result = video_batch(
+            a.inputs,
+            operation=a.operation,
+            params=_parse_json_arg(a.params, "params", json_mode=j) if a.params else {},
+            output_dir=a.output_dir,
         )
+        _out(result, j, _format_batch_text)
+        if isinstance(result, dict) and result.get("success") is False:
+            sys.exit(1)
 
     runner.register("batch", _batch)
     runner.register(

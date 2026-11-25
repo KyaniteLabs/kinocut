@@ -1,5 +1,6 @@
 """Observe POSIX completion while retaining the child's kernel identity."""
 
+import errno
 import os
 import sys
 
@@ -9,9 +10,19 @@ from .errors import MCPVideoError
 def supports_nonreaping_wait():
     # Darwin exposes WNOWAIT but denies killpg when only the retained zombie
     # remains. Keep a live supervisor there so group cleanup retains authority.
-    return sys.platform != "darwin" and all(
+    if sys.platform == "darwin" or not all(
         hasattr(os, name) for name in ("waitid", "P_PID", "WEXITED", "WNOHANG", "WNOWAIT")
-    )
+    ):
+        return False
+    # Probe waitid(2) against our own PID so seccomp/container filters returning
+    # ENOSYS or EPERM fall back cleanly to the retaining supervisor mode.
+    try:
+        os.waitid(os.P_PID, os.getpid(), os.WEXITED | os.WNOHANG | os.WNOWAIT)
+    except ChildProcessError:
+        return True
+    except OSError as exc:
+        return exc.errno not in {errno.ENOSYS, errno.EPERM}
+    return True
 
 
 def observe_exit(process) -> int | None:

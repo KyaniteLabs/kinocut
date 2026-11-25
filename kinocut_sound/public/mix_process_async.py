@@ -2,6 +2,7 @@
 
 import asyncio
 from contextlib import suppress
+import os
 import time
 
 from kinocut_sound._process_ownership import finish_despite_cancellation
@@ -41,15 +42,21 @@ async def _discard(stream):
 
 async def _cleanup(process, tasks=()):
     if process.returncode is None:
-        with suppress(ProcessLookupError):
+        with suppress(ProcessLookupError, OSError):
             process.kill()
     for task in tasks:
         task.cancel()
     await asyncio.gather(*tasks, return_exceptions=True)
-    process.stdin.close()
-    await asyncio.gather(_discard(process.stdout), _discard(process.stderr), process.wait())
-    with suppress(BrokenPipeError, ConnectionResetError):
-        await process.stdin.wait_closed()
+    if process.stdin is not None:
+        process.stdin.close()
+    await asyncio.gather(
+        *([_discard(process.stdout)] if process.stdout is not None else []),
+        *([_discard(process.stderr)] if process.stderr is not None else []),
+        process.wait(),
+    )
+    if process.stdin is not None:
+        with suppress(BrokenPipeError, ConnectionResetError, OSError):
+            await process.stdin.wait_closed()
 
 
 async def _recover_spawn(spawn):
@@ -61,15 +68,18 @@ async def _recover_spawn(spawn):
 
 
 async def _spawn(args, pass_fds):
+    if os.name != "posix" and pass_fds:
+        return None, OSError("pass_fds is not supported on this platform")
+    popen_kwargs = {
+        "stdin": asyncio.subprocess.PIPE,
+        "stdout": asyncio.subprocess.PIPE,
+        "stderr": asyncio.subprocess.PIPE,
+        "close_fds": True,
+    }
+    if os.name == "posix":
+        popen_kwargs["pass_fds"] = pass_fds
     try:
-        process = await asyncio.create_subprocess_exec(
-            *args,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            pass_fds=pass_fds,
-            close_fds=True,
-        )
+        process = await asyncio.create_subprocess_exec(*args, **popen_kwargs)
         return process, None
     except OSError as exc:
         # Return the outcome so repeated cancellation is not lost to task.result().

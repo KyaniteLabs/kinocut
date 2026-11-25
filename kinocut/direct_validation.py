@@ -59,7 +59,7 @@ def validate_args(tool: str, args: dict):
         if args["accurate"] is not True:
             invalid("Direct trims must be frame accurate.")
     elif tool == "video_speed":
-        _number(args, "factor", 0.5, 2.0)
+        _number(args, "factor", 0.25, 4.0)
     elif tool == "video_ai_remove_silence":
         _number(args, "silence_threshold", -70, 0)
         _number(args, "min_silence_duration", 0.01, 10)

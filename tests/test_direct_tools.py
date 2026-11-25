@@ -112,7 +112,7 @@ def test_edited_plan_is_rejected_before_any_step_runs(api, monkeypatch, tmp_path
     elif mutation == "outside":
         step["args"]["output_path"] = "/etc/escape.mp4"
     elif mutation in {"speed", "negative_speed", "nan", "bool"}:
-        plan["steps"][0]["args"]["factor"] = {"speed": 2.1, "negative_speed": 0.4, "nan": float("nan"), "bool": True}[
+        plan["steps"][0]["args"]["factor"] = {"speed": 4.1, "negative_speed": 0.2, "nan": float("nan"), "bool": True}[
             mutation
         ]
     elif mutation in {"length", "zero_length"}:
@@ -241,7 +241,7 @@ def test_stale_intermediate_is_not_reported_as_produced(api, monkeypatch):
     tools, src, out = api
     from pathlib import Path
 
-    plan = tools.video_direct(src, "skip the first 1 second and make it louder", output_path=out)["plan"]
+    plan = tools.video_direct(src, "make it 30 seconds and louder", output_path=out)["plan"]
     stale = Path(plan["steps"][0]["args"]["output_path"])
     stale.write_bytes(b"old intermediate")
     monkeypatch.setattr(
@@ -469,7 +469,7 @@ def test_successful_apply_removes_intermediate_video_renders(api, monkeypatch, t
     tools, src, out = api
     from pathlib import Path
 
-    plan = tools.video_direct(src, "skip the first 1 second and make it louder", output_path=out)["plan"]
+    plan = tools.video_direct(src, "make it 30 seconds and louder", output_path=out)["plan"]
     intermediate = Path(plan["steps"][0]["args"]["output_path"])
 
     def render(tool, args, current):

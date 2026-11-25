@@ -23,9 +23,38 @@ TERMINATION_REQUESTED = RenderJobStage.TERMINATION_REQUESTED
 logger = logging.getLogger(__name__)
 
 
+def _windows_pid_quiescent(pid: int) -> bool:
+    """Observe whether a Windows process has exited without signalling it."""
+    try:
+        import ctypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        process_query_limited_information = 0x1000
+        still_active = 259
+        error_invalid_parameter = 87
+        handle = kernel32.OpenProcess(process_query_limited_information, False, int(pid))
+        if not handle:
+            err = ctypes.get_last_error()
+            return err == error_invalid_parameter
+        try:
+            exit_code = ctypes.c_uint32(0)
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                return False
+            return exit_code.value != still_active
+        finally:
+            kernel32.CloseHandle(handle)
+    except Exception as exc:
+        logger.warning("Windows process quiescence check failed (%s)", type(exc).__name__)
+        return False
+
+
 def group_quiescent(pid: int | None) -> bool:
     """Observe no executing group members; callers also verify the runner lease is released."""
-    if not isinstance(pid, int) or pid <= 1 or pid == os.getpid() or not hasattr(os, "getpgid"):
+    if not isinstance(pid, int) or pid <= 1 or pid == os.getpid():
+        return False
+    if os.name == "nt":
+        return _windows_pid_quiescent(pid)
+    if not hasattr(os, "getpgid"):
         return False
     try:
         if os.getpgid(pid) != pid:
@@ -66,24 +95,53 @@ def _darwin_group_quiescent(pgid: int) -> bool:
                 return False
             if int(group) == pgid and state[0] not in {"Z", "X"}:
                 return False
-    except (OSError, subprocess.TimeoutExpired, ValueError):
+    except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        logger.warning("Darwin group quiescence observation failed (%s)", type(exc).__name__)
         return False
     return True
 
 
-def _linux_group_quiescent(pgid: int) -> bool:
+def _linux_killpg_quiescent(pgid: int) -> bool:
+    """Fallback quiescence probe when /proc entries are restricted (hidepid/SELinux)."""
+    if not hasattr(os, "killpg"):
+        return False
     try:
-        for entry in Path("/proc").iterdir():
-            if not entry.name.isdecimal():
-                continue
-            try:
-                fields = (entry / "stat").read_text().rsplit(")", 1)[1].split()
-            except FileNotFoundError:
-                continue
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return True
+    except OSError:
+        return False
+    return False
+
+
+def _linux_group_quiescent(pgid: int) -> bool:
+    saw_restricted = False
+    readable_entries = 0
+    try:
+        entries = list(Path("/proc").iterdir())
+    except OSError as exc:
+        logger.warning("Linux /proc directory scan failed (%s); falling back to killpg", type(exc).__name__)
+        return _linux_killpg_quiescent(pgid)
+    for entry in entries:
+        if not entry.name.isdecimal():
+            continue
+        try:
+            raw = (entry / "stat").read_text()
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        except (PermissionError, OSError):
+            saw_restricted = True
+            continue
+        try:
+            fields = raw.rsplit(")", 1)[1].split()
             if int(fields[2]) == pgid and fields[0] not in {"Z", "X"}:
                 return False
-    except (OSError, ValueError, IndexError):
-        return False
+            readable_entries += 1
+        except (ValueError, IndexError):
+            saw_restricted = True
+            continue
+    if saw_restricted and readable_entries == 0:
+        return _linux_killpg_quiescent(pgid)
     return True
 
 
@@ -97,7 +155,18 @@ def stop_runner_group(pid: int | None, lease_is_held: Callable[[], bool]) -> str
     """
     if group_quiescent(pid) and not lease_is_held():
         return "stopped"
-    if not isinstance(pid, int) or pid <= 1 or pid == os.getpid() or not hasattr(os, "getpgid"):
+    if not isinstance(pid, int) or pid <= 1 or pid == os.getpid():
+        return "identity_unverified"
+    if os.name == "nt":
+        if not lease_is_held():
+            return "stopped" if group_quiescent(pid) and not lease_is_held() else "identity_unverified"
+        deadline = time.monotonic() + DEFAULT_RENDER_STOP_TIMEOUT
+        while time.monotonic() < deadline:
+            if group_quiescent(pid) and not lease_is_held():
+                return "stopped"
+            time.sleep(DEFAULT_RENDER_STOP_POLL_INTERVAL)
+        return "timeout"
+    if not hasattr(os, "getpgid"):
         return "identity_unverified"
     try:
         if os.getpgid(pid) != pid:

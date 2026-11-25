@@ -31,12 +31,12 @@ def build_metadata(
     isrc: str | None = None,
     loudness_lufs: float | None = None,
 ) -> EpisodeMetadata:
+    if not isinstance(title, str) or not title.strip():
+        raise qa_error("title required", QA_INPUT_INVALID)
     try:
-        BoundedCode(title.replace(" ", "_")[:64] if " " in title else title)
+        BoundedCode(title.strip().replace(" ", "_"))
     except Exception as exc:
-        # titles may have spaces; require non-empty
-        if not title or not title.strip():
-            raise qa_error("title required", QA_INPUT_INVALID) from exc
+        raise qa_error("title must be a bounded code", QA_INPUT_INVALID) from exc
     if duration_seconds <= 0:
         raise qa_error("duration must be positive", QA_INPUT_INVALID)
     if isrc is not None:
