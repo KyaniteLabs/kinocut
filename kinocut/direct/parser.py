@@ -266,9 +266,18 @@ def _parse_captions(d: Direction, take) -> None:
         d.assumptions.append("Conflicting caption requests: no captions wins, even if requested earlier.")
 
 
+_POLITENESS_ONLY_RE = re.compile(
+    r"^(?:please|thanks|thank you|for me|now|asap)[\s,.!?]*$", re.IGNORECASE
+)
+
+
 def _supported_removal_item(item: str) -> bool:
     item = item.strip(" ,.!?;:")
     item = re.sub(r"^(?:(?:the|all|any)\s+)+", "", item)
+    # Politeness is not part of the thing being removed ("remove the pauses please").
+    item = re.sub(
+        r"(?:[\s,;]+(?:please|thanks|thank you|for me|asap|now))+[\s,;]*$", "", item, flags=re.IGNORECASE
+    ).strip(" ,.!?;:")
     return bool(
         re.fullmatch(r"(?:dead air|silences?|pauses)(?:\s+(?:removed|deleted))?", item)
         or re.fullmatch(r"audio", item)
@@ -307,7 +316,7 @@ def _ask_about_unsupported_removals(d: Direction) -> None:
             following = next((m for m in separators if m.start() >= next_start), None)
             next_end = following.start() if following else len(d.text)
             item = d.text[next_start:next_end]
-            if not item.strip():
+            if not item.strip() or _POLITENESS_ONLY_RE.match(item.strip()):
                 separator = following
                 continue
             if _independent_edit_clause(item):
@@ -452,24 +461,48 @@ def _format_edit_suffix(item: str, start: int, consumed: list) -> bool:
     return not residue.strip()
 
 
+_CLIP_SELECTION_RE = re.compile(
+    r"\b(?:keep|leave|retain|preserve|maintain)\s+(?:the\s+|my\s+|a\s+)?"
+    r"(?:ending|end|intro|introduction|beginning|start|middle|outro|first|last)\b"
+    r"|\b(?:from|starting)\s+(?:the\s+)?(?:middle|beginning|start|end|ending)\b",
+    re.IGNORECASE,
+)
+
+
+def _clip_selection_suffix(item: str) -> bool:
+    """An instruction about which part of the clip to keep, not an edit of its own."""
+    return bool(_CLIP_SELECTION_RE.search(item))
+
+
 def _length_suffix_is_supported(text: str, start: int, consumed: list) -> bool:
     separators = list(re.finditer(r"[,;.!?]|\b(?:and|then|but|plus)\b", text[start:]))
+    bounds = []
     segment_start = start
-    has_separator = False
     for separator in separators:
-        segment_end = start + separator.start()
+        bounds.append((segment_start, start + separator.start()))
+        segment_start = start + separator.end()
+    bounds.append((segment_start, len(text)))
+    independent = False
+    for index, (segment_start, segment_end) in enumerate(bounds[:-1]):
         segment = text[segment_start:segment_end]
-        if has_separator and _independent_length_edit(segment, segment_start, consumed):
-            return True
+        # A later instruction about which part to keep ("keep the ending") decides the length;
+        # an independent edit found earlier must not hide it.
+        if index and _clip_selection_suffix(segment):
+            return False
+        if index and _independent_length_edit(segment, segment_start, consumed):
+            independent = True
+            continue
         if not _harmless_length_suffix(segment):
             return False
-        segment_start = start + separator.end()
-        has_separator = True
-    final = text[segment_start:]
+    final_start = bounds[-1][0]
+    final = text[final_start:bounds[-1][1]]
+    if (independent or separators) and _clip_selection_suffix(final):
+        return False
     return (
-        (has_separator and _independent_length_edit(final, segment_start, consumed))
+        independent
+        or (bool(separators) and _independent_length_edit(final, final_start, consumed))
         or _harmless_length_suffix(final)
-        or (not has_separator and _format_edit_suffix(final, segment_start, consumed))
+        or (not separators and _format_edit_suffix(final, final_start, consumed))
     )
 
 
