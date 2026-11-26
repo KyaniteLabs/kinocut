@@ -266,9 +266,7 @@ def _parse_captions(d: Direction, take) -> None:
         d.assumptions.append("Conflicting caption requests: no captions wins, even if requested earlier.")
 
 
-_POLITENESS_ONLY_RE = re.compile(
-    r"^(?:please|thanks|thank you|for me|now|asap)[\s,.!?]*$", re.IGNORECASE
-)
+_POLITENESS_ONLY_RE = re.compile(r"^(?:please|thanks|thank you|for me|now|asap)[\s,.!?]*$", re.IGNORECASE)
 
 
 def _supported_removal_item(item: str) -> bool:
@@ -495,7 +493,7 @@ def _length_suffix_is_supported(text: str, start: int, consumed: list) -> bool:
         if not _harmless_length_suffix(segment):
             return False
     final_start = bounds[-1][0]
-    final = text[final_start:bounds[-1][1]]
+    final = text[final_start : bounds[-1][1]]
     if (independent or separators) and _clip_selection_suffix(final):
         return False
     return (
