@@ -120,7 +120,7 @@ dev = [
     "ruff>=0.15.11",
     # Pinned to the version ci.yml's type gate runs, so `pip install -e ".[dev]"`
     # reproduces that gate locally.
-    "pyright==1.1.408",
+    "pyright==1.1.414",
 ]
 
 [tool.ruff]
